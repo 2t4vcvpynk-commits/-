@@ -4,12 +4,13 @@ import { Net } from './net.js';
 import { hud } from './hud.js';
 import { unlockAudio } from './sfx.js';
 import {
-  OPTIONS, COLOR_KEYS, STYLE_STATS, DEFAULT_PROFILE, sanitizeProfile, randomProfile,
+  OPTIONS, COLOR_KEYS, DEFAULT_PROFILE, sanitizeProfile, randomProfile,
+  STAT_KEYS, STAT_POINTS, STAT_MAX, SKILLS, SKILL_IDS, statMods,
 } from './shared/profile.js';
 
 const $ = (id) => document.getElementById(id);
 const STORE_KEY = 'kobushi3d.profile';
-const LABELS = { hair: '髪型', head: '顔', acc: 'アクセ', build: '体格', style: 'スタイル' };
+const LABELS = { hair: '髪型', head: '顔', acc: 'アクセ', build: '体格' };
 
 function loadProfile() {
   try {
@@ -26,6 +27,7 @@ function saveProfile() {
 
 let profile = loadProfile();
 const game = new Game($('c'));
+if (location.hash === '#debug') window.game = game; // 動作確認用
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 game.input.bindTouch($('touch'));
 game.input.lockOn = isTouch; // スマホは最初からロックオン
@@ -59,7 +61,6 @@ function buildEditor() {
       b.addEventListener('click', () => {
         profile[key] = val;
         onProfileChange();
-        if (key === 'style') game.previewAttack('kick');
       });
       chips.appendChild(b);
     }
@@ -92,6 +93,8 @@ function buildEditor() {
     profile.height = Number($('pheight').value);
     onProfileChange();
   });
+  buildStats();
+  buildSkills();
   $('random').addEventListener('click', () => {
     profile = randomProfile(profile.name);
     onProfileChange();
@@ -106,7 +109,96 @@ function syncEditor() {
     c.querySelectorAll('.chip').forEach((b) => b.classList.toggle('on', b.dataset.val === profile[c.dataset.key]));
   });
   document.querySelectorAll('#colors input').forEach((i) => { i.value = profile[i.dataset.key]; });
-  $('styleDesc').textContent = `スタイル「${OPTIONS.style.find(([v]) => v === profile.style)[1]}」: ${STYLE_STATS[profile.style].desc}`;
+  syncStats();
+  syncSkills();
+}
+
+// ---- ステータス振り分け ----
+const statTotal = () => STAT_KEYS.reduce((n, [k]) => n + profile.stats[k], 0);
+
+function statLabel(k, mods) {
+  if (k === 'atk') return `ダメージ×${mods.atk.toFixed(2)}`;
+  if (k === 'def') return `被ダメ×${mods.def.toFixed(2)}`;
+  if (k === 'spd') return `速さ×${mods.spd.toFixed(2)}`;
+  return `HP ${mods.maxHp}`;
+}
+
+function buildStats() {
+  const box = $('stats');
+  for (const [k, label] of STAT_KEYS) {
+    const row = document.createElement('div');
+    row.className = 'stat';
+    row.dataset.key = k;
+    row.innerHTML = `<span>${label}</span><button data-d="-1">−</button><div class="pips">${'<i></i>'.repeat(STAT_MAX)}</div><button data-d="1">＋</button><em></em>`;
+    row.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+      const v = profile.stats[k] + Number(b.dataset.d);
+      if (v < 0 || v > STAT_MAX) return;
+      if (Number(b.dataset.d) > 0 && statTotal() >= STAT_POINTS) return;
+      profile.stats[k] = v;
+      syncStats();
+      saveProfile();
+    }));
+    box.appendChild(row);
+  }
+}
+
+function syncStats() {
+  const left = STAT_POINTS - statTotal();
+  const mods = statMods(profile);
+  $('statLeft').textContent = `残り ${left} pt`;
+  $('statLeft').classList.toggle('zero', left === 0);
+  document.querySelectorAll('#stats .stat').forEach((row) => {
+    const k = row.dataset.key;
+    const v = profile.stats[k];
+    row.querySelectorAll('.pips i').forEach((p, i) => p.classList.toggle('on', i < v));
+    row.querySelector('[data-d="-1"]').disabled = v <= 0;
+    row.querySelector('[data-d="1"]').disabled = v >= STAT_MAX || left <= 0;
+    row.querySelector('em').textContent = statLabel(k, mods);
+  });
+}
+
+// ---- 超能力えらび ----
+let activeSlot = 0;
+const SKILL_ANIM = { fire: 'special', beam: 'special', wave: 'stomp', blink: 'p2' };
+
+function buildSkills() {
+  const list = $('skillList');
+  for (const id of SKILL_IDS) {
+    const d = SKILLS[id];
+    const b = document.createElement('button');
+    b.className = 'skill-card';
+    b.dataset.id = id;
+    b.innerHTML = `<div class="t">${d.icon} ${d.name}</div><p>${d.desc}</p><div class="meta">${d.sp ? '⚡ SPゲージMAXで使用' : `クールダウン ${d.cd}秒`}</div>`;
+    b.addEventListener('click', () => {
+      const other = 1 - activeSlot;
+      if (profile.skills[other] === id) profile.skills[other] = profile.skills[activeSlot];
+      profile.skills[activeSlot] = id;
+      activeSlot = other;
+      syncSkills();
+      saveProfile();
+      game.previewAttack(SKILL_ANIM[id] || 'cast');
+    });
+    list.appendChild(b);
+  }
+}
+
+function syncSkills() {
+  const slots = $('skillSlots');
+  slots.innerHTML = '';
+  profile.skills.forEach((id, i) => {
+    const d = SKILLS[id];
+    const el = document.createElement('div');
+    el.className = `slot${i === activeSlot ? ' active' : ''}`;
+    el.innerHTML = `<small>技${i + 1}（${i === 0 ? 'U' : 'I'}キー）${i === activeSlot ? '← 変更中' : ''}</small>${d.icon} ${d.name}`;
+    el.addEventListener('click', () => {
+      activeSlot = i;
+      syncSkills();
+    });
+    slots.appendChild(el);
+  });
+  document.querySelectorAll('#skillList .skill-card').forEach((c) => {
+    c.classList.toggle('on', profile.skills.includes(c.dataset.id));
+  });
 }
 
 let rebuildTimer = 0;

@@ -1,23 +1,27 @@
-// 対戦ルームのルール（HP・ラウンド・判定の検証）
+// 対戦ルームのルール（HP・ラウンド・判定の検証・超能力）
 // サーバー（オンライン対戦）とブラウザ（練習モード）の両方で同じコードを使う。
 
-import { sanitizeProfile, STYLE_STATS } from './profile.js';
+import { sanitizeProfile, statMods, SKILLS } from './profile.js';
 
-export const MAX_HP = 100;
 export const ROUND_TIME = 60;
 export const WINS_NEEDED = 2;
 export const METER_MAX = 100;
+export const TIMESTOP_MS = 3000;
 
 // 技ごとのダメージ（ガード時は CHIP 倍）
-export const DAMAGE = { p1: 5, p2: 6, p3: 10, kick: 12, air: 10, fire: 16 };
+export const DAMAGE = { p1: 5, p2: 6, p3: 10, kick: 12, air: 10, fire: 16, beam: 7, wave: 11 };
 const CHIP = 0.2;
 const MELEE_RANGE = 3.2; // 通信遅延を考慮した緩めの距離チェック
-const FIRE_RANGE = 30;
-const FIRE_LIFETIME = 3000;
+const RANGES = { fire: 30, beam: 40, wave: 5 };
 const HIT_COOLDOWN = 110;
+const CD_SLACK = 400; // クールダウン判定の余裕（ms）
+// 能力ごとの持続時間（ms）
+const BUFF = { accel: 5000, armor: 5000, vamp: 6000 };
+// 能力で出した攻撃が有効な時間と回数
+const WINDOW = { fire: [4000, 1], beam: [4500, 8], wave: [2500, 1] };
 
 export const ANIMS = ['idle', 'walk', 'jump', 'block', 'blockhit', 'hit', 'ko', 'win',
-  'p1', 'p2', 'p3', 'kick', 'air', 'special', 'dodge'];
+  'p1', 'p2', 'p3', 'kick', 'air', 'special', 'dodge', 'cast', 'beam', 'stomp'];
 
 const num = (v, lim = 50) => (Number.isFinite(v) ? Math.max(-lim, Math.min(lim, v)) : 0);
 
@@ -31,6 +35,7 @@ export class Room {
     this.roundEndsAt = 0;
     this.rematch = [false, false];
     this.timers = new Set();
+    this.stop = null; // { by, until } タイムストップ
   }
 
   get count() {
@@ -58,14 +63,23 @@ export class Room {
     const i = this.slots.indexOf(null);
     if (i < 0) return -1;
     player.profile = sanitizeProfile(player.profile);
+    player.mods = statMods(player.profile);
     player.idx = i;
-    player.hp = MAX_HP;
+    player.hp = player.mods.maxHp;
     player.meter = 0;
     player.state = null;
+    this.resetPlayer(player);
     this.slots[i] = player;
     player.send({ t: 'joined', code: this.code, you: i });
     if (this.count === 2) this.startMatch();
     return i;
+  }
+
+  resetPlayer(p) {
+    p.cdUntil = {};
+    p.buffUntil = {};
+    p.windows = {};
+    p.lastHit = 0;
   }
 
   remove(player) {
@@ -74,6 +88,7 @@ export class Room {
     this.slots[i] = null;
     this.clearTimers();
     this.phase = 'waiting';
+    this.stop = null;
     const other = this.slots[1 - i];
     if (other) other.send({ t: 'oppLeft' });
   }
@@ -96,9 +111,10 @@ export class Room {
 
   startRound() {
     this.round++;
+    this.stop = null;
     for (const p of this.slots) {
-      p.hp = MAX_HP;
-      p.fireAt = 0;
+      p.hp = p.mods.maxHp;
+      this.resetPlayer(p);
     }
     this.phase = 'countdown';
     this.broadcast({
@@ -114,6 +130,7 @@ export class Room {
 
   endRound(winner, reason) {
     this.phase = 'roundEnd';
+    this.stop = null;
     if (winner >= 0) this.wins[winner]++;
     this.broadcast({ t: 'roundEnd', winner, reason, wins: this.wins });
     const champ = this.wins.findIndex((w) => w >= WINS_NEEDED);
@@ -130,15 +147,31 @@ export class Room {
   tick(now = Date.now()) {
     if (this.phase === 'fight' && now >= this.roundEndsAt && this.count === 2) {
       const [a, b] = this.slots;
-      const winner = a.hp > b.hp ? 0 : b.hp > a.hp ? 1 : -1;
+      const ra = a.hp / a.mods.maxHp;
+      const rb = b.hp / b.mods.maxHp;
+      const winner = ra > rb ? 0 : rb > ra ? 1 : -1;
       this.endRound(winner, 'time');
     }
+  }
+
+  // タイムストップで止められている？
+  isStopped(i, now) {
+    return !!this.stop && now < this.stop.until && this.stop.by !== i;
+  }
+
+  hpList() {
+    return this.slots.map((s) => (s ? s.hp : 0));
+  }
+
+  meterList() {
+    return this.slots.map((s) => (s ? s.meter : 0));
   }
 
   handle(p, msg) {
     const i = this.slots.indexOf(p);
     if (i < 0 || !msg || typeof msg.t !== 'string') return;
     const opp = this.slots[1 - i];
+    const now = Date.now();
 
     switch (msg.t) {
       case 's': {
@@ -146,7 +179,7 @@ export class Room {
           t: 's',
           x: num(msg.x), y: num(msg.y), z: num(msg.z), r: num(msg.r, 100),
           an: ANIMS.includes(msg.an) ? msg.an : 'idle',
-          at: num(msg.at, 10), ai: num(msg.ai | 0, 1e9), mv: num(msg.mv, 10),
+          at: num(msg.at, 10), ai: num(msg.ai | 0, 1e9), mv: num(msg.mv, 20),
           blk: !!msg.blk, inv: !!msg.inv,
         };
         p.state = s;
@@ -155,39 +188,57 @@ export class Room {
       }
       case 'hit': {
         if (this.phase !== 'fight' || !opp || !(msg.kind in DAMAGE)) return;
-        const now = Date.now();
-        if (now - (p.lastHit || 0) < HIT_COOLDOWN) return;
+        if (this.isStopped(i, now)) return;
         const kind = msg.kind;
+        if (now - p.lastHit < HIT_COOLDOWN) return;
         if (p.state && opp.state) {
           const d = Math.hypot(p.state.x - opp.state.x, p.state.z - opp.state.z);
-          if (d > (kind === 'fire' ? FIRE_RANGE : MELEE_RANGE)) return;
+          if (d > (RANGES[kind] || MELEE_RANGE)) return;
         }
-        if (opp.state && opp.state.inv) return; // 回避中は無敵
-        if (kind === 'fire') {
-          if (!p.fireAt || now - p.fireAt > FIRE_LIFETIME) return;
-          p.fireAt = 0;
+        // 能力で出した攻撃は、発動後の一定時間・回数だけ有効
+        if (WINDOW[kind]) {
+          const w = p.windows[kind];
+          if (!w || now > w.until || w.left <= 0) return;
+          w.left--;
         }
+        const stopped = this.isStopped(1 - i, now);
+        if (!stopped && opp.state && opp.state.inv) return; // 回避中は無敵
         p.lastHit = now;
-        const blocked = !!(opp.state && opp.state.blk);
-        let dmg = DAMAGE[kind] * (STYLE_STATS[p.profile.style]?.dmg || 1);
+        const blocked = !stopped && !!(opp.state && opp.state.blk);
+        let dmg = DAMAGE[kind] * p.mods.atk * opp.mods.def;
+        if (now < (opp.buffUntil.armor || 0)) dmg *= 0.5;
         if (blocked) dmg *= CHIP;
         dmg = Math.max(1, Math.round(dmg));
         opp.hp = Math.max(0, opp.hp - dmg);
+        if (now < (p.buffUntil.vamp || 0)) p.hp = Math.min(p.mods.maxHp, p.hp + Math.ceil(dmg * 0.5));
         p.meter = Math.min(METER_MAX, p.meter + dmg * (blocked ? 1.5 : 1.6));
         opp.meter = Math.min(METER_MAX, opp.meter + dmg * 0.9);
         this.broadcast({
-          t: 'hit', by: i, kind, blocked, dmg,
-          hp: this.slots.map((s) => s.hp), meter: this.slots.map((s) => s.meter),
+          t: 'hit', by: i, kind, blocked, dmg, stopped,
+          hp: this.hpList(), meter: this.meterList(),
         });
         if (opp.hp <= 0) this.endRound(i, 'ko');
         break;
       }
-      case 'special': {
-        if (this.phase !== 'fight' || !opp || p.meter < METER_MAX) return;
-        p.meter = 0;
-        p.fireAt = Date.now();
-        opp.send({ t: 'fx', by: i, x: num(msg.x), y: num(msg.y), z: num(msg.z), dx: num(msg.dx, 1), dz: num(msg.dz, 1) });
-        this.broadcast({ t: 'meter', meter: this.slots.map((s) => s.meter) });
+      case 'ability': {
+        const id = msg.id;
+        const def = SKILLS[id];
+        if (this.phase !== 'fight' || !opp || !def || !p.profile.skills.includes(id)) return;
+        if (this.isStopped(i, now)) return;
+        if (now < (p.cdUntil[id] || 0)) return;
+        if (def.sp && p.meter < METER_MAX) return;
+        p.cdUntil[id] = now + def.cd * 1000 - CD_SLACK;
+        if (def.sp) p.meter = 0;
+        if (BUFF[id]) p.buffUntil[id] = now + BUFF[id];
+        if (WINDOW[id]) p.windows[id] = { until: now + WINDOW[id][0], left: WINDOW[id][1] };
+        if (id === 'heal') p.hp = Math.min(p.mods.maxHp, p.hp + 20);
+        if (id === 'timestop') this.stop = { by: i, until: now + TIMESTOP_MS };
+        this.broadcast({
+          t: 'ability', by: i, id,
+          x: num(msg.x), y: num(msg.y), z: num(msg.z), dx: num(msg.dx, 1), dz: num(msg.dz, 1),
+          dur: id === 'timestop' ? TIMESTOP_MS : BUFF[id] || 0,
+          hp: this.hpList(), meter: this.meterList(),
+        });
         break;
       }
       case 'rematch': {

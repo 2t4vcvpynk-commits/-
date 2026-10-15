@@ -33,8 +33,18 @@
           <span>身長</span>
           <input id="pheight" type="range" min="0.88" max="1.12" step="0.01">
         </label>
-        <p id="styleDesc" class="hint"></p>
-        <button id="random" class="btn ghost">🎲 ランダム</button>
+        <button id="random" class="btn ghost">🎲 ランダム（見た目も能力も）</button>
+      </section>
+
+      <section>
+        <h2>ステータス <span id="statLeft" class="pill"></span></h2>
+        <div id="stats"></div>
+      </section>
+
+      <section>
+        <h2>超能力 <span class="pill">2つ選択</span></h2>
+        <div id="skillSlots" class="slots"></div>
+        <div id="skillList" class="skill-list"></div>
       </section>
 
       <section>
@@ -58,9 +68,9 @@
           <tr><td>ガード（長押し）</td><td><kbd>L</kbd> / <kbd>C</kbd></td></tr>
           <tr><td>回避ステップ（無敵）</td><td><kbd>Shift</kbd></td></tr>
           <tr><td>ジャンプ（空中で攻撃）</td><td><kbd>Space</kbd></td></tr>
-          <tr><td>必殺技（ゲージMAX時）</td><td><kbd>U</kbd> / <kbd>V</kbd></td></tr>
+          <tr><td>超能力1 / 超能力2</td><td><kbd>U</kbd> / <kbd>I</kbd></td></tr>
         </table>
-        <p class="hint">コロシアムを自由に走り回って戦おう！対戦中に画面をクリックするとマウスで視点を動かせます（Escで解除）。柱に隠れれば必殺技を防げます。スマホは左スティックで移動、画面ドラッグで視点。2本先取で勝利！</p>
+        <p class="hint">コロシアムを自由に走り回って戦おう！対戦中に画面をクリックするとマウスで視点を動かせます（Escで解除）。柱に隠れれば気功弾を防げます。⚡マークの能力はSPゲージMAXで使えます。スマホは左スティックで移動、画面ドラッグで視点。2本先取で勝利！</p>
       </section>
     </div>
   </div>
@@ -84,16 +94,18 @@
   <div id="hud" hidden>
     <div class="side" id="hud0">
       <div class="name" id="name0"></div>
-      <div class="hpbar"><div class="lag" id="hpl0"></div><div class="fill" id="hp0"></div></div>
+      <div class="hpbar"><div class="lag" id="hpl0"></div><div class="fill" id="hp0"></div><span class="hpn" id="hpn0"></span></div>
       <div class="row"><div class="wins" id="wins0"></div><div class="meter"><div id="m0"></div><b>SP</b></div></div>
     </div>
     <div id="timer">60</div>
     <div class="side right" id="hud1">
       <div class="name" id="name1"></div>
-      <div class="hpbar"><div class="lag" id="hpl1"></div><div class="fill" id="hp1"></div></div>
+      <div class="hpbar"><div class="lag" id="hpl1"></div><div class="fill" id="hp1"></div><span class="hpn" id="hpn1"></span></div>
       <div class="row"><div class="wins" id="wins1"></div><div class="meter"><div id="m1"></div><b>SP</b></div></div>
     </div>
     <div id="ping"></div>
+    <div id="skills"></div>
+    <div id="skillToast"></div>
     <button id="lock" title="ロックオン切替 (Tab)"></button>
     <button id="quit" title="退出">✕</button>
   </div>
@@ -105,7 +117,8 @@
     <div id="stick"><div id="knob"></div></div>
     <div class="buttons">
       <button data-act="lock" class="lk">ロック</button>
-      <button data-act="special" class="sp">必殺</button>
+      <button data-act="skill1" class="s1">技1</button>
+      <button data-act="skill2" class="s2">技2</button>
       <button data-act="dodge" class="dg">回避</button>
       <button data-act="jump" class="jp">ジャンプ</button>
       <button data-act="block" class="bl">ガード</button>

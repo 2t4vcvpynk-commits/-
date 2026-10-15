@@ -5,7 +5,6 @@ export const OPTIONS = {
   head: [['round', 'まる'], ['square', 'しかく']],
   acc: [['none', 'なし'], ['headband', 'ハチマキ'], ['horns', 'ツノ'], ['crown', '王冠'], ['mask', 'マスク'], ['shades', 'サングラス']],
   build: [['slim', 'ほそみ'], ['normal', 'ふつう'], ['heavy', 'ガッチリ']],
-  style: [['balanced', 'バランス'], ['power', 'パワー'], ['speed', 'スピード']],
 };
 
 export const COLOR_KEYS = [
@@ -17,12 +16,41 @@ export const COLOR_KEYS = [
   ['accColor', 'アクセ'],
 ];
 
-// スタイルごとの性能差
-export const STYLE_STATS = {
-  balanced: { dmg: 1.0, speed: 1.0, desc: '攻撃力・スピードともに標準' },
-  power: { dmg: 1.2, speed: 0.88, desc: '攻撃力 +20% / 移動 -12%' },
-  speed: { dmg: 0.85, speed: 1.2, desc: '攻撃力 -15% / 移動 +20%' },
+// ---- ステータス振り分け ----
+export const STAT_KEYS = [
+  ['atk', '攻撃'],
+  ['def', '防御'],
+  ['spd', '速さ'],
+  ['hp', '体力'],
+];
+export const STAT_POINTS = 10; // 合計ポイント
+export const STAT_MAX = 6; // 1項目の上限
+
+// ステータスから実際の性能を計算
+export function statMods(profile) {
+  const s = profile.stats;
+  return {
+    atk: 0.8 + s.atk * 0.08, // 与ダメージ倍率 0.80〜1.28
+    def: 1.15 - s.def * 0.07, // 被ダメージ倍率 1.15〜0.73
+    spd: 0.85 + s.spd * 0.06, // 移動速度倍率 0.85〜1.21
+    maxHp: 80 + s.hp * 8, // 最大HP 80〜128
+  };
+}
+
+// ---- 超能力（2つまで装備） ----
+// cd: クールダウン秒 / sp: SPゲージMAXを消費する必殺級
+export const SKILLS = {
+  fire: { name: '気功弾', icon: '🔥', cd: 5, sp: false, desc: 'まっすぐ飛ぶエネルギー弾。柱で防がれる' },
+  accel: { name: '時間加速', icon: '⏩', cd: 14, sp: false, desc: '5秒間、移動も攻撃も超高速になる' },
+  timestop: { name: 'タイムストップ', icon: '⏱', cd: 20, sp: true, desc: '3秒間、相手の時間を止める。止まった相手はガードできない' },
+  beam: { name: '超破壊光線', icon: '💥', cd: 18, sp: true, desc: 'ためて放つ極太ビーム。柱も貫通する大ダメージ' },
+  blink: { name: '瞬間移動', icon: '🌀', cd: 7, sp: false, desc: '一瞬で相手の背後にワープ' },
+  wave: { name: '衝撃波', icon: '💢', cd: 8, sp: false, desc: '地面を踏み抜き、周りの相手を吹き飛ばす' },
+  armor: { name: '鋼の肉体', icon: '🛡', cd: 15, sp: false, desc: '5秒間、ダメージ半減＆ひるまない' },
+  vamp: { name: '吸血', icon: '🩸', cd: 15, sp: false, desc: '6秒間、与えたダメージの半分を回復' },
+  heal: { name: '回復', icon: '💚', cd: 30, sp: false, desc: 'HPを20回復する' },
 };
+export const SKILL_IDS = Object.keys(SKILLS);
 
 export const DEFAULT_PROFILE = {
   name: 'ファイター',
@@ -37,13 +65,14 @@ export const DEFAULT_PROFILE = {
   acc: 'headband',
   build: 'normal',
   height: 1,
-  style: 'balanced',
+  stats: { atk: 3, def: 2, spd: 3, hp: 2 },
+  skills: ['fire', 'accel'],
 };
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
 export function sanitizeProfile(p) {
-  const out = { ...DEFAULT_PROFILE };
+  const out = { ...DEFAULT_PROFILE, stats: { ...DEFAULT_PROFILE.stats }, skills: [...DEFAULT_PROFILE.skills] };
   if (!p || typeof p !== 'object') return out;
   if (typeof p.name === 'string') {
     const n = p.name.replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 12);
@@ -57,6 +86,20 @@ export function sanitizeProfile(p) {
   }
   const h = Number(p.height);
   if (Number.isFinite(h)) out.height = Math.min(1.12, Math.max(0.88, h));
+  if (p.stats && typeof p.stats === 'object') {
+    const st = {};
+    let total = 0;
+    for (const [k] of STAT_KEYS) {
+      const v = Math.round(Number(p.stats[k]));
+      st[k] = Number.isFinite(v) ? Math.min(STAT_MAX, Math.max(0, v)) : 0;
+      total += st[k];
+    }
+    if (total <= STAT_POINTS) out.stats = st;
+  }
+  if (Array.isArray(p.skills)) {
+    const sk = p.skills.filter((id) => SKILL_IDS.includes(id)).slice(0, 2);
+    if (sk.length === 2 && sk[0] !== sk[1]) out.skills = sk;
+  }
   return out;
 }
 
@@ -74,6 +117,21 @@ const SKINS = ['#ffe0bd', '#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#5c3a1e',
 const HAIRS = ['#2b1a0e', '#090909', '#a0522d', '#f4d03f', '#e74c3c', '#ecf0f1', '#8e44ad', '#3498db', '#2ecc71'];
 const NAMES = ['リュウ', 'タイガー', 'ケン', 'サクラ', 'ゴウ', 'ミカ', 'ジン', 'ライ', 'ハヤテ', 'ブル', 'カエデ', 'ゲンジ'];
 
+function randomStats() {
+  const st = { atk: 0, def: 0, spd: 0, hp: 0 };
+  const keys = Object.keys(st);
+  for (let i = 0; i < STAT_POINTS; i++) {
+    const k = pick(keys.filter((x) => st[x] < STAT_MAX));
+    st[k]++;
+  }
+  return st;
+}
+
+function randomSkills() {
+  const a = pick(SKILL_IDS);
+  return [a, pick(SKILL_IDS.filter((x) => x !== a))];
+}
+
 export function randomProfile(name) {
   const hue = Math.floor(Math.random() * 360);
   return sanitizeProfile({
@@ -89,6 +147,7 @@ export function randomProfile(name) {
     acc: pick(OPTIONS.acc)[0],
     build: pick(OPTIONS.build)[0],
     height: 0.92 + Math.random() * 0.16,
-    style: pick(OPTIONS.style)[0],
+    stats: randomStats(),
+    skills: randomSkills(),
   });
 }

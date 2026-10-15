@@ -61,5 +61,16 @@ export function sfx(name) {
     case 'fight': tone(880, 1320, 0.3, 0.3, 'square'); break;
     case 'jump': tone(300, 500, 0.1, 0.12, 'triangle'); break;
     case 'land': noise(0.08, 400, 1, 0.3); break;
+    case 'denied': tone(200, 160, 0.08, 0.15, 'square'); break;
+    case 'accel': tone(400, 1600, 0.35, 0.2, 'sawtooth'); break;
+    case 'armor': tone(120, 90, 0.4, 0.4, 'square'); noise(0.2, 3000, 4, 0.3, 'bandpass'); break;
+    case 'buff': tone(500, 900, 0.25, 0.2, 'triangle'); break;
+    case 'heal': tone(660, 990, 0.2, 0.2, 'sine'); tone(880, 1320, 0.35, 0.15, 'sine'); break;
+    case 'charge': tone(150, 900, 0.7, 0.25, 'sawtooth'); break;
+    case 'beam': noise(1.3, 700, 1, 0.9); tone(90, 60, 1.3, 0.6, 'sawtooth'); break;
+    case 'wave': noise(0.5, 300, 1, 1); tone(80, 30, 0.5, 0.8, 'triangle'); break;
+    case 'blink': tone(1500, 300, 0.15, 0.2, 'sine'); break;
+    case 'stop': tone(1200, 60, 1.0, 0.45, 'sine'); noise(0.6, 200, 1, 0.5); break;
+    case 'resume': tone(60, 1200, 0.6, 0.35, 'sine'); break;
   }
 }

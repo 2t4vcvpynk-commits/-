@@ -2,12 +2,12 @@
 import * as THREE from 'three';
 import { Fighter } from './fighter.js';
 import { buildArena, ARENA_RADIUS, WALL_RADIUS, PILLARS } from './arena.js';
-import { Effects, Fireball } from './fx.js';
+import { Effects, Fireball, Beam, groundRing, stopSphere } from './fx.js';
 import { PlayerInput, AIInput } from './input.js';
 import { hud } from './hud.js';
 import { sfx } from './sfx.js';
-import { Room, MAX_HP, METER_MAX } from './shared/room.js';
-import { STYLE_STATS, randomProfile } from './shared/profile.js';
+import { Room, METER_MAX } from './shared/room.js';
+import { statMods, SKILLS, randomProfile } from './shared/profile.js';
 
 // 技データ（時間は秒）
 const ATK = {
@@ -18,15 +18,23 @@ const ATK = {
   air: { dur: 0.45, a0: 0.05, a1: 0.38, range: 1.7, step: 0 },
   special: { dur: 0.62, fire: 0.26, step: 0 },
   dodge: { dur: 0.42, inv0: 0.02, inv1: 0.32, step: 0 },
+  cast: { dur: 0.5, step: 0 },
+  beam: { dur: 2.1, step: 0 },
+  stomp: { dur: 0.55, a0: 0.27, step: 0 },
 };
-const ATTACKS = new Set(['p1', 'p2', 'p3', 'kick', 'air', 'special']);
+const ATTACKS = new Set(['p1', 'p2', 'p3', 'kick', 'air', 'special', 'beam']);
+const MELEE = new Set(['p1', 'p2', 'p3', 'kick', 'air']);
+const BUFF_SKILLS = ['accel', 'armor', 'vamp'];
+const BEAM_DELAY = 0.7;
+const WAVE_RADIUS = 3.4;
 const DODGE_SPEED = 14;
 const DODGE_COOLDOWN = 0.55;
 // [のけぞり時間, ふっとび速度]
 const STUN = {
   p1: [0.3, 2.5], p2: [0.3, 3], p3: [0.55, 7.5], kick: [0.55, 8.5], air: [0.45, 5], fire: [0.65, 9],
+  beam: [0.28, 2.2], wave: [0.65, 10],
 };
-const HEAVY = new Set(['p3', 'kick', 'air', 'fire']);
+const HEAVY = new Set(['p3', 'kick', 'air', 'fire', 'wave']);
 const SPAWN_X = [-5, 5];
 const SEND_INTERVAL = 0.05;
 const INTERP_DELAY = 100;
@@ -51,10 +59,13 @@ class Controller {
     this.facing = new THREE.Vector3(0, 0, 1);
     this.vy = 0;
     this.onGround = true;
-    this.hp = MAX_HP;
+    this.mods = statMods(fighter.profile);
+    this.maxHp = this.mods.maxHp;
+    this.hp = this.maxHp;
     this.meter = 0;
     this.actId = 0;
-    this.speedMul = STYLE_STATS[fighter.profile.style].speed;
+    this.speedMul = this.mods.spd;
+    this.skills = fighter.profile.skills;
     this.target = null;
     this.spawn();
   }
@@ -87,6 +98,10 @@ class Controller {
     this.frozen = true;
     this.moving = 0;
     this.sendT = 0;
+    this.skillCd = [0, 0];
+    this.buffs = { accel: 0, armor: 0, vamp: 0 };
+    this.stopT = 0;
+    this.pendingHit = null;
     this.fighter.root.rotation.y = x < 0 ? Math.PI / 2 : -Math.PI / 2;
     this.fighter.root.position.copy(this.pos);
     this.fighter.play('idle', true);
@@ -115,7 +130,19 @@ class Controller {
       case 'meter':
         this.meter = m.meter[i];
         break;
+      case 'ability':
+        this.hp = m.hp[i];
+        this.meter = m.meter[i];
+        if (m.id === 'timestop' && m.by !== i) {
+          this.stopT = m.dur / 1000;
+          this.act = null;
+          this.buffer = null;
+          this.sendT = 0;
+        }
+        break;
       case 'roundEnd':
+        this.stopT = 0;
+        this.pendingHit = null;
         this.frozen = true;
         this.act = null;
         this.buffer = null;
@@ -125,6 +152,12 @@ class Controller {
   }
 
   takeHit(m) {
+    // 時間停止中は、止まっている間の攻撃をためておいて解除後にまとめて受ける
+    if (this.stopT > 0 && this.hp > 0) {
+      if (!this.pendingHit || HEAVY.has(m.kind)) this.pendingHit = m;
+      return;
+    }
+    this.stopT = 0;
     const t = this.target;
     const dir = new THREE.Vector3(this.pos.x - t.pos.x, 0, this.pos.z - t.pos.z);
     if (dir.lengthSq() < 1e-6) dir.copy(this.facing).negate();
@@ -139,6 +172,10 @@ class Controller {
       this.vy = 5;
       this.onGround = false;
       this.fighter.play('ko', true);
+    } else if (this.buffs.armor > 0) {
+      // 鋼の肉体: ひるまない
+      this.kb.addScaledVector(dir, 0.8);
+      return;
     } else if (m.blocked) {
       this.stun = 0.16;
       this.stunKind = 'blockhit';
@@ -219,8 +256,88 @@ class Controller {
     const p = this.pos.clone().addScaledVector(dir, 0.7);
     p.y += 1.3 * this.fighter.profile.height;
     this.game.spawnFireball(this.idx, p, dir, this);
-    this.channel.send({ t: 'special', x: p.x, y: p.y, z: p.z, dx: dir.x, dz: dir.z });
-    this.meter = 0;
+  }
+
+  skillReady(slot) {
+    const def = SKILLS[this.skills[slot]];
+    return this.skillCd[slot] <= 0 && (!def.sp || this.meter >= METER_MAX);
+  }
+
+  faceTarget() {
+    const t = this.target;
+    if (!t || t.ko) return;
+    this.fighter.root.rotation.y = Math.atan2(t.pos.x - this.pos.x, t.pos.z - this.pos.z);
+    this.facing.set(Math.sin(this.fighter.root.rotation.y), 0, Math.cos(this.fighter.root.rotation.y));
+  }
+
+  // 超能力を使う
+  useSkill(slot) {
+    const id = this.skills[slot];
+    const def = SKILLS[id];
+    if (!this.skillReady(slot)) {
+      if (this.input instanceof PlayerInput) sfx('denied');
+      return;
+    }
+    if (!this.onGround && id !== 'blink') return;
+    this.skillCd[slot] = def.cd;
+    if (def.sp) this.meter = 0;
+    const h = this.fighter.profile.height;
+    const msg = { t: 'ability', id, x: this.pos.x, y: this.pos.y, z: this.pos.z, dx: this.facing.x, dz: this.facing.z };
+    const g = this.game;
+    switch (id) {
+      case 'fire':
+        this.faceTarget();
+        this.startAct('special');
+        break;
+      case 'beam': {
+        this.faceTarget();
+        this.startAct('beam');
+        const o = this.pos.clone().addScaledVector(this.facing, 0.8);
+        o.y += 1.3 * h;
+        Object.assign(msg, { x: o.x, y: o.y, z: o.z, dx: this.facing.x, dz: this.facing.z });
+        g.spawnBeam(this.idx, o, this.facing, this);
+        break;
+      }
+      case 'wave':
+        this.startAct('stomp');
+        g.spawnWave(this.idx, this.pos, ATK.stomp.a0);
+        break;
+      case 'blink': {
+        const t = this.target;
+        const from = this.pos.clone();
+        const dest = new THREE.Vector3();
+        if (t && !t.ko) {
+          const r = t.fighter.root.rotation.y;
+          dest.set(t.pos.x - Math.sin(r) * 1.3, 0, t.pos.z - Math.cos(r) * 1.3);
+        } else {
+          dest.copy(this.pos).addScaledVector(this.facing, 5);
+        }
+        const dr = Math.hypot(dest.x, dest.z);
+        if (dr > ARENA_RADIUS) dest.multiplyScalar(ARENA_RADIUS / dr);
+        dest.y = this.pos.y;
+        this.pos.copy(dest);
+        this.kb.set(0, 0, 0);
+        this.faceTarget();
+        this.fighter.root.position.copy(this.pos);
+        g.blinkFx(from, this.pos);
+        this.actId++;
+        break;
+      }
+      default: // accel / armor / vamp / heal / timestop
+        this.startAct('cast');
+        if (BUFF_SKILLS.includes(id)) this.buffs[id] = id === 'vamp' ? 6 : 5;
+    }
+    g.onSkillStart(this, id);
+    this.channel.send(msg);
+    this.sendT = 0;
+  }
+
+  // 衝撃波の当たり判定
+  waveHit() {
+    const t = this.target;
+    if (!t || t.ko) return;
+    const d = Math.hypot(t.pos.x - this.pos.x, t.pos.z - this.pos.z);
+    if (d < WAVE_RADIUS && t.pos.y < 1.6) this.channel.send({ t: 'hit', kind: 'wave' });
   }
 
   update(dt, basis) {
@@ -228,14 +345,35 @@ class Controller {
     const inp = this.input;
     const tgt = this.target;
     inp.update(dt, this, tgt, basis);
+
+    // 時間を止められている間は何もできない
+    if (this.stopT > 0) {
+      this.stopT -= dt;
+      inp.endFrame();
+      if (this.stopT <= 0 && this.pendingHit) {
+        const m = this.pendingHit;
+        this.pendingHit = null;
+        this.takeHit(m);
+      }
+      this.sendT -= dt;
+      if (this.sendT <= 0) this.sendState();
+      return;
+    }
+
     const live = !this.frozen && !this.isKO;
+    for (const k of BUFF_SKILLS) if (this.buffs[k] > 0) this.buffs[k] -= dt;
+    if (!live) this.buffs.accel = 0;
+    this.skillCd[0] -= dt;
+    this.skillCd[1] -= dt;
+    // 時間加速中は技の速さもアップ
+    const ts = this.buffs.accel > 0 ? 1.6 : 1;
 
     if (this.stun > 0) this.stun -= dt;
     this.dodgeCd -= dt;
     this.comboT -= dt;
     this.bufferT -= dt;
     if (live) {
-      for (const a of ['punch', 'kick', 'special', 'jump', 'dodge']) {
+      for (const a of ['punch', 'kick', 'skill1', 'skill2', 'jump', 'dodge']) {
         if (inp.consume(a)) {
           this.buffer = a;
           this.bufferT = 0.22;
@@ -247,13 +385,18 @@ class Controller {
     if (this.act) {
       const a = this.act;
       const spec = ATK[a.kind];
-      a.t += dt;
+      a.t += dt * ts;
       if (a.kind === 'special') {
         if (!a.fired && a.t >= spec.fire) {
           a.fired = true;
           this.fireSpecial();
         }
-      } else if (ATTACKS.has(a.kind) && !a.hit && a.t >= spec.a0 && a.t <= spec.a1) {
+      } else if (a.kind === 'stomp') {
+        if (!a.fired && a.t >= spec.a0) {
+          a.fired = true;
+          this.waveHit();
+        }
+      } else if (MELEE.has(a.kind) && !a.hit && a.t >= spec.a0 && a.t <= spec.a1) {
         this.checkHit(a);
       }
       if ((a.kind === 'air' && this.onGround && a.t > 0.05) || a.t >= spec.dur) this.act = null;
@@ -282,8 +425,8 @@ class Controller {
           this.combo = this.comboT > 0 ? (this.combo % 3) + 1 : 1;
           this.startAct(`p${this.combo}`);
         }
-      } else if (b === 'special' && this.onGround && this.meter >= METER_MAX) {
-        this.startAct('special');
+      } else if (b === 'skill1' || b === 'skill2') {
+        this.useSkill(b === 'skill1' ? 0 : 1);
       } else if (b === 'dodge' && this.onGround && this.dodgeCd <= 0) {
         this.startDodge();
       }
@@ -293,7 +436,7 @@ class Controller {
     let mx = 0;
     let mz = 0;
     if (live && this.stun <= 0) {
-      let sp = (this.input.lockOn ? 4.3 : 5.4) * this.speedMul;
+      let sp = (this.input.lockOn ? 4.3 : 5.4) * this.speedMul * (this.buffs.accel > 0 ? 1.9 : 1);
       if (this.act && this.onGround) sp *= 0.12;
       else if (this.blocking) sp *= 0.3;
       else if (!this.onGround) sp *= 0.85;
@@ -393,7 +536,7 @@ class Controller {
     f.play(an);
     f.moveSpeed = this.moving;
     f.root.position.copy(this.pos);
-    f.update(dt);
+    f.update(dt * ts);
 
     this.sendT -= dt;
     if (this.sendT <= 0 || this.blocking !== this.lastBlk || this.invincible !== this.lastInv) this.sendState();
@@ -421,6 +564,8 @@ class RemoteView {
     this.pos = new THREE.Vector3();
     this.buf = [];
     this.lastAi = -1;
+    this.buffs = { accel: 0, armor: 0, vamp: 0 };
+    this.snapNext = false;
     this.spawn();
   }
 
@@ -431,6 +576,7 @@ class RemoteView {
   spawn() {
     const x = SPAWN_X[this.idx];
     this.buf.length = 0;
+    this.buffs = { accel: 0, armor: 0, vamp: 0 };
     this.pos.set(x, 0, 0);
     this.fighter.root.position.copy(this.pos);
     this.fighter.root.rotation.y = x < 0 ? Math.PI / 2 : -Math.PI / 2;
@@ -438,6 +584,11 @@ class RemoteView {
   }
 
   push(m) {
+    if (this.snapNext) {
+      // 瞬間移動: 補間せずに一瞬で移動させる
+      this.buf.length = 0;
+      this.snapNext = false;
+    }
     this.buf.push({ time: performance.now(), x: m.x, y: m.y, z: m.z, r: m.r });
     if (this.buf.length > 40) this.buf.shift();
     const f = this.fighter;
@@ -535,6 +686,10 @@ export class Game {
     this.preview = null;
     this.previewT = 0;
     this.projectiles = [];
+    this.beams = [];
+    this.scheduled = [];
+    this.stopT = 0;
+    this.stopBy = -1;
     this.local = null;
     this.opp = null;
     this.views = [];
@@ -656,6 +811,10 @@ export class Game {
     this.opp = null;
     for (const p of this.projectiles) p.destroy();
     this.projectiles = [];
+    for (const b of this.beams) b.destroy();
+    this.beams = [];
+    this.scheduled = [];
+    this.endTimeStop(true);
     this.fx.clear();
     this.fightEndsAt = 0;
     this.timeScale = 1;
@@ -682,7 +841,12 @@ export class Game {
     addNameTag(oppF, oppF.profile.name);
     this.setMode('match');
     hud.setLock(this.input.lockOn);
-    hud.setup([myF.profile.name, oppF.profile.name], [myF.profile.top, oppF.profile.top]);
+    hud.setup(
+      [myF.profile.name, oppF.profile.name],
+      [myF.profile.top, oppF.profile.top],
+      [statMods(myF.profile).maxHp, statMods(oppF.profile).maxHp],
+    );
+    hud.setSkills(myF.profile.skills.map((id) => SKILLS[id]));
     hud.show(true);
     this.snapCamera = true;
   }
@@ -730,6 +894,10 @@ export class Game {
         if (this.opp instanceof RemoteView) this.opp.spawn();
         for (const p of this.projectiles) p.destroy();
         this.projectiles = [];
+        for (const b of this.beams) b.destroy();
+        this.beams = [];
+        this.scheduled = [];
+        this.endTimeStop(true);
         for (let i = 0; i < 2; i++) {
           hud.setHp(this.side(i), m.hp[i], true);
           hud.setMeter(this.side(i), m.meter[i]);
@@ -752,12 +920,11 @@ export class Game {
       case 'meter':
         for (let i = 0; i < 2; i++) hud.setMeter(this.side(i), m.meter[i]);
         break;
-      case 'fx':
-        if (!this.practice) {
-          this.spawnFireball(m.by, new THREE.Vector3(m.x, m.y, m.z), new THREE.Vector3(m.dx, 0, m.dz), null);
-        }
+      case 'ability':
+        this.onAbility(m);
         break;
       case 'roundEnd': {
+        this.endTimeStop();
         for (let i = 0; i < 2; i++) hud.setWins(this.side(i), m.wins[i]);
         this.fightEndsAt = 0;
         let text;
@@ -792,7 +959,7 @@ export class Game {
     this.fx.spark(pos, color, m.blocked ? 0.5 : heavy ? 1.5 : 1, toAtk.clone().negate());
     sfx(m.blocked ? 'block' : heavy ? 'heavy' : 'hit');
     this.shake = Math.max(this.shake, m.blocked ? 0.05 : heavy ? 0.28 : 0.13);
-    this.hitstop = m.blocked ? 0.04 : heavy ? 0.1 : 0.06;
+    this.hitstop = kind === 'beam' ? 0.015 : m.blocked ? 0.04 : heavy ? 0.1 : 0.06;
     for (let i = 0; i < 2; i++) {
       hud.setHp(this.side(i), m.hp[i]);
       hud.setMeter(this.side(i), m.meter[i]);
@@ -811,6 +978,181 @@ export class Game {
     }
   }
 
+  // 自分（またはCPU）が能力を使った瞬間の演出
+  onSkillStart(ctrl, id) {
+    const v = ctrl.fighter;
+    const p = ctrl.pos.clone();
+    p.y += 1.2;
+    if (id === 'accel') {
+      this.fx.spark(p, '#ffd23f', 1.2);
+      sfx('accel');
+    } else if (id === 'armor') {
+      this.fx.spark(p, '#b8c7d9', 1.2);
+      sfx('armor');
+    } else if (id === 'vamp') {
+      this.fx.spark(p, '#c0102a', 1.2);
+      sfx('buff');
+    } else if (id === 'beam') {
+      sfx('charge');
+    }
+    if (ctrl === this.local) hud.flashSkill(ctrl.skills.indexOf(id));
+    void v;
+  }
+
+  // サーバーから能力の発動が届いた
+  onAbility(m) {
+    for (let i = 0; i < 2; i++) {
+      hud.setHp(this.side(i), m.hp[i]);
+      hud.setMeter(this.side(i), m.meter[i]);
+    }
+    const owner = this.views[m.by];
+    if (!owner) return;
+    const def = SKILLS[m.id];
+    const remote = owner instanceof RemoteView;
+    if (remote) {
+      // ネット越しの相手の能力は、ここで演出を出す
+      const pos = new THREE.Vector3(m.x, m.y, m.z);
+      const dir = new THREE.Vector3(m.dx, 0, m.dz);
+      if (m.id === 'fire') {
+        this.later(0.26, () => {
+          const o = owner.pos.clone().addScaledVector(dir, 0.7);
+          o.y += 1.3 * owner.fighter.profile.height;
+          this.spawnFireball(m.by, o, dir, null);
+        });
+      } else if (m.id === 'beam') {
+        this.spawnBeam(m.by, pos, dir, null);
+        sfx('charge');
+      } else if (m.id === 'wave') {
+        this.spawnWave(m.by, pos, 0.27);
+      } else if (m.id === 'blink') {
+        owner.snapNext = true;
+        this.blinkFx(pos, null);
+      } else if (m.id in owner.buffs) {
+        owner.buffs[m.id] = m.dur / 1000;
+        const p = owner.pos.clone();
+        p.y += 1.2;
+        this.fx.spark(p, m.id === 'accel' ? '#ffd23f' : m.id === 'armor' ? '#b8c7d9' : '#c0102a', 1.2);
+        sfx('buff');
+      }
+    }
+    if (m.id === 'heal') {
+      const p = owner.pos.clone();
+      p.y += 1.2;
+      this.fx.spark(p, '#4cff7a', 1.4);
+      sfx('heal');
+    }
+    if (m.id === 'timestop') this.startTimeStop(m.by, m.dur / 1000);
+    if (def.sp && m.id !== 'timestop') hud.announce(def.name, 'skill', 1100);
+    if (m.by !== this.me && m.id !== 'timestop' && !def.sp) hud.toastSkill(owner.fighter.profile.name, def);
+  }
+
+  startTimeStop(by, dur) {
+    this.stopT = dur;
+    this.stopBy = by;
+    const o = this.views[by];
+    const p = o.pos.clone();
+    p.y += 1.2;
+    stopSphere(this.fx, p);
+    this.renderer.domElement.classList.add('timestop');
+    hud.announce('タイムストップ！', 'stop', 1300);
+    sfx('stop');
+    this.shake = 0.3;
+  }
+
+  endTimeStop(silent = false) {
+    if (this.stopBy < 0) return;
+    const o = this.views[this.stopBy];
+    this.stopBy = -1;
+    this.stopT = 0;
+    this.renderer.domElement.classList.remove('timestop');
+    if (!silent && o) {
+      const p = o.pos.clone();
+      p.y += 1.2;
+      stopSphere(this.fx, p, true);
+      sfx('resume');
+    }
+  }
+
+  later(sec, fn) {
+    this.scheduled.push({ t: sec, fn });
+  }
+
+  spawnBeam(owner, origin, dir, ctrl) {
+    const v = this.views[owner];
+    const color = v ? v.fighter.profile.accColor : '#66ccff';
+    // 壁までの長さ
+    const d = dir.clone().setY(0).normalize();
+    const od = origin.x * d.x + origin.z * d.z;
+    const oo = origin.x * origin.x + origin.z * origin.z;
+    const len = Math.max(2, -od + Math.sqrt(Math.max(0, od * od - (oo - WALL_RADIUS * WALL_RADIUS))));
+    const b = new Beam(this.fx, owner, origin, d, color, len, BEAM_DELAY, 1.3);
+    b.ctrl = ctrl;
+    this.beams.push(b);
+    this.later(BEAM_DELAY, () => {
+      sfx('beam');
+      this.shake = Math.max(this.shake, 0.35);
+    });
+  }
+
+  spawnWave(owner, pos, delay) {
+    const p = pos.clone();
+    this.later(delay, () => {
+      groundRing(this.fx, p, '#ffcf5a', WAVE_RADIUS, 0.4);
+      groundRing(this.fx, p, '#ffffff', WAVE_RADIUS * 0.7, 0.3);
+      this.fx.dust(p);
+      sfx('wave');
+      this.shake = Math.max(this.shake, 0.25);
+    });
+  }
+
+  blinkFx(from, to) {
+    for (const p of [from, to]) {
+      if (!p) continue;
+      const q = p.clone();
+      q.y += 1.1;
+      this.fx.spark(q, '#b46bff', 1.1);
+    }
+    sfx('blink');
+  }
+
+  updateBeams(dt) {
+    for (const b of this.beams) {
+      if (this.stopT > 0 && b.owner !== this.stopBy) continue;
+      b.update(dt);
+      if (b.dead || !b.ctrl) continue;
+      b.tickT -= dt;
+      const t = b.ctrl.target;
+      if (b.active && b.tickT <= 0 && t && !t.ko && b.hits(t.pos)) {
+        b.tickT = 0.17;
+        b.ctrl.channel.send({ t: 'hit', kind: 'beam' });
+      }
+    }
+    this.beams = this.beams.filter((b) => !b.dead);
+  }
+
+  // 能力中の見た目（発光・残像）
+  updateAuras(dt) {
+    for (const v of this.views) {
+      if (!v) continue;
+      const b = v.buffs;
+      if (v instanceof RemoteView) for (const k in b) if (b[k] > 0) b[k] -= dt;
+      const f = v.fighter;
+      if (b.armor > 0) f.setTint('#8fa3b8', 0.55);
+      else if (b.vamp > 0) f.setTint('#b0102a', 0.45);
+      else if (b.accel > 0) f.setTint('#ffcc33', 0.3);
+      else f.setTint(null);
+      if (b.accel > 0 || b.vamp > 0) {
+        v.auraT = (v.auraT || 0) - dt;
+        if (v.auraT <= 0) {
+          v.auraT = b.accel > 0 ? 0.03 : 0.08;
+          const s = this.fx.sprite(b.accel > 0 ? f.profile.top : '#ff2040', b.accel > 0 ? 0.9 : 0.35);
+          s.position.set(v.pos.x, v.pos.y + 1.0 + Math.random() * 0.5, v.pos.z);
+          this.fx.parts.push({ s, v: new THREE.Vector3(0, b.accel > 0 ? 0 : 1.5, 0), life: 0.3, max: 0.3, g: 0 });
+        }
+      }
+    }
+  }
+
   spawnFireball(owner, pos, dir, ctrl) {
     const v = this.views[owner];
     const color = v ? v.fighter.profile.accColor : '#66ccff';
@@ -822,6 +1164,7 @@ export class Game {
 
   updateProjectiles(dt) {
     for (const p of this.projectiles) {
+      if (this.stopT > 0 && p.owner !== this.stopBy) continue;
       p.update(dt);
       if (p.dead) continue;
       // 柱や壁に当たったら消える
@@ -928,10 +1271,25 @@ export class Game {
     this.arena.update(this.time, realDt);
 
     if (this.mode === 'match' && this.local) {
+      for (let i = this.scheduled.length - 1; i >= 0; i--) {
+        const s = this.scheduled[i];
+        s.t -= dt;
+        if (s.t <= 0) {
+          this.scheduled.splice(i, 1);
+          s.fn();
+        }
+      }
+      if (this.stopT > 0) {
+        this.stopT -= realDt;
+        if (this.stopT <= 0) this.endTimeStop();
+      }
       this.local.update(dt, this.basis);
       if (this.opp instanceof Controller) this.opp.update(dt, this.basis);
-      else this.opp.update(dt);
+      else this.opp.update(this.stopT > 0 && this.stopBy === this.me ? 0 : dt);
       this.updateProjectiles(dt);
+      this.updateBeams(dt);
+      this.updateAuras(dt);
+      hud.updateSkills(this.local.skillCd, this.local.meter >= METER_MAX);
       if (this.fightEndsAt) {
         hud.setTimer(String(Math.max(0, Math.ceil((this.fightEndsAt - now) / 1000))));
       }
@@ -941,7 +1299,7 @@ export class Game {
       this.previewT -= realDt;
       if (this.previewT <= 0) {
         this.previewT = 2.2;
-        const moves = ['p1', 'p2', 'p3', 'kick', 'special', 'idle', 'idle', 'win'];
+        const moves = ['p1', 'p2', 'p3', 'kick', 'special', 'cast', 'stomp', 'idle', 'win'];
         p.play(moves[Math.floor(Math.random() * moves.length)], true);
       }
       if (p.anim !== 'idle' && p.anim !== 'win' && p.t > 0.8) p.play('idle');

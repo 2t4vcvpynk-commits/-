@@ -10,12 +10,13 @@ const KEYMAP = {
   KeyK: 'kick', KeyX: 'kick',
   KeyL: 'block', KeyC: 'block',
   Space: 'jump',
-  KeyU: 'special', KeyV: 'special',
+  KeyU: 'skill1', KeyV: 'skill1',
+  KeyI: 'skill2', KeyB: 'skill2',
   ShiftLeft: 'dodge', ShiftRight: 'dodge', KeyO: 'dodge',
   Tab: 'lock', KeyF: 'lock',
   KeyQ: 'camL', KeyE: 'camR',
 };
-const ACTIONS = new Set(['punch', 'kick', 'jump', 'special', 'dodge']);
+const ACTIONS = new Set(['punch', 'kick', 'jump', 'skill1', 'skill2', 'dodge']);
 const MOUSE_SENS = 0.0028;
 const TOUCH_SENS = 0.008;
 const KEY_TURN = 2.4;
@@ -209,7 +210,20 @@ export class PlayerInput {
 }
 
 // CPU（練習モード用）
-const ATTACK_ANIMS = new Set(['p1', 'p2', 'p3', 'kick', 'air', 'special']);
+const ATTACK_ANIMS = new Set(['p1', 'p2', 'p3', 'kick', 'air', 'special', 'beam', 'stomp']);
+
+// CPUがその能力を今使いたいか
+function wantSkill(id, d, me, target) {
+  switch (id) {
+    case 'fire': return d > 3 && !pillarDetour(me, target);
+    case 'beam': return d < 14 && target.pos.y < 0.5;
+    case 'timestop': return d < 5;
+    case 'blink': return d > 4.5;
+    case 'wave': return d < 2.8;
+    case 'heal': return me.hp < me.maxHp * 0.6;
+    default: return d < 5; // 加速・鋼の肉体・吸血
+  }
+}
 
 // 自分→相手の直線上に柱があれば、よける向きを返す
 function pillarDetour(me, target) {
@@ -273,14 +287,21 @@ export class AIInput {
       }
     }
 
+    // 超能力
+    if (me.skillReady && !target.ko) {
+      for (let k = 0; k < 2; k++) {
+        if (me.skillReady(k) && Math.random() < dt * 0.9 && wantSkill(me.skills[k], d, me, target)) {
+          this.pressed.add(`skill${k + 1}`);
+        }
+      }
+    }
+
     if (this.thinkT <= 0) {
       this.thinkT = 0.18 + Math.random() * 0.3;
       const r = Math.random();
       this.plan.mx = 0;
       this.plan.mz = 0;
-      if (me.meter >= 100 && d > 3 && r < 0.5 && !pillarDetour(me, target)) {
-        this.pressed.add('special');
-      } else if (d > 1.7) {
+      if (d > 1.7) {
         let side = r < 0.2 ? (Math.random() < 0.5 ? 1 : -1) : 0;
         const det = pillarDetour(me, target);
         if (det) side = det * 1.5;

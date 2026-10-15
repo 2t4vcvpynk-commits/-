@@ -33,6 +33,10 @@ const SPX = P({ lsx: -1.55, lsz: -0.2, lex: -0.05, rsx: -1.55, rsz: -0.2, rex: -
 
 const DGE = P({ hy: -0.32, tx: 0.7, ty: 0, hx: -0.3, lsx: 0.4, lsz: 0.3, lex: -1.2, rsx: 0.4, rsz: 0.3, rex: -1.2, lhx: -1.0, lkx: 1.6, rhx: 0.2, rkx: 1.4 });
 
+const CAST = P({ lsx: -2.6, lsz: 0.7, lex: -0.3, rsx: -2.6, rsz: 0.7, rex: -0.3, tx: -0.2, ty: 0, hx: -0.35, hy: -0.02 });
+const STW = P({ rhx: -1.4, rkx: 1.6, hy: 0.06, ty: 0, lsx: -2.0, rsx: -2.0, lsz: 0.4, rsz: 0.4, lex: -0.8, rex: -0.8 });
+const STI = P({ hy: -0.32, ty: 0, rhx: -0.7, rkx: 1.3, lhx: -0.7, lkx: 1.3, tx: 0.5, lsx: -0.3, rsx: -0.3, lsz: 0.9, rsz: 0.9, lex: -0.4, rex: -0.4 });
+
 const TRACKS = {
   p1: [[0, G], [0.07, JAB], [0.16, JAB], [0.28, G]],
   p2: [[0, G], [0.08, STR], [0.17, STR], [0.3, G]],
@@ -44,6 +48,9 @@ const TRACKS = {
   blockhit: [[0, BLK], [0.05, BLK2], [0.15, BLK]],
   ko: [[0, HIT], [0.15, HIT], [0.7, KO]],
   dodge: [[0, G], [0.07, DGE], [0.3, DGE], [0.42, G]],
+  cast: [[0, G], [0.12, CAST], [0.35, CAST], [0.5, G]],
+  beam: [[0, G], [0.25, SPW], [0.68, SPW], [0.76, SPX], [2.0, SPX], [2.2, G]],
+  stomp: [[0, G], [0.16, STW], [0.27, STI], [0.38, STI], [0.55, G]],
 };
 
 const smooth = (x) => x * x * (3 - 2 * x);
@@ -63,7 +70,7 @@ function sampleTrack(track, t, out) {
   return out;
 }
 
-const FAST = new Set(['p1', 'p2', 'p3', 'kick', 'air', 'special', 'hit', 'blockhit', 'dodge']);
+const FAST = new Set(['p1', 'p2', 'p3', 'kick', 'air', 'special', 'hit', 'blockhit', 'dodge', 'cast', 'beam', 'stomp']);
 
 export class Fighter {
   constructor(profile) {
@@ -337,6 +344,22 @@ export class Fighter {
     j.rKn.rotation.set(p.rkx, 0, 0);
     this.body.rotation.x = p.bx;
     this.body.position.y = p.by;
+  }
+
+  // 能力発動中の発光（null で解除）
+  setTint(color, intensity = 0.6) {
+    const key = color ? `${color}:${intensity}` : '';
+    if (this.tintKey === key) return;
+    this.tintKey = key;
+    for (const m of this.materials) {
+      if (!m.emissive) continue;
+      if (color) {
+        m.emissive.set(color);
+        m.emissiveIntensity = intensity;
+      } else {
+        m.emissive.set(0x000000);
+      }
+    }
   }
 
   dispose() {
