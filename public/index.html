@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#130d26">
+  <title>KOBUSHI 3D</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👊</text></svg>">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "three": "/vendor/three/three.module.js" } }
+  </script>
+</head>
+<body>
+  <canvas id="c"></canvas>
+
+  <!-- メニュー -->
+  <div id="menu">
+    <div class="logo">
+      <h1>KOBUSHI<span>3D</span></h1>
+      <p>キャラを作って、フレンドと殴りあえ。</p>
+    </div>
+    <div class="panel">
+      <section>
+        <h2>キャラクター</h2>
+        <label class="field">
+          <span>なまえ</span>
+          <input id="pname" maxlength="12" autocomplete="off" spellcheck="false">
+        </label>
+        <div id="opts"></div>
+        <div id="colors" class="colors"></div>
+        <label class="field">
+          <span>身長</span>
+          <input id="pheight" type="range" min="0.88" max="1.12" step="0.01">
+        </label>
+        <p id="styleDesc" class="hint"></p>
+        <button id="random" class="btn ghost">🎲 ランダム</button>
+      </section>
+
+      <section>
+        <h2>対戦</h2>
+        <button id="create" class="btn primary">ルームを作る</button>
+        <div class="join">
+          <input id="code" placeholder="ルームコード" maxlength="4" autocomplete="off" spellcheck="false">
+          <button id="join" class="btn">参加</button>
+        </div>
+        <button id="practice" class="btn ghost">🤖 CPUと練習</button>
+      </section>
+
+      <section class="howto">
+        <h2>操作方法</h2>
+        <table>
+          <tr><td>移動</td><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / 矢印</td></tr>
+          <tr><td>パンチ（3連打でコンボ）</td><td><kbd>J</kbd> / <kbd>Z</kbd></td></tr>
+          <tr><td>キック</td><td><kbd>K</kbd> / <kbd>X</kbd></td></tr>
+          <tr><td>ガード（長押し）</td><td><kbd>L</kbd> / <kbd>C</kbd></td></tr>
+          <tr><td>ジャンプ（空中で攻撃）</td><td><kbd>Space</kbd></td></tr>
+          <tr><td>必殺技（ゲージMAX時）</td><td><kbd>U</kbd> / <kbd>V</kbd></td></tr>
+        </table>
+        <p class="hint">左右で前後移動、上下で回り込み。スマホは画面のボタンで操作できます。2本先取で勝利！</p>
+      </section>
+    </div>
+  </div>
+
+  <!-- 待機 -->
+  <div id="waiting" class="overlay" hidden>
+    <div class="card">
+      <h2>対戦相手を待っています…</h2>
+      <p>このコードをフレンドに伝えてください</p>
+      <div id="roomCode" class="code">----</div>
+      <div class="share">
+        <input id="shareUrl" readonly>
+        <button id="copy" class="btn">コピー</button>
+      </div>
+      <div class="spinner"></div>
+      <button id="cancelWait" class="btn ghost">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud" hidden>
+    <div class="side" id="hud0">
+      <div class="name" id="name0"></div>
+      <div class="hpbar"><div class="lag" id="hpl0"></div><div class="fill" id="hp0"></div></div>
+      <div class="row"><div class="wins" id="wins0"></div><div class="meter"><div id="m0"></div><b>SP</b></div></div>
+    </div>
+    <div id="timer">60</div>
+    <div class="side right" id="hud1">
+      <div class="name" id="name1"></div>
+      <div class="hpbar"><div class="lag" id="hpl1"></div><div class="fill" id="hp1"></div></div>
+      <div class="row"><div class="wins" id="wins1"></div><div class="meter"><div id="m1"></div><b>SP</b></div></div>
+    </div>
+    <div id="ping"></div>
+    <button id="quit" title="退出">✕</button>
+  </div>
+  <div id="announce"></div>
+
+  <!-- タッチ操作 -->
+  <div id="touch" hidden>
+    <div id="stick"><div id="knob"></div></div>
+    <div class="buttons">
+      <button data-act="special" class="sp">必殺</button>
+      <button data-act="jump">ジャンプ</button>
+      <button data-act="block">ガード</button>
+      <button data-act="kick">キック</button>
+      <button data-act="punch" class="big">パンチ</button>
+    </div>
+  </div>
+
+  <!-- 結果 -->
+  <div id="result" class="overlay" hidden>
+    <div class="card">
+      <h2 id="resultTitle">YOU WIN!</h2>
+      <p id="resultSub"></p>
+      <button id="again" class="btn primary">もう一戦！</button>
+      <p id="rematchStatus" class="hint"></p>
+      <button id="toMenu" class="btn ghost">メニューへ</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>
