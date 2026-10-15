@@ -1,7 +1,7 @@
 // ゲーム本体: シーン・プレイヤー操作・リモート同期・練習モード
 import * as THREE from 'three';
 import { Fighter } from './fighter.js';
-import { buildArena, ARENA_RADIUS } from './arena.js';
+import { buildArena, ARENA_RADIUS, WALL_RADIUS, PILLARS } from './arena.js';
 import { Effects, Fireball } from './fx.js';
 import { PlayerInput, AIInput } from './input.js';
 import { hud } from './hud.js';
@@ -17,13 +17,17 @@ const ATK = {
   kick: { dur: 0.55, a0: 0.17, a1: 0.32, range: 1.95, step: 1.8 },
   air: { dur: 0.45, a0: 0.05, a1: 0.38, range: 1.7, step: 0 },
   special: { dur: 0.62, fire: 0.26, step: 0 },
+  dodge: { dur: 0.42, inv0: 0.02, inv1: 0.32, step: 0 },
 };
+const ATTACKS = new Set(['p1', 'p2', 'p3', 'kick', 'air', 'special']);
+const DODGE_SPEED = 14;
+const DODGE_COOLDOWN = 0.55;
 // [のけぞり時間, ふっとび速度]
 const STUN = {
   p1: [0.3, 2.5], p2: [0.3, 3], p3: [0.55, 7.5], kick: [0.55, 8.5], air: [0.45, 5], fire: [0.65, 9],
 };
 const HEAVY = new Set(['p3', 'kick', 'air', 'fire']);
-const SPAWN_X = [-2.5, 2.5];
+const SPAWN_X = [-5, 5];
 const SEND_INTERVAL = 0.05;
 const INTERP_DELAY = 100;
 
@@ -70,6 +74,8 @@ class Controller {
     this.stunKind = 'hit';
     this.blocking = false;
     this.lastBlk = false;
+    this.lastInv = false;
+    this.dodgeCd = 0;
     this.isKO = false;
     this.won = false;
     this.winT = 0;
@@ -153,6 +159,16 @@ class Controller {
   }
 
   startAct(kind) {
+    // 攻撃は近くの相手（ロックオン中は常に相手）へ振り向いてから出す
+    const t = this.target;
+    if (ATTACKS.has(kind) && t && !t.ko) {
+      const dx = t.pos.x - this.pos.x;
+      const dz = t.pos.z - this.pos.z;
+      if (this.input.lockOn || Math.hypot(dx, dz) < 3.5) {
+        this.fighter.root.rotation.y = Math.atan2(dx, dz);
+        this.facing.set(Math.sin(this.fighter.root.rotation.y), 0, Math.cos(this.fighter.root.rotation.y));
+      }
+    }
     this.act = { kind, t: 0, hit: false, fired: false };
     this.actId++;
     this.fighter.play(kind, true);
@@ -161,6 +177,22 @@ class Controller {
     if (kind === 'air') this.airUsed = true;
     if (kind !== 'special') sfx('whoosh');
     this.sendT = 0;
+  }
+
+  get invincible() {
+    const a = this.act;
+    return !!a && a.kind === 'dodge' && a.t >= ATK.dodge.inv0 && a.t <= ATK.dodge.inv1;
+  }
+
+  // 回避ステップ: スティックの方向（入力なしなら後ろ）へ素早く移動、途中は無敵
+  startDodge() {
+    const dir = new THREE.Vector3(this.input.move.x, 0, this.input.move.z);
+    if (dir.lengthSq() < 0.04) dir.copy(this.facing).negate();
+    dir.normalize();
+    this.startAct('dodge');
+    this.kb.copy(dir).multiplyScalar(DODGE_SPEED);
+    this.dodgeCd = ATK.dodge.dur + DODGE_COOLDOWN;
+    this.combo = 0;
   }
 
   checkHit(a) {
@@ -199,10 +231,11 @@ class Controller {
     const live = !this.frozen && !this.isKO;
 
     if (this.stun > 0) this.stun -= dt;
+    this.dodgeCd -= dt;
     this.comboT -= dt;
     this.bufferT -= dt;
     if (live) {
-      for (const a of ['punch', 'kick', 'special', 'jump']) {
+      for (const a of ['punch', 'kick', 'special', 'jump', 'dodge']) {
         if (inp.consume(a)) {
           this.buffer = a;
           this.bufferT = 0.22;
@@ -220,7 +253,7 @@ class Controller {
           a.fired = true;
           this.fireSpecial();
         }
-      } else if (!a.hit && a.t >= spec.a0 && a.t <= spec.a1) {
+      } else if (ATTACKS.has(a.kind) && !a.hit && a.t >= spec.a0 && a.t <= spec.a1) {
         this.checkHit(a);
       }
       if ((a.kind === 'air' && this.onGround && a.t > 0.05) || a.t >= spec.dur) this.act = null;
@@ -230,7 +263,7 @@ class Controller {
     this.blocking = this.onGround && inp.held.block && live
       && (free || (this.stun > 0 && this.stunKind === 'blockhit'));
 
-    if (free && this.buffer && this.bufferT > 0 && !this.blocking) {
+    if (free && this.buffer && this.bufferT > 0 && (!this.blocking || this.buffer === 'dodge')) {
       const b = this.buffer;
       this.buffer = null;
       if (b === 'jump') {
@@ -251,6 +284,8 @@ class Controller {
         }
       } else if (b === 'special' && this.onGround && this.meter >= METER_MAX) {
         this.startAct('special');
+      } else if (b === 'dodge' && this.onGround && this.dodgeCd <= 0) {
+        this.startDodge();
       }
     }
 
@@ -258,7 +293,7 @@ class Controller {
     let mx = 0;
     let mz = 0;
     if (live && this.stun <= 0) {
-      let sp = 4.2 * this.speedMul;
+      let sp = (this.input.lockOn ? 4.3 : 5.4) * this.speedMul;
       if (this.act && this.onGround) sp *= 0.12;
       else if (this.blocking) sp *= 0.3;
       else if (!this.onGround) sp *= 0.85;
@@ -302,16 +337,42 @@ class Controller {
       }
     }
     // リングの外に出ない
+    // 柱にめり込まない
+    for (const p of PILLARS) {
+      const dx = this.pos.x - p.x;
+      const dz = this.pos.z - p.z;
+      const d = Math.hypot(dx, dz);
+      const minD = p.r + 0.4;
+      if (d < minD && d > 1e-4) {
+        this.pos.x = p.x + (dx / d) * minD;
+        this.pos.z = p.z + (dz / d) * minD;
+      }
+    }
     const r = Math.hypot(this.pos.x, this.pos.z);
     if (r > ARENA_RADIUS) {
       this.pos.x *= ARENA_RADIUS / r;
       this.pos.z *= ARENA_RADIUS / r;
     }
 
-    // 相手の方を向く
-    if (tgt && !this.isKO && (!this.act || this.act.t < 0.04)) {
-      const want = Math.atan2(tgt.pos.x - this.pos.x, tgt.pos.z - this.pos.z);
-      f.root.rotation.y = angleLerp(f.root.rotation.y, want, 1 - Math.exp(-dt * 18));
+    // 向き: ロックオン中は相手、それ以外は走る方向。攻撃の出だしは近くの相手に自動で振り向く
+    if (!this.isKO && this.stun <= 0) {
+      let want = null;
+      const early = this.act && this.act.t < 0.05 && ATTACKS.has(this.act.kind);
+      if (tgt && !tgt.ko) {
+        const tx = tgt.pos.x - this.pos.x;
+        const tz = tgt.pos.z - this.pos.z;
+        const toT = Math.atan2(tx, tz);
+        if (this.input.lockOn && (!this.act || early)) want = toT;
+        else if (early && Math.hypot(tx, tz) < 3.5) want = toT;
+      }
+      if (want === null && !this.act && this.moving > 0.3) want = Math.atan2(mx, mz);
+      if (want === null && this.act && this.act.kind === 'dodge' && this.act.t < 0.05 && !this.input.lockOn) {
+        want = Math.atan2(this.kb.x, this.kb.z);
+      }
+      if (want !== null) {
+        const k = early ? 1 : 1 - Math.exp(-dt * 16);
+        f.root.rotation.y = angleLerp(f.root.rotation.y, want, k);
+      }
     }
     this.facing.set(Math.sin(f.root.rotation.y), 0, Math.cos(f.root.rotation.y));
 
@@ -335,18 +396,19 @@ class Controller {
     f.update(dt);
 
     this.sendT -= dt;
-    if (this.sendT <= 0 || this.blocking !== this.lastBlk) this.sendState();
+    if (this.sendT <= 0 || this.blocking !== this.lastBlk || this.invincible !== this.lastInv) this.sendState();
     inp.endFrame();
   }
 
   sendState() {
     this.sendT = SEND_INTERVAL;
     this.lastBlk = this.blocking;
+    this.lastInv = this.invincible;
     const f = this.fighter;
     const r3 = (v) => Math.round(v * 1000) / 1000;
     this.channel.send({
       t: 's', x: r3(this.pos.x), y: r3(this.pos.y), z: r3(this.pos.z), r: r3(f.root.rotation.y),
-      an: f.anim, at: r3(f.t), ai: this.actId, mv: r3(this.moving), blk: this.blocking,
+      an: f.anim, at: r3(f.t), ai: this.actId, mv: r3(this.moving), blk: this.blocking, inv: this.invincible,
     });
   }
 }
@@ -415,6 +477,41 @@ class RemoteView {
   }
 }
 
+// 足元のリング（自分=青、相手=赤）
+function addMarker(fighter, color) {
+  const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85, depthWrite: false });
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.55, 32), mat);
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.03;
+  fighter.root.add(ring);
+  fighter.materials.push(mat);
+}
+
+// 相手の頭上の名前
+function addNameTag(fighter, text) {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 64;
+  const g = c.getContext('2d');
+  g.font = 'bold 34px sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.lineWidth = 6;
+  g.strokeStyle = 'rgba(0,0,0,0.8)';
+  g.strokeText(text, 128, 32);
+  g.fillStyle = '#ffffff';
+  g.fillText(text, 128, 32);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true });
+  const tag = new THREE.Sprite(mat);
+  tag.scale.set(1.6, 0.4, 1);
+  tag.position.y = 2.25 * fighter.profile.height;
+  tag.renderOrder = 10;
+  fighter.root.add(tag);
+  fighter.materials.push(mat);
+}
+
 export class Game {
   constructor(canvas) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -430,6 +527,8 @@ export class Game {
     this.arena = buildArena(this.scene);
     this.fx = new Effects(this.scene);
     this.input = new PlayerInput();
+    this.input.bindMouse(canvas);
+    this.input.onLockChange = (on) => hud.setLock(on);
 
     this.mode = 'menu'; // menu | wait | match
     this.events = {};
@@ -449,7 +548,7 @@ export class Game {
     this.slowT = 0;
     this.camPos = new THREE.Vector3(0, 2, 8);
     this.camLook = new THREE.Vector3(0, 1, 0);
-    this.camDir = new THREE.Vector3(1, 0, 0);
+    this.camYaw = 0;
     this.basis = { right: { x: 1, z: 0 }, fwd: { x: 0, z: -1 } };
     this.time = 0;
     this.last = performance.now();
@@ -484,6 +583,7 @@ export class Game {
     this.mode = mode;
     this.input.enabled = mode === 'match';
     this.input.reset();
+    if (mode !== 'match') this.input.releaseMouse();
     if (this.preview) this.preview.root.visible = mode !== 'match';
     this.updateViewOffset();
   }
@@ -577,7 +677,11 @@ export class Game {
     this.opp.target = this.local;
     this.views[me] = this.local;
     this.views[1 - me] = this.opp;
+    addMarker(myF, '#3dd5ff');
+    addMarker(oppF, '#ff4757');
+    addNameTag(oppF, oppF.profile.name);
     this.setMode('match');
+    hud.setLock(this.input.lockOn);
     hud.setup([myF.profile.name, oppF.profile.name], [myF.profile.top, oppF.profile.top]);
     hud.show(true);
     this.snapCamera = true;
@@ -697,7 +801,9 @@ export class Game {
       const p = this.projectiles.find((q) => q.owner === m.by && !q.dead);
       if (p) p.destroy();
     }
+    this.arena.cheer(m.blocked ? 0.2 : heavy ? 0.8 : 0.4);
     if (m.hp[1 - m.by] <= 0) {
+      this.arena.cheer(2);
       this.timeScale = 0.25;
       this.slowT = 0.9;
       this.shake = 0.45;
@@ -717,7 +823,16 @@ export class Game {
   updateProjectiles(dt) {
     for (const p of this.projectiles) {
       p.update(dt);
-      if (p.dead || !p.ctrl) continue;
+      if (p.dead) continue;
+      // 柱や壁に当たったら消える
+      const blocked = Math.hypot(p.pos.x, p.pos.z) > WALL_RADIUS - 0.2
+        || PILLARS.some((q) => Math.hypot(p.pos.x - q.x, p.pos.z - q.z) < q.r + 0.15);
+      if (blocked) {
+        this.fx.spark(p.pos, p.color, 0.7);
+        p.destroy();
+        continue;
+      }
+      if (!p.ctrl) continue;
       const t = p.ctrl.target;
       if (!t || t.ko) continue;
       const d = Math.hypot(t.pos.x - p.pos.x, t.pos.z - p.pos.z);
@@ -739,27 +854,41 @@ export class Game {
       cam.lookAt(this.camLook);
       return;
     }
-    const a = this.local.pos;
-    const b = this.opp.pos;
-    const dx = b.x - a.x;
-    const dz = b.z - a.z;
-    const dist = Math.hypot(dx, dz);
-    if (dist > 0.3) this.camDir.set(dx / dist, 0, dz / dist);
-    const n = new THREE.Vector3(-this.camDir.z, 0, this.camDir.x);
-    const mid = new THREE.Vector3((a.x + b.x) / 2, 0, (a.z + b.z) / 2);
+    // 3人称カメラ: 自分の背中から追いかける。ロックオン中は相手の方へ自動で向く
+    const me = this.local.pos;
+    const opp = this.opp;
+    const lock = this.input.lockOn && opp && !opp.ko;
+    const toOpp = Math.atan2(opp.pos.x - me.x, opp.pos.z - me.z);
+    const look = this.input.takeLook(dt);
+    if (this.snapCamera) this.camYaw = toOpp;
+    else if (lock) this.camYaw = angleLerp(this.camYaw, toOpp, 1 - Math.exp(-dt * 6));
+    else this.camYaw += look;
     const portrait = window.innerWidth < window.innerHeight;
-    const camDist = Math.min(14, Math.max(5, dist * (portrait ? 1.3 : 0.75) + (portrait ? 6 : 4.2)));
-    const want = mid.clone().addScaledVector(n, camDist);
-    want.y = 1.7 + dist * 0.1 + Math.max(a.y, b.y) * 0.3;
-    const look = mid.clone();
-    look.y = 1.0 + Math.max(a.y, b.y) * 0.3;
+    const dist = portrait ? 6.8 : 5.2;
+    const fx = Math.sin(this.camYaw);
+    const fz = Math.cos(this.camYaw);
+    // 少し右肩越しにして、相手が自分の体に隠れにくくする
+    const sh = portrait ? 0.3 : 0.65;
+    const rx = -fz * sh;
+    const rz = fx * sh;
+    const want = new THREE.Vector3(me.x - fx * dist + rx, (portrait ? 3.1 : 2.5) + me.y * 0.5, me.z - fz * dist + rz);
+    // 観客席の壁の外にカメラが出ないようにする
+    const wr = Math.hypot(want.x, want.z);
+    const maxR = WALL_RADIUS - 0.4;
+    if (wr > maxR) {
+      want.x *= maxR / wr;
+      want.z *= maxR / wr;
+    }
+    const target = lock
+      ? new THREE.Vector3(me.x + (opp.pos.x - me.x) * 0.35 + rx, 1.1 + me.y * 0.5, me.z + (opp.pos.z - me.z) * 0.35 + rz)
+      : new THREE.Vector3(me.x + fx * 2 + rx, 1.2 + me.y * 0.5, me.z + fz * 2 + rz);
     if (this.snapCamera) {
       this.camPos.copy(want);
-      this.camLook.copy(look);
+      this.camLook.copy(target);
       this.snapCamera = false;
     } else {
-      this.camPos.lerp(want, 1 - Math.exp(-dt * 4));
-      this.camLook.lerp(look, 1 - Math.exp(-dt * 6));
+      this.camPos.lerp(want, 1 - Math.exp(-dt * 10));
+      this.camLook.lerp(target, 1 - Math.exp(-dt * 12));
     }
     cam.position.copy(this.camPos);
     if (this.shake > 0.001) {
@@ -796,7 +925,7 @@ export class Game {
       dt *= this.timeScale;
     }
     this.shake *= Math.exp(-realDt * 9);
-    this.arena.update(this.time);
+    this.arena.update(this.time, realDt);
 
     if (this.mode === 'match' && this.local) {
       this.local.update(dt, this.basis);

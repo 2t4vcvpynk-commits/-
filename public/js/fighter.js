@@ -31,6 +31,8 @@ const KO = P({ bx: -1.45, by: 0.14, tx: 0, hx: -0.2, ty: 0, hy: 0, lsx: -0.2, ls
 const SPW = P({ lsx: -0.5, lsz: 0.3, lex: -1.9, rsx: -0.5, rsz: 0.3, rex: -1.9, ty: -0.8, tx: 0, hy: -0.12, lkx: 0.6, rkx: 0.6 });
 const SPX = P({ lsx: -1.55, lsz: -0.2, lex: -0.05, rsx: -1.55, rsz: -0.2, rex: -0.05, ty: 0, tx: 0.15, hy: -0.12, lhx: -0.5, rhx: 0.4, lkx: 0.5, rkx: 0.3 });
 
+const DGE = P({ hy: -0.32, tx: 0.7, ty: 0, hx: -0.3, lsx: 0.4, lsz: 0.3, lex: -1.2, rsx: 0.4, rsz: 0.3, rex: -1.2, lhx: -1.0, lkx: 1.6, rhx: 0.2, rkx: 1.4 });
+
 const TRACKS = {
   p1: [[0, G], [0.07, JAB], [0.16, JAB], [0.28, G]],
   p2: [[0, G], [0.08, STR], [0.17, STR], [0.3, G]],
@@ -41,6 +43,7 @@ const TRACKS = {
   hit: [[0, G], [0.06, HIT], [0.3, HIT], [0.5, G]],
   blockhit: [[0, BLK], [0.05, BLK2], [0.15, BLK]],
   ko: [[0, HIT], [0.15, HIT], [0.7, KO]],
+  dodge: [[0, G], [0.07, DGE], [0.3, DGE], [0.42, G]],
 };
 
 const smooth = (x) => x * x * (3 - 2 * x);
@@ -60,7 +63,7 @@ function sampleTrack(track, t, out) {
   return out;
 }
 
-const FAST = new Set(['p1', 'p2', 'p3', 'kick', 'air', 'special', 'hit', 'blockhit']);
+const FAST = new Set(['p1', 'p2', 'p3', 'kick', 'air', 'special', 'hit', 'blockhit', 'dodge']);
 
 export class Fighter {
   constructor(profile) {

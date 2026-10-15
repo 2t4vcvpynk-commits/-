@@ -51,13 +51,16 @@
         <h2>操作方法</h2>
         <table>
           <tr><td>移動</td><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / 矢印</td></tr>
-          <tr><td>パンチ（3連打でコンボ）</td><td><kbd>J</kbd> / <kbd>Z</kbd></td></tr>
-          <tr><td>キック</td><td><kbd>K</kbd> / <kbd>X</kbd></td></tr>
+          <tr><td>視点</td><td>マウス / <kbd>Q</kbd><kbd>E</kbd></td></tr>
+          <tr><td>ロックオン切替</td><td><kbd>Tab</kbd> / <kbd>F</kbd></td></tr>
+          <tr><td>パンチ（3連打でコンボ）</td><td>左クリック / <kbd>J</kbd></td></tr>
+          <tr><td>キック</td><td>右クリック / <kbd>K</kbd></td></tr>
           <tr><td>ガード（長押し）</td><td><kbd>L</kbd> / <kbd>C</kbd></td></tr>
+          <tr><td>回避ステップ（無敵）</td><td><kbd>Shift</kbd></td></tr>
           <tr><td>ジャンプ（空中で攻撃）</td><td><kbd>Space</kbd></td></tr>
           <tr><td>必殺技（ゲージMAX時）</td><td><kbd>U</kbd> / <kbd>V</kbd></td></tr>
         </table>
-        <p class="hint">左右で前後移動、上下で回り込み。スマホは画面のボタンで操作できます。2本先取で勝利！</p>
+        <p class="hint">コロシアムを自由に走り回って戦おう！対戦中に画面をクリックするとマウスで視点を動かせます（Escで解除）。柱に隠れれば必殺技を防げます。スマホは左スティックで移動、画面ドラッグで視点。2本先取で勝利！</p>
       </section>
     </div>
   </div>
@@ -91,18 +94,22 @@
       <div class="row"><div class="wins" id="wins1"></div><div class="meter"><div id="m1"></div><b>SP</b></div></div>
     </div>
     <div id="ping"></div>
+    <button id="lock" title="ロックオン切替 (Tab)"></button>
     <button id="quit" title="退出">✕</button>
   </div>
   <div id="announce"></div>
 
   <!-- タッチ操作 -->
   <div id="touch" hidden>
+    <div id="lookpad"></div>
     <div id="stick"><div id="knob"></div></div>
     <div class="buttons">
+      <button data-act="lock" class="lk">ロック</button>
       <button data-act="special" class="sp">必殺</button>
-      <button data-act="jump">ジャンプ</button>
-      <button data-act="block">ガード</button>
-      <button data-act="kick">キック</button>
+      <button data-act="dodge" class="dg">回避</button>
+      <button data-act="jump" class="jp">ジャンプ</button>
+      <button data-act="block" class="bl">ガード</button>
+      <button data-act="kick" class="kk">キック</button>
       <button data-act="punch" class="big">パンチ</button>
     </div>
   </div>

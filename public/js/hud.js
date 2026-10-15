@@ -49,6 +49,12 @@ export const hud = {
   setTimer(t) {
     $('timer').textContent = t;
   },
+  setLock(on) {
+    const el = $('lock');
+    el.classList.toggle('on', on);
+    el.textContent = on ? '🎯 ロックオン中' : '👁 フリーカメラ';
+    document.querySelectorAll('[data-act=lock]').forEach((b) => b.classList.toggle('active', on));
+  },
   setPing(ms) {
     $('ping').textContent = ms == null ? '' : `${Math.round(ms)}ms`;
   },

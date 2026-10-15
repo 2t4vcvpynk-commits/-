@@ -28,6 +28,8 @@ let profile = loadProfile();
 const game = new Game($('c'));
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 game.input.bindTouch($('touch'));
+game.input.lockOn = isTouch; // スマホは最初からロックオン
+$('lock').addEventListener('click', () => game.input.toggleLock());
 
 // ---- トースト ----
 let toastTimer = 0;

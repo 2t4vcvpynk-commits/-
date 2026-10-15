@@ -17,7 +17,7 @@ const FIRE_LIFETIME = 3000;
 const HIT_COOLDOWN = 110;
 
 export const ANIMS = ['idle', 'walk', 'jump', 'block', 'blockhit', 'hit', 'ko', 'win',
-  'p1', 'p2', 'p3', 'kick', 'air', 'special'];
+  'p1', 'p2', 'p3', 'kick', 'air', 'special', 'dodge'];
 
 const num = (v, lim = 50) => (Number.isFinite(v) ? Math.max(-lim, Math.min(lim, v)) : 0);
 
@@ -147,7 +147,7 @@ export class Room {
           x: num(msg.x), y: num(msg.y), z: num(msg.z), r: num(msg.r, 100),
           an: ANIMS.includes(msg.an) ? msg.an : 'idle',
           at: num(msg.at, 10), ai: num(msg.ai | 0, 1e9), mv: num(msg.mv, 10),
-          blk: !!msg.blk,
+          blk: !!msg.blk, inv: !!msg.inv,
         };
         p.state = s;
         if (opp) opp.send(s);
@@ -162,6 +162,7 @@ export class Room {
           const d = Math.hypot(p.state.x - opp.state.x, p.state.z - opp.state.z);
           if (d > (kind === 'fire' ? FIRE_RANGE : MELEE_RANGE)) return;
         }
+        if (opp.state && opp.state.inv) return; // 回避中は無敵
         if (kind === 'fire') {
           if (!p.fireAt || now - p.fireAt > FIRE_LIFETIME) return;
           p.fireAt = 0;

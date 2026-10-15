@@ -244,7 +244,7 @@ kbd {
 }
 
 /* ---- タッチ操作 ---- */
-#touch { position: fixed; inset: 0; z-index: 12; pointer-events: none; user-select: none; -webkit-user-select: none; }
+#touch { position: fixed; inset: 0; z-index: 9; pointer-events: none; user-select: none; -webkit-user-select: none; }
 #stick {
   position: absolute; left: max(24px, env(safe-area-inset-left)); bottom: max(28px, env(safe-area-inset-bottom));
   width: 130px; height: 130px; border-radius: 50%;
@@ -257,19 +257,34 @@ kbd {
 }
 #touch .buttons {
   position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: max(20px, env(safe-area-inset-bottom));
-  display: grid; grid-template-columns: repeat(3, 64px); gap: 10px; pointer-events: auto;
+  display: grid; grid-template-columns: repeat(4, 60px); gap: 8px; pointer-events: auto;
 }
 #touch button {
-  width: 64px; height: 64px; border-radius: 50%;
+  width: 60px; height: 60px; border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.4); background: rgba(0, 0, 0, 0.35);
   color: #fff; font: 800 12px var(--font); touch-action: none;
 }
 #touch button.on { background: rgba(255, 122, 47, 0.7); }
-#touch button.big { grid-column: 3; grid-row: 2; }
-#touch button[data-act=kick] { grid-column: 2; grid-row: 2; }
-#touch button[data-act=block] { grid-column: 1; grid-row: 2; }
-#touch button[data-act=jump] { grid-column: 3; grid-row: 1; }
+#touch button.lk { grid-column: 1; grid-row: 1; font-size: 11px; }
+#touch button.lk.active { border-color: #ff4757; background: rgba(255, 71, 87, 0.35); }
 #touch button.sp { grid-column: 2; grid-row: 1; border-color: #b49bff; }
+#touch button.dg { grid-column: 3; grid-row: 1; border-color: #7fd3ff; }
+#touch button.jp { grid-column: 4; grid-row: 1; }
+#touch button.bl { grid-column: 2; grid-row: 2; }
+#touch button.kk { grid-column: 3; grid-row: 2; }
+#touch button.big { grid-column: 4; grid-row: 2; }
+#lookpad {
+  position: absolute; left: 0; right: 0; top: 90px; bottom: 0;
+  pointer-events: auto; touch-action: none;
+}
+#lock {
+  position: fixed; left: max(16px, env(safe-area-inset-left)); bottom: max(12px, env(safe-area-inset-bottom));
+  pointer-events: auto; padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--line); background: rgba(0, 0, 0, 0.45); color: var(--muted);
+  font: 700 12px var(--font); cursor: pointer;
+}
+#lock.on { color: #fff; border-color: #ff4757; }
+@media (pointer: coarse) { #lock { display: none; } }
 
 #toast {
   position: fixed; left: 50%; bottom: 32px; transform: translate(-50%, 20px); z-index: 50;
@@ -299,6 +314,6 @@ kbd {
 }
 @media (max-height: 500px) and (orientation: landscape) {
   #stick { width: 110px; height: 110px; }
-  #touch .buttons { grid-template-columns: repeat(3, 56px); gap: 8px; }
-  #touch button { width: 56px; height: 56px; }
+  #touch .buttons { grid-template-columns: repeat(4, 54px); gap: 6px; }
+  #touch button { width: 54px; height: 54px; font-size: 11px; }
 }
