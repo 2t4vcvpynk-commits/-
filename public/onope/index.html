@@ -2544,7 +2544,7 @@ const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bike
 const CKEYS=['x','z','h','v','st','engine','starting','side','gear','gearDir','doorOpen','inCar','dead','fall','warnT','brakeL','acc','rpm','atg','cam','parked','lastAcc','ck'];
 const BKEYS=['x','z','h','v','riding','arrived','warned','g','front','crank','rw','fw','lampM'];
 const HKEYS=['mode','nap','endHow','tvOn','lightOn','fridgeOpen'];
-const CARK=['car','paint','wheels','doorP','steer','engM','hlM','drl','tlM','rvM','tailPL','heads','sideB','shift','meterTex','meterCtx','navTex','navCtx','gTex','doorHit','navT','lights'];
+const CARK=['car','paint','wheels','doorP','steer','engM','hlM','drl','tlM','rvM','tailPL','heads','sideB','shift','meterTex','meterCtx','navTex','navCtx','gTex','doorHit','openHit','navT','lights'];
 const cp=(dst,src,keys)=>{keys.forEach(k=>dst[k]=src[k]);return dst;};
 function savePl(i){const q=players[i];if(!q)return;q.hand=hand;q.handV=handV;q.yaw=yaw;q.pitch=pitch;q.shoutCD=shoutCD;
   q.L=cp(q.L||{},W,LKEYS);q.car=cp(q.car||{},CAR,CKEYS);q.bike=cp(q.bike||{},BIKE,BKEYS);q.hm=cp(q.hm||{},HOME,HKEYS);q.carM=cp(q.carM||{},OUT,CARK);}
@@ -2562,11 +2562,11 @@ let joyId=null,joyO=null,lookId=null,lookL=null;
 const joyEl=$('#joy'),knob=joyEl.querySelector('i');
 const locked=()=>document.pointerLockElement===canvas;
 let tapStart=null;const ray2=new THREE.Raycaster();ray2.far=3;
-function carTap(x,y){if(!(W.running&&W.outside&&!(CAR.inCar&&CAR.cam)))return;ray2.setFromCamera(new THREE.Vector2(x/innerWidth*2-1,-(y/innerHeight)*2+1),camera);const h=ray2.intersectObjects(OUT.hits.filter(m=>(m.userData.veh==null||m.userData.veh===me)&&(CAR.inCar?m.userData.carCtl:m===OUT.doorHit)),false)[0];if(h){input.tapAim=h.object.userData.hid;input.tap=true;initAudio();}}
+function carTap(x,y){if(!(W.running&&W.outside&&!(CAR.inCar&&CAR.cam)))return false;ray2.setFromCamera(new THREE.Vector2(x/innerWidth*2-1,-(y/innerHeight)*2+1),camera);const h=ray2.intersectObjects(OUT.hits.filter(m=>(m.userData.veh==null||m.userData.veh===me)&&(CAR.inCar?m.userData.carCtl:(m===OUT.doorHit||(m===OUT.openHit&&CAR.doorOpen)))),false)[0];if(h){input.tapAim=h.object.userData.hid;input.tap=true;initAudio();return true;}return false;}
 canvas.addEventListener('pointerdown',e=>{tapStart={id:e.pointerId,x:e.clientX,y:e.clientY,t:performance.now()};
   if(!W.running)return;
   if(e.pointerType==='mouse'){
-    if(locked()){if(e.button===0)actDown();else if(e.button===2)queueAtk('punch');return;}
+    if(locked()){if(e.button===0){if(!carTap(innerWidth/2,innerHeight/2))actDown();}else if(e.button===2)queueAtk('punch');return;}
     try{const p=canvas.requestPointerLock();if(p&&p.catch)p.catch(()=>{});}catch(_){}
     lookId=e.pointerId;lookL=[e.clientX,e.clientY];return;
   }
@@ -3433,13 +3433,14 @@ function buildCar(S2,color=0x0d0d10){
   OUT.heads=[];[-.6,.6].forEach(x=>{const sp=new THREE.SpotLight(0xf4f8ff,0,55,.42,.5,1.1);sp.position.set(x,.8,-1.95);const tg=new THREE.Object3D();tg.position.set(x*1.6,0,-16);car.add(tg);sp.target=tg;car.add(sp);OUT.heads.push(sp);});
   OUT.tailPL=new THREE.PointLight(0xff2010,0,5);OUT.tailPL.position.set(0,.9,2.3);car.add(OUT.tailPL);
   // hitboxes
-  OUT.doorHit=oHit(.2,1.1,1.14,-.02,.95,.56,{prompt(){if(CAR.inCar)return Math.abs(CAR.v)>.4?'走行中は降りられない':'<b>車から降りる</b>';return CAR.doorOpen?'<b>乗る</b>(長押しでドアを閉める)':'運転席のドアを<b>開ける</b>';},
-    press(){if(CAR.inCar){if(Math.abs(CAR.v)>.4)return toast('止まってから');exitCar();return;}if(!CAR.doorOpen){CAR.doorOpen=true;sfx.carDoor(true);return;}enterCar();},
-    hold(dt,t){if(!CAR.inCar&&CAR.doorOpen&&t>.55){CAR.doorOpen=false;sfx.carDoor(false);}}},dp);
+  // the driver's door and its opening are tapped directly (no aim + use button)
+  OUT.doorHit=oHit(.2,1.1,1.14,-.02,.95,.56,{prompt(){return'';},
+    press(){if(CAR.inCar){if(Math.abs(CAR.v)>.4)return toast('止まってから');exitCar();return;}CAR.doorOpen=!CAR.doorOpen;sfx.carDoor(CAR.doorOpen);}},dp);OUT.doorHit.userData.tapOnly=true;
   oHit(.18,.16,.14,.66,.84,-.5,{prompt(){if(!CAR.inCar)return'';return CAR.engine?'エンジンを<b>切る</b>':CAR.starting?'…':'エンジン<b>スタート</b>';},press(){if(CAR.inCar)toggleEngine();}},car);
   oHit(.24,.34,.34,0,.78,-.3,{prompt(){if(!CAR.inCar)return'';return`シフト <b>${CAR.gear}</b> → <b>${GEARS[nextGearIdx()]}</b>`;},press(){if(CAR.inCar)shiftGear();}},car);
   oHit(.22,.22,.48,.07,.72,-.07,{prompt(){if(!CAR.inCar)return'';return CAR.side?'サイドブレーキを<b>解除する</b>':'サイドブレーキを<b>かける</b>';},press(){if(!CAR.inCar)return;CAR.side=!CAR.side;sfx.ratchet(CAR.side);}},car);
   OUT.hits.forEach(m=>{let q=m.parent;while(q){if(q===car){m.userData.carCtl=true;break;}q=q.parent;}});
+  OUT.openHit=oHit(.3,1.0,.55,.6,.95,.05,{prompt(){return'';},press(){if(!CAR.inCar&&CAR.doorOpen)enterCar();}},car);OUT.openHit.userData.tapOnly=true;
   OUT.car=car;
 }
 function simpleCar(S2,x,z,ry,color,taxi){return yarisStatic(S2,x,z,ry,color,taxi?'taxi':'');}
@@ -3659,7 +3660,7 @@ function shiftGear(){if(!CAR.engine)return toast('エンジンがかかってい
 function toggleEngine(){if(CAR.starting)return;if(CAR.gear!=='P'&&CAR.gear!=='N')return toast('ギアをPに入れてから');
   if(CAR.engine){CAR.engine=false;sfx.engineOff();return;}
   CAR.starting=true;sfx.crank();laterP(()=>{CAR.starting=false;CAR.engine=true;CAR.rpm=3200;},950);}
-function enterCar(){CAR.inCar=true;CAR.doorOpen=false;laterP(()=>sfx.carDoor(false),350);view.yaw=0;view.pitch=-.08;toast('エンジン → サイドブレーキ解除 → ギアDで発進');}
+function enterCar(){CAR.inCar=true;CAR.doorOpen=false;laterP(()=>sfx.carDoor(false),350);view.yaw=0;view.pitch=-.08;}
 function exitCar(){CAR.inCar=false;CAR.doorOpen=true;sfx.carDoor(true);const c=Math.cos(CAR.h),s=Math.sin(CAR.h);let px=CAR.x+c*1.5+s*.2,pz=CAR.z-s*1.5+c*.2;if(!walkOut(px,pz)){px=CAR.x-c*1.5;pz=CAR.z+s*1.5;}player.x=px;player.z=pz;view.yaw=CAR.h-Math.PI/2;
   if(!W.clockedOut&&CAR.parked&&!W.toldDoor){W.toldDoor=true;toast('通用口(建物の裏の灰色のドア)から店に入ろう');}}
 function transit(fn){if(W.transit)return;W.transit=true;if(cur===me)$('#fade').classList.add('on');laterP(()=>{fn();if(cur===me)$('#fade').classList.remove('on');laterP(()=>{W.transit=false;},450);},550);}
@@ -3710,7 +3711,7 @@ function carStep(inp,dt){
     if(kmh>35){const pre=!W.open&&!W.closed;return crashEnd(pre?'出勤中に事故':'事故',hit==='wall'?(pre?'出勤途中、繁華街の建物に突っ込んだ。今日の営業は中止':'帰り道に建物へ突っ込んだ。明日、店長にどう説明しよう…'):(pre?'出勤途中に派手にぶつけた。保険屋と警察を待つうちに夜が終わった':'帰り道に派手にぶつけた。保険屋に電話した'));}
     if(Math.abs(v)>.6){sfx.thud();shake=Math.max(shake,.18);}CAR.v=0;}
   // parking
-  if(!CAR.parked&&!W.clockedOut&&inR([-9.6,12,-24.5,-10.7],CAR.x,CAR.z)&&Math.abs(CAR.v)<.2&&(CAR.gear==='P'||CAR.side)){CAR.parked=true;sfx.clink(1.4);toast('駐車完了。エンジンを切って降りよう');}
+  if(!CAR.parked&&!W.clockedOut&&inR([-9.6,12,-24.5,-10.7],CAR.x,CAR.z)&&Math.abs(CAR.v)<.2&&(CAR.gear==='P'||CAR.side)){CAR.parked=true;sfx.clink(1.4);toast('駐車完了');}
   // night checkpoint (northbound)
   const ck=CAR.ck;
   if(CK_ON()&&!ck.done){
@@ -3767,21 +3768,16 @@ function drawMeter(){const g=OUT.meterCtx;if(!g)return;const kmh=Math.round(Math
   OUT.meterTex.needsUpdate=true;
   const gg=OUT.gTex.image.getContext&&OUT.gTex.image.getContext('2d');if(gg){gg.fillStyle='#0a0a0a';gg.fillRect(0,0,128,64);gg.font='bold 28px sans-serif';GEARS.forEach((x,i)=>{gg.fillStyle=x===CAR.gear?(CAR.engine?'#ffb040':'#aa7030'):'#3a3a3a';gg.fillText(x,10+i*30,44);});OUT.gTex.needsUpdate=true;}}
 let carHudV='',guideV='';
-const TAPW=isTouch?'をタップ':'を見てクリック';
 function guideText(){
   if(W.slept)return'おやすみなさい… <b>相方の帰宅</b>を待っています';
   if(W.napUntil!=null)return`zzz… 二度寝中(${clockFmt(W.napUntil)}まで)`;
   if(W.clockedOut&&W.outside){if(Math.hypot(player.x-aptOf(cur).door[0],player.z-aptOf(cur).door[1])<14&&!CAR.inCar)return`<b>${aptOf(cur).room}号室のドア</b>から部屋に帰る`;if(CAR.inCar&&CAR.z>84)return'大通りを<b>東</b>へ。アパートの駐車場に止めて部屋へ';return CAR.inCar?'繁華街の通りを<b>北</b>へ → 大通りを<b>東</b>へ(マップ参照)':'車に乗ってアパートへ帰ろう';}
   if(W.home)return HOME.mode==='start'?'玄関のドアから<b>出かける</b>(冷蔵庫・テレビ・ベッドも使える)':'ベッドで<b>寝て</b>一日を終えよう';
   if(W.clockedOut||!W.commute||W.open)return'';
-  if(CAR.inCar){if(CAR.cam)return'「視点」で運転席に戻ると、車内の操作ができる';
-    if(!CAR.engine&&!CAR.starting)return`ハンドル右の<b>赤く光るボタン</b>${TAPW}→ エンジンスタート`;
-    if(CAR.side&&!CAR.parked)return`シート横の<b>サイドブレーキ</b>(赤いレバー)${TAPW}→ 解除`;
-    if(CAR.gear!=='D'&&!CAR.parked&&Math.abs(CAR.v)<.3&&CAR.z>-8)return`シート間の<b>シフトレバー</b>${TAPW}→ <b>D</b> に入れる`;
-    if(CAR.parked)return CAR.engine?`エンジンボタンを押して止め、ドア${TAPW}で降りる`:`右のドア${TAPW}→ 降りる`;
+  if(CAR.inCar){if(CAR.parked)return'';
     if(CAR.z>84)return'大通りを<b>西</b>へ → 繁華街の通りで<b>右折して南</b>へ(スマホの<b>マップ</b>で確認できる)';
     if(CAR.z>-6)return'繁華街の通りを南へ。<b>右側の「呑兵衛」の裏の駐車場</b>へ';
-    return'裏の駐車場のどこかに止めて、ギアを <b>P</b> にする';}
+    return'裏の駐車場のどこかに止める';}
   if(BIKE.riding){if(BIKE.z>84)return'大通りを<b>西</b>へ → 繁華街の通りを<b>南</b>へ(マップ参照)';return CAR.parked?'':'右側の「呑兵衛」の<b>裏の駐車場</b>で降りる(「降りる」ボタン)';}
   if(!CAR.parked&&Math.hypot(player.x-aptOf(cur).door[0],player.z-aptOf(cur).door[1])<20&&Math.hypot(CAR.x-aptOf(cur).car[0],CAR.z-aptOf(cur).car[1])<3)return`<b>${carName(cur)}</b>か、玄関横の<b>自転車</b>(運転がかんたん)で出勤しよう`;
   
@@ -4022,7 +4018,7 @@ function viewUpdate(dt){
   if(W.outside&&CAR.inCar&&!CAR.cam)view.yaw=clamp(view.yaw,-2.4,2.4);
   const cp=camPose();camera.position.set(cp[0],cp[1],cp[2]);camera.rotation.set(cp[4]!=null?cp[4]:view.pitch,cp[3],0);camera.updateMatrixWorld&&camera.updateMatrixWorld();
   ray.setFromCamera(center,camera);
-  const hs=(W.outside&&CAR.inCar&&CAR.cam)?[]:ray.intersectObjects(W.home?HOME.hits:(W.outside?OUT.hits:hits),false);let hit=hs[0];if(hit){const pr=hs.find(x=>x.object.userData.prio&&x.distance<hit.distance+1.2);if(pr)hit=pr;}aim=hit?hit.object.userData.st:null;aimId=hit?hit.object.userData.hid|0:0;if(hit&&hit.object.userData.veh!=null&&hit.object.userData.veh!==me)aim=MATE_VEH;
+  const hs=(W.outside&&CAR.inCar&&CAR.cam)?[]:ray.intersectObjects(W.home?HOME.hits:(W.outside?OUT.hits:hits),false).filter(x=>!x.object.userData.tapOnly);let hit=hs[0];if(hit){const pr=hs.find(x=>x.object.userData.prio&&x.distance<hit.distance+1.2);if(pr)hit=pr;}aim=hit?hit.object.userData.st:null;aimId=hit?hit.object.userData.hid|0:0;if(hit&&hit.object.userData.veh!=null&&hit.object.userData.veh!==me)aim=MATE_VEH;
   $('#cross').classList.toggle('on',!!aim);
   if(heldV!==handV){heldV=handV;vis(refreshHeld);}
   if(isPlate(hand)&&heldMesh&&heldMesh.userData.stain){heldMesh.userData.stain.material.opacity=Math.min(1,hand.dirt*1.1);heldMesh.userData.grains.visible=hand.dirt>.45;}
