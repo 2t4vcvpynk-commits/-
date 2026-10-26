@@ -2614,11 +2614,11 @@ const PL0={i:0,pos:player,P,hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,a
 function mkPl(i){return{i,pos:{x:0,z:.2},P:{hp:100,atk:null,atkT:0,cd:0,lastHurt:-99,hitDone:false},hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,actT:0,pid:0,moved:false};}
 let players=[PL0],me=0,cur=0;
 // each player has their own whereabouts, car, bike and apartment; swapped in and out like the hand
-const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil'];
+const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil','ride','homeRide'];
 const CKEYS=['x','z','h','v','st','engine','starting','side','gear','gearDir','doorOpen','inCar','dead','fall','warnT','brakeL','acc','rpm','atg','cam','parked','lastAcc','ck'];
 const BKEYS=['x','z','h','v','riding','arrived','warned','g','front','crank','rw','fw','lampM'];
 const HKEYS=['mode','nap','endHow','tvOn','lightOn','fridgeOpen'];
-const CARK=['car','paint','wheels','doorP','steer','engM','hlM','drl','tlM','rvM','tailPL','heads','sideB','shift','meterTex','meterCtx','navTex','navCtx','gTex','doorHit','openHit','navT','lights'];
+const CARK=['car','paint','wheels','doorP','steer','engM','hlM','drl','tlM','rvM','tailPL','heads','sideB','shift','meterTex','meterCtx','navTex','navCtx','gTex','doorHit','openHit','passHit','navT','lights'];
 const cp=(dst,src,keys)=>{keys.forEach(k=>dst[k]=src[k]);return dst;};
 function savePl(i){const q=players[i];if(!q)return;q.hand=hand;q.handV=handV;q.yaw=yaw;q.pitch=pitch;q.shoutCD=shoutCD;
   q.L=cp(q.L||{},W,LKEYS);q.car=cp(q.car||{},CAR,CKEYS);q.bike=cp(q.bike||{},BIKE,BKEYS);q.hm=cp(q.hm||{},HOME,HKEYS);q.carM=cp(q.carM||{},OUT,CARK);}
@@ -2636,7 +2636,9 @@ let joyId=null,joyO=null,lookId=null,lookL=null;
 const joyEl=$('#joy'),knob=joyEl.querySelector('i');
 const locked=()=>document.pointerLockElement===canvas;
 let tapStart=null;const ray2=new THREE.Raycaster();ray2.far=3;
-function carTap(x,y){if(!(W.running&&W.outside&&!(CAR.inCar&&CAR.cam)))return false;ray2.setFromCamera(new THREE.Vector2(x/innerWidth*2-1,-(y/innerHeight)*2+1),camera);const h=ray2.intersectObjects(OUT.hits.filter(m=>(m.userData.veh==null||m.userData.veh===me)&&(CAR.inCar?m.userData.carCtl:(m===OUT.doorHit||(m===OUT.openHit&&CAR.doorOpen)))),false)[0];if(h){input.tapAim=h.object.userData.hid;input.tap=true;initAudio();return true;}return false;}
+function carTap(x,y){if(!(W.running&&W.outside&&!(CAR.inCar&&CAR.cam)))return false;
+  ray2.setFromCamera(new THREE.Vector2(x/innerWidth*2-1,-(y/innerHeight)*2+1),camera);const rk=W.ride,h=ray2.intersectObjects(OUT.hits.filter(m=>{const u=m.userData;if(rk!=null)return m===(players[rk]&&players[rk].carM.passHit);if(u.passOf!=null)return MP.on&&u.passOf!==me&&!CAR.inCar&&!BIKE.riding;
+    return (u.veh==null||u.veh===me)&&(CAR.inCar?u.carCtl:(m===OUT.doorHit||(m===OUT.openHit&&CAR.doorOpen)));}),false)[0];if(h){input.tapAim=h.object.userData.hid;input.tap=true;initAudio();return true;}return false;}
 canvas.addEventListener('pointerdown',e=>{tapStart={id:e.pointerId,x:e.clientX,y:e.clientY,t:performance.now()};
   if(!W.running)return;
   if(e.pointerType==='mouse'){
@@ -2707,7 +2709,7 @@ function reset(){
   Object.assign(CAR,{x:9.1,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}});{const o=OOBST.find(o=>o.k==='cop');if(o)o.r=[-11.85,-10.95,19.6,20.4];if(OUT.cop)OUT.cop.g.position.x=-11.4;}RETA.forEach(a=>scene.remove(a.mesh));RETA.length=0;
   $('#carHud').hidden=true;$('#fade').classList.remove('on');
   {const com=startMode==='commute';players.forEach((q,i)=>{const ap=aptOf(i),v=VEH[i];
-    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null};
+    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null,ride:null,homeRide:false};
     q.car={x:9.1-i*2.6,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,brakeL:0,acc:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}};
     q.bike=Object.assign({x:ap.bike[0],z:ap.bike[1],h:0,v:0,riding:false,arrived:false,warned:false},v?v.bikeM:{g:null,front:null,crank:null,rw:null,fw:null,lampM:null});
     q.hm={mode:'start',nap:0,endHow:null,tvOn:false,lightOn:true,fridgeOpen:false};q.carM=v?Object.assign({},v.carM):{};});
@@ -2755,7 +2757,7 @@ function endGame(o={}){
     else if(!miss.length){title='完璧な締め';rank=`${clk}に退勤。お疲れさまでした。営業: ${biz}`;}
     else if(miss.length<=2){title='ちょっと雑な締め';rank=`${clk}に退勤。翌朝、店長に「${miss[0].label}、忘れてたよ」と言われた。営業: ${biz}`;}
     else{title='店長から鬼電';rank=`${clk}に退勤。翌朝、店長から着信が${miss.length*6+3}件。営業: ${biz}`;}
-    if(o.home)rank+=o.home==='drive'?' そのあと愛車で無事に帰宅した。':o.home==='bike'?' そのあとママチャリで帰った。':' そのあと夜道を歩いて帰った。';rank+=carryEndNote();
+    if(o.home)rank+=o.home==='drive'?' そのあと愛車で無事に帰宅した。':o.home==='bike'?' そのあとママチャリで帰った。':o.home==='ride'?' そのあと相方の車に乗せてもらって帰った。':' そのあと夜道を歩いて帰った。';rank+=carryEndNote();
     rt.hidden=false;rt.innerHTML='<li class="ok"><span>締め作業</span>'+tasks.filter(t=>t.done).length+' / '+tasks.length+' 完了</li>'+tasks.map(t=>`<li class="${t.done?'ok':'rage'}">${t.done?'済':'未'} ${t.label}</li>`).join('');
   }
   $('#rTitle').textContent=title;$('#rRank').textContent=rank+(W.commute&&W.openAt!=null?` (開店 ${clockFmt(W.openAt)})`:'');
@@ -2872,7 +2874,7 @@ function netStep(dt){
   MP.dT-=dt;
   let steps=0;detMath(true);try{
   while(MP.acc>=TICK&&steps<5){const a=MP.inp[0][MP.tick],b=MP.inp[1][MP.tick];if(!a||!b){MP.stall+=dt;break;}
-    MP.stall=0;players.forEach(q=>{q.px=q.pos.x;q.pz=q.pos.z;});simStep(TICK,[a,b]);if(!W.running)return;quantize();
+    MP.stall=0;players.forEach((q,i)=>{q.px=q.pos.x;q.pz=q.pos.z;const c=i===cur?CAR:q.car;if(c){q.cpx=c.x;q.cpz=c.z;q.cph=c.h;}});simStep(TICK,[a,b]);if(!W.running)return;quantize();
     if(MP.tick%60===0){const h=hashState();MP.hash[MP.tick]=h;MP.room&&MP.room.emit('hx',{g:MP.curG,t:MP.tick,h}).catch(()=>{});}
     delete MP.inp[0][MP.tick-150];delete MP.inp[1][MP.tick-150];delete MP.hash[MP.tick-600];
     MP.tick++;MP.acc-=TICK;steps++;genLocal();}}finally{detMath(false);}
@@ -2886,7 +2888,7 @@ function onPo(d){if(typeof d.s!=='number')return;const r=performance.now()-d.s;i
   if(want>MP.myD){MP.myD=want;MP.dT=3;}else if(want<MP.myD&&MP.dT<=0){MP.myD--;MP.dT=2;}}
 // my own walking/cycling is shown right away: replay my inputs that the lockstep hasn't simulated yet
 const PRED={x:0,z:0,ok:false};
-function predictMe(){const q=players[me];if(!q||W.slept||W.napUntil!=null||W.transit||(W.outside&&CAR.inCar))return null;
+function predictMe(){const q=players[me];if(!q||W.slept||W.napUntil!=null||W.transit||(W.outside&&(CAR.inCar||W.ride!=null)))return null;
   const bike=W.outside&&BIKE.riding,wk=W.home?walkHome:(W.outside?walkOut:walkable);let x=bike?BIKE.x:q.pos.x,z=bike?BIKE.z:q.pos.z,v=BIKE.v;
   for(let t=MP.tick;t<MP.gen;t++){const inp=MP.inp[me][t];if(!inp)break;
     if(bike){const tgt=Math.max(-.3,-inp.mz)*5.6*((P.bac||0)>15?.7:1);v+=(tgt-v)*Math.min(1,TICK*(tgt>v?1.6:3));const nx=x-Math.sin(inp.yaw)*v*TICK,nz=z-Math.cos(inp.yaw)*v*TICK;
@@ -2903,7 +2905,8 @@ function ipos(q){if(!MP.on||q.px==null)return q.pos;const k=clamp(MP.acc/TICK,0,
 function mpFrame(dt){if(MP.starting&&MP.room){MP.goT-=dt;if(MP.goT<=0){MP.goT=.4;MP.room.emit('go',{g:MP.g,seed:MP.seed}).catch(()=>{});}}}
 function updateAvatars(dt){
   players.forEach((q,i)=>{const av=q.av;if(!av||i===me)return;
-    const lo=locOf(i),show=lo===locOf(me)&&lo!=='home'&&!(lo==='out'&&q.car&&q.car.inCar);av.g.visible=show;if(!show)return;
+    const lo=locOf(i),rid=lo==='out'&&q.L&&q.L.ride!=null&&players[q.L.ride],show=lo===locOf(me)&&lo!=='home'&&!(lo==='out'&&q.car&&q.car.inCar);av.g.visible=show;if(!show)return;
+    if(rid){if(av.g.parent!==OUT.scene)OUT.scene.add(av.g);const K=carPose(q.L.ride),st2=seatOf(K);av.g.position.set(st2.x,-.42,st2.z);av.g.rotation.y=K.h+Math.PI;av.head.rotation.set(-q.pitch*.5,0,0,'YXZ');vis(()=>rigUpdate(av,dt));return;}
     {const sc=lo==='out'?OUT.scene:scene;if(sc&&av.g.parent!==sc)sc.add(av.g);}
     {const ip=ipos(q);av.g.position.set(ip.x,lo==='out'&&q.bike&&q.bike.riding?.3:lo==='shop'?floorAt(ip.x,ip.z):0,ip.z);}av.g.rotation.y=q.yaw+Math.PI;if(q.moved)legsWalk(av,dt,true);
     av.head.rotation.set(-q.pitch*.7,0,0,'YXZ');
@@ -3405,7 +3408,7 @@ function buildTown(S2,B,PL,ob,box,cyl){
     const pl=new THREE.PointLight(0xffe8c8,.8,14,1.5);pl.position.set(108+X,2.7,106.8);S2.add(pl);
     [['101',101.5],['102',107.7]].forEach(([room,dx])=>oHit(1.0,2.1,.3,dx+X,1.15,107.8,{carryPrompt(){return W.clockedOut&&aptOf(cur).room===room?`${CARRY.c.name}を${room}号室に<b>連れて帰る</b>`:'';},carry(){if(W.clockedOut)this.press();},
       prompt(){if(CAR.inCar)return'';if(aptOf(cur).room!==room)return`${room}号室(${MP.on?'相方の部屋':'お隣さん'})`;return W.clockedOut?`${room}号室(自宅)に<b>帰る</b>`:`${room}号室(自宅)…鍵は閉めた。店へ向かおう`;},
-      press(){if(CAR.inCar)return;if(aptOf(cur).room!==room)return toast(MP.on?'相方の部屋だ':'よその部屋だ');if(!W.clockedOut)return toast('出勤しよう。車はすぐそこ');const ap=aptOf(cur),nearC=Math.hypot(CAR.x-ap.car[0],CAR.z-ap.car[1])<25,nearB=Math.hypot(BIKE.x-ap.door[0],BIKE.z-ap.door[1])<25&&W.bikeUsed;transit(()=>{goHome(nearB?'bike':nearC?'drive':'walk');});}}));}
+      press(){if(CAR.inCar)return;if(aptOf(cur).room!==room)return toast(MP.on?'相方の部屋だ':'よその部屋だ');if(!W.clockedOut)return toast('出勤しよう。車はすぐそこ');const ap=aptOf(cur),nearC=Math.hypot(CAR.x-ap.car[0],CAR.z-ap.car[1])<25,nearB=Math.hypot(BIKE.x-ap.door[0],BIKE.z-ap.door[1])<25&&W.bikeUsed;transit(()=>{goHome(nearB?'bike':nearC?'drive':W.homeRide?'ride':'walk');});}}));}
   // ---- houses along the north road and the far east
   // outer edge: trees so the map has a border
   for(let t=-50;t<100;t+=7){tree(t,-74.5,1.1);tree(t,144,1.1);}for(let t=-72;t<144;t+=7){tree(-49.5,t,1.1);tree(98.5,t,1.1);}
@@ -3726,10 +3729,23 @@ function buildOut(){vis(()=>{
 // every player gets a car + bike; both sets are always built so hitbox ids match on every client
 const VEH=[];
 function buildVehicles(S2){[0x0d0d10,0x1f3c8a].forEach((col,k)=>{const n0=OUT.hits.length;buildCar(S2,col);OUT.lights=[];OUT.car.traverse(o=>{if(o.isLight)OUT.lights.push(o);});buildBike(S2);vehCarryHits();
-  OUT.hits.slice(n0).forEach(m=>m.userData.veh=k);VEH.push({carM:cp({},OUT,CARK),bikeM:cp({},BIKE,['g','front','crank','rw','fw','lampM'])});});
+  OUT.hits.slice(n0).forEach(m=>m.userData.veh=k);
+  OUT.passHit=oHit(.26,1.0,.95,-.84,.95,-.25,{prompt(){return'';},press(){if(W.ride!=null)exitRide();else if(k!==cur)enterRide(k);}},OUT.car);OUT.passHit.userData.tapOnly=true;OUT.passHit.userData.passOf=k;
+  VEH.push({carM:cp({},OUT,CARK),bikeM:cp({},BIKE,['g','front','crank','rw','fw','lampM'])});});
   players.forEach((q,i)=>{if(i===cur){cp(OUT,VEH[i].carM,CARK);cp(BIKE,VEH[i].bikeM,['g','front','crank','rw','fw','lampM']);}else{q.carM=Object.assign({},VEH[i].carM);q.bike=Object.assign(q.bike||{},VEH[i].bikeM);}});
   showVehicles();}
 function showVehicles(){VEH.forEach((v,k)=>{const on=k<players.length;v.carM.car.visible=on;v.bikeM.g.visible=on;if(!on){v.carM.car.position.set(-9999,-500,-9999);v.bikeM.g.position.set(-9999,-500,-9999);}});}
+// ---- riding in the partner's car (2P) ----
+function rideCar(){return W.ride!=null&&players[W.ride]?players[W.ride].car:null;}
+function seatOf(c,lx=-.38,lz=.05){const co=Math.cos(c.h),si=Math.sin(c.h);return{x:c.x+co*lx+si*lz,z:c.z-si*lx+co*lz};}
+function enterRide(k){if(!MP.on||CAR.inCar||BIKE.riding||!players[k])return;W.ride=k;sfx.carDoor(false);toast('助手席に乗った');}
+function exitRide(){const c=rideCar();W.ride=null;if(!c)return;const co=Math.cos(c.h),si=Math.sin(c.h);let x=c.x-co*1.5,z=c.z+si*1.5;if(!walkOut(x,z)){x=c.x+co*1.6;z=c.z-si*1.6;}
+  if(walkOut(x,z)){player.x=x;player.z=z;}yaw=c.h+Math.PI/2;if(cur===me){view.yaw=yaw;view.pitch=-.05;}sfx.carDoor(true);
+  if(!W.clockedOut&&inR([-9.6,12,-24.5,-10.7],player.x,player.z)&&!CAR.parked){CAR.parked=true;toast('到着! 通用口(灰色のドア)から店に入ろう');}
+  if(W.clockedOut&&Math.hypot(player.x-aptOf(cur).door[0],player.z-aptOf(cur).door[1])<30)W.homeRide=true;}
+// car pose between the last two lockstep ticks (smooth camera / mesh at any frame rate)
+function carPose(i){const q=players[i],c=i===cur?CAR:q&&q.car;if(!c||!MP.on||!q||q.cpx==null)return c;const dx=c.x-q.cpx,dz=c.z-q.cpz;if(dx*dx+dz*dz>25)return c;
+  const k=clamp(MP.acc/TICK,0,1);return{x:q.cpx+dx*k,z:q.cpz+dz*k,h:lerpAngle(q.cph,c.h,k),v:c.v};}
 function nextGearIdx(){let i=GEARS.indexOf(CAR.gear);let n=i+CAR.gearDir;if(n<0||n>3){CAR.gearDir*=-1;n=i+CAR.gearDir;}return n;}
 function shiftGear(){if(!CAR.engine)return toast('エンジンがかかっていない');if(Math.abs(CAR.v)>1.5&&CAR.gear!=='N')return toast('走りながらは危ない');const n=nextGearIdx();CAR.gear=GEARS[n];if(n===0||n===3)CAR.gearDir*=-1;sfx.shiftClk();if(CAR.gear==='R')sfx.revBeep();}
 function toggleEngine(){if(CAR.starting)return;if(CAR.gear!=='P'&&CAR.gear!=='N')return toast('ギアをPに入れてから');
@@ -3814,8 +3830,8 @@ function updateOutside(dt){
   OUT.peds.forEach(p=>{p.t+=dt;if(p.k===2)armTo(p,1,'ear',dt,4);else if(p.k%3===0){armTo(p,1,'belly',dt,3);p.body.rotation.z=Math.sin(p.t*1.4)*.06;}else armTo(p,1,'hang',dt,3);armTo(p,0,'hang',dt,3);
     if(Math.sin(p.t*.7)>.95&&p.k%3===0)setExpr(p,'happy');vis(()=>rigUpdate(p,dt));});
 }
-function updateVehicle(dt){const car=OUT.car;if(!car)return;updateBike(dt);OUT.lights.forEach(l=>l.visible=cur===me); // the partner's car lights would only cost GPU here
-  car.position.set(CAR.x,0,CAR.z);car.rotation.set(0,CAR.h,0,'YXZ');
+function updateVehicle(dt){const car=OUT.car;if(!car)return;updateBike(dt);const K=carPose(cur)||CAR;OUT.lights.forEach(l=>l.visible=cur===me); // the partner's car lights would only cost GPU here
+  car.position.set(K.x,0,K.z);car.rotation.set(0,K.h,0,'YXZ');
   // body roll/pitch for feel
   car.rotation.z=CAR.st*Math.min(1,Math.abs(CAR.v)/25)*.06;car.rotation.x=(CAR.brakeL*.025-CAR.acc*.02)*Math.min(1,Math.abs(CAR.v)/3+.3);
   OUT.wheels.forEach(w=>{w.spin.rotation.x-=CAR.v*dt/.31;if(w.front)w.steerG.rotation.y=CAR.st;});
@@ -3860,8 +3876,8 @@ function guideText(){
   return'店の裏の<b>灰色のドア(通用口)</b>から入る';}
 function outsideView(dt){
   $('#fade').classList.toggle('zz',!!(W.slept||W.napUntil!=null));
-  const inC=W.outside&&CAR.inCar,away=W.outside||W.home;$('#act').style.visibility=(inC&&isTouch)?'hidden':'';{const lb=BIKE.riding?'降りる':'使う';if($('#act').textContent!==lb)$('#act').textContent=lb;}$('#cross').style.visibility=inC?'hidden':'';$('#prompt').style.visibility=inC?'hidden':'';$('#hud').hidden=!!away;$('#drive').hidden=!(inC&&isTouch);$('#carHud').hidden=!(inC&&CAR.cam);$('#camBtn').hidden=!(inC&&isTouch);
-  {const v=away?'hidden':'';$('#punch').style.visibility=v;$('#voice').style.visibility=v;$('#actionBtn').style.visibility=inC?'hidden':'';$('#hand').style.visibility=away?'hidden':'';}
+  const inC=W.outside&&CAR.inCar,seated=inC||(W.outside&&W.ride!=null),away=W.outside||W.home;$('#act').style.visibility=(seated&&isTouch)?'hidden':'';{const lb=BIKE.riding?'降りる':'使う';if($('#act').textContent!==lb)$('#act').textContent=lb;}$('#cross').style.visibility=seated?'hidden':'';$('#prompt').style.visibility=seated?'hidden':'';$('#hud').hidden=!!away;$('#drive').hidden=!(inC&&isTouch);$('#carHud').hidden=!(inC&&CAR.cam);$('#camBtn').hidden=!(inC&&isTouch);
+  {const v=away?'hidden':'';$('#punch').style.visibility=v;$('#voice').style.visibility=v;$('#actionBtn').style.visibility=seated?'hidden':'';$('#hand').style.visibility=away?'hidden':'';}
   const gt=away?guideText():'';if(gt!==guideV){guideV=gt;const e=$('#guide');e.innerHTML=gt;e.hidden=!gt;}
   if(inC&&OUT.navCtx){OUT.navT=(OUT.navT||0)-dt;if(OUT.navT<=0){OUT.navT=.4;drawTownMap(OUT.navCtx,256,160,{zoom:true,cx:CAR.x,cz:CAR.z,me:[CAR.x,CAR.z,CAR.h],carHide:true});OUT.navTex.needsUpdate=true;}}
   if(inC){const kmh=Math.round(Math.abs(CAR.v)*3.6),rp=Math.round(CAR.rpm/100)*100,key=kmh+CAR.gear+CAR.atg+CAR.side+CAR.engine+CAR.starting+rp+CAR.cam+clockFmt(W.t);
@@ -3872,11 +3888,12 @@ function outsideView(dt){
   if(W.outside&&!OUT.city){const s=AC.createBufferSource();s.buffer=noiseBuf;s.loop=true;const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=380;const g=AC.createGain();g.gain.value=0;s.connect(f).connect(g).connect(AC.destination);s.start();OUT.city=g;}
   if(OUT.city)OUT.city.gain.value=W.outside&&W.running?(CAR.inCar?.012:.03):0;
   // engine
-  if(W.outside&&(CAR.engine||CAR.starting)&&!OUT.eng){const o1=AC.createOscillator(),o2=AC.createOscillator(),o3=AC.createOscillator(),ws=AC.createWaveShaper(),lp=AC.createBiquadFilter(),g=AC.createGain(),mix=AC.createGain();
+  const EC=W.ride!=null&&rideCar()?rideCar():CAR;
+  if(W.outside&&(EC.engine||EC.starting)&&!OUT.eng){const o1=AC.createOscillator(),o2=AC.createOscillator(),o3=AC.createOscillator(),ws=AC.createWaveShaper(),lp=AC.createBiquadFilter(),g=AC.createGain(),mix=AC.createGain();
     o1.type='sawtooth';o2.type='sawtooth';o3.type='square';o2.detune.value=9;const curve=new Float32Array(256);for(let i=0;i<256;i++){const x=i/128-1;curve[i]=Math.tanh(x*3.2);}ws.curve=curve;
     lp.type='lowpass';lp.Q.value=3;mix.gain.value=.33;g.gain.value=0;[o1,o2,o3].forEach(o=>{o.connect(mix);o.start();});mix.connect(ws).connect(lp).connect(g).connect(AC.destination);OUT.eng={o1,o2,o3,lp,g};}
-  if(OUT.eng){const f=Math.max(20,CAR.rpm/30);OUT.eng.o1.frequency.value=f;OUT.eng.o2.frequency.value=f*1.003;OUT.eng.o3.frequency.value=f/2;OUT.eng.lp.frequency.value=280+CAR.rpm*.22+CAR.acc*900;
-    const dist=CAR.inCar?1:Math.max(0,1-Math.hypot(player.x-CAR.x,player.z-CAR.z)/40);OUT.eng.g.gain.value=W.outside&&W.running&&CAR.engine?(.045+CAR.acc*.05+Math.min(.04,CAR.rpm/200000))*dist:0;}
+  if(OUT.eng){const f=Math.max(20,EC.rpm/30);OUT.eng.o1.frequency.value=f;OUT.eng.o2.frequency.value=f*1.003;OUT.eng.o3.frequency.value=f/2;OUT.eng.lp.frequency.value=280+EC.rpm*.22+EC.acc*900;
+    const dist=EC.inCar||EC!==CAR?1:Math.max(0,1-Math.hypot(player.x-EC.x,player.z-EC.z)/40);OUT.eng.g.gain.value=W.outside&&W.running&&EC.engine?(.045+EC.acc*.05+Math.min(.04,EC.rpm/200000))*dist:0;}
 }
 Object.assign(sfx,{
   carDoor(open){if(open){burst(.1,900,.18,'lowpass');tone(240,.05,'square',.03);}else{tone(70,.2,'sine',.55,42);burst(.12,520,.38,'lowpass');}},
@@ -4086,7 +4103,7 @@ function applyInput(q,inp,dt){
   yaw=inp.yaw;pitch=inp.pitch;if(W.napUntil!=null&&W.t>=W.napUntil){W.napUntil=null;toast(`二度寝した… ${clockFmt(W.t)}`);if(HOME.nap>=3)sub('あなた','やばい、さすがに起きないと…','quiet');}
   if(W.slept||W.napUntil!=null){q.moved=false;return;}
   P.bac=Math.max(0,(P.bac||0)-dt*(q.moved?.25:.04));
-  let mx=inp.mx,mz=inp.mz;if(W.transit){mx=0;mz=0;}
+  const riding=W.outside&&W.ride!=null;let mx=inp.mx,mz=inp.mz;if(W.transit||riding){mx=0;mz=0;}
   const inCarNow=W.outside&&CAR.inCar;
   if(inCarNow){carStep({mx,mz},dt);mx=0;mz=0;}
   else if(W.outside&&BIKE.riding){bikeStep({mx,mz},dt);mx=0;mz=0;}
@@ -4100,8 +4117,9 @@ function applyInput(q,inp,dt){
       &&!others.some(o=>{const a=Math.hypot(o.pos.x-x,o.pos.z-z);return a<.42&&a<Math.hypot(o.pos.x-player.x,o.pos.z-player.z);});
     if(okP(nx,nz)){player.x=nx;player.z=nz;}else if(okP(nx,player.z))player.x=nx;else if(okP(player.x,nz))player.z=nz;
   }
-  if(W.outside&&!inCarNow)footOutStep();
-  const hb=inp.aid?(W.home?HOME.hits:W.outside?OUT.hits:hits).find(m=>m.userData.hid===inp.aid):null,st=hb&&!W.transit&&!P.phone&&!(hb.userData.veh!=null&&hb.userData.veh!==q.i)?hb.userData.st:null;
+  if(riding){const rc=rideCar();if(rc){const st2=seatOf(rc);player.x=st2.x;player.z=st2.z;}q.moved=false;}
+  else if(W.outside&&!inCarNow)footOutStep();
+  const hb=inp.aid?(W.home?HOME.hits:W.outside?OUT.hits:hits).find(m=>m.userData.hid===inp.aid):null,st=hb&&!W.transit&&!P.phone&&!(hb.userData.veh!=null&&hb.userData.veh!==q.i)&&!(riding&&hb.userData.passOf==null)?hb.userData.st:null;
   if(inp.a&&!q.act){q.act=1;q.actT=0;q.pid=inp.aid;if(W.outside&&BIKE.riding)dismountBike();else if(CARRY.c)carryUse(st);else if(st)st.press();}
   else if(inp.a){q.actT+=dt;if(st&&inp.aid===q.pid&&st.hold&&!CARRY.c)st.hold(dt,q.actT);}
   else{q.act=0;q.pid=0;}
@@ -4158,14 +4176,15 @@ function simWorld(dt){
   if(W.t>=W.dur*2&&players.some((q,i)=>!(i===cur?W:q.L).clockedOut))endGame({missed:true});
   else if(MP.on&&W.t>=W.dur*3)endGame({clockout:true,allHome:true});
 }
-function camPose(){if(W.outside&&CAR.inCar){const c=Math.cos(CAR.h),s=Math.sin(CAR.h);if(CAR.cam){const yw=CAR.h+view.yaw,d=5.8;return[CAR.x+Math.sin(yw)*d,1.9,CAR.z+Math.cos(yw)*d,yw,-.17];}const lx=.38,lz=-.02;return[CAR.x+c*lx+s*lz,1.14,CAR.z-s*lx+c*lz,CAR.h+view.yaw];}const p=players[me]?(MP.on&&PRED.ok?PRED:ipos(players[me])):player;return[p.x,(W.outside&&BIKE.riding?1.78:1.62)+(W.outside||W.home?0:camFloor),p.z,view.yaw];}
+function camPose(){if(W.outside&&W.ride!=null&&players[W.ride]){const K=carPose(W.ride),e=seatOf(K,-.38,-.02);return[e.x,1.14,e.z,K.h+view.yaw];}
+  if(W.outside&&CAR.inCar){const K=carPose(me)||CAR,c=Math.cos(K.h),s=Math.sin(K.h);if(CAR.cam){const yw=K.h+view.yaw,d=5.8;return[K.x+Math.sin(yw)*d,1.9,K.z+Math.cos(yw)*d,yw,-.17];}const lx=.38,lz=-.02;return[K.x+c*lx+s*lz,1.14,K.z-s*lx+c*lz,K.h+view.yaw];}const p=players[me]?(MP.on&&PRED.ok?PRED:ipos(players[me])):player;return[p.x,(W.outside&&BIKE.riding?1.78:1.62)+(W.outside||W.home?0:camFloor),p.z,view.yaw];}
 let camFloor=0,onTatami=false;
 const MATE_VEH={prompt(){return'相方の乗り物';},press(){}};
 function viewUpdate(dt){
   if(MP.on)updatePred(dt);else PRED.ok=false;
   {const pp=MP.on&&PRED.ok?PRED:player,f=W.outside||W.home?0:floorAt(pp.x,pp.z);camFloor+=(f-camFloor)*Math.min(1,dt*9);const up=f>0;if(up!==onTatami){onTatami=up;if(up)toast('靴を脱いで座敷に上がった');}}
   const q=players[me];if(q&&q.moved)bob+=dt*8.5;
-  if(W.outside&&CAR.inCar&&!CAR.cam)view.yaw=clamp(view.yaw,-2.4,2.4);
+  if(W.outside&&((CAR.inCar&&!CAR.cam)||W.ride!=null))view.yaw=clamp(view.yaw,-2.4,2.4);
   const cp=camPose();camera.position.set(cp[0],cp[1],cp[2]);camera.rotation.set(cp[4]!=null?cp[4]:view.pitch,cp[3],0);camera.updateMatrixWorld&&camera.updateMatrixWorld();
   ray.setFromCamera(center,camera);
   const hs=(W.outside&&CAR.inCar&&CAR.cam)?[]:ray.intersectObjects(W.home?HOME.hits:(W.outside?OUT.hits:hits),false).filter(x=>!x.object.userData.tapOnly);let hit=hs[0];if(hit){const pr=hs.find(x=>x.object.userData.prio&&x.distance<hit.distance+1.2);if(pr)hit=pr;}aim=hit?hit.object.userData.st:null;aimId=hit?hit.object.userData.hid|0:0;if(hit&&hit.object.userData.veh!=null&&hit.object.userData.veh!==me)aim=MATE_VEH;
@@ -4188,7 +4207,7 @@ function viewUpdate(dt){
   phoneView(dt);outsideView(dt);if(W.outside)bikeView(dt);if(W.outside&&CAR.inCar)driveTick(dt);
 }
 function render(dt){
-  shake=Math.max(0,shake-dt*1.2);const Rn=Math.random,cp=camPose(),bq=players[me]?(players[me].P.bac||0):0,dk=Math.max(0,Math.min(.55,(bq-3)/45)),tt=performance.now()/1000,inC=W.outside&&CAR.inCar;
+  shake=Math.max(0,shake-dt*1.2);const Rn=Math.random,cp=camPose(),bq=players[me]?(players[me].P.bac||0):0,dk=Math.max(0,Math.min(.55,(bq-3)/45)),tt=performance.now()/1000,inC=W.outside&&(CAR.inCar||W.ride!=null);
   camera.position.set(cp[0]+(Rn()-.5)*shake*.12+Math.sin(tt*.9)*dk*.07,cp[1]+(inC?0:Math.sin(bob)*.02)+(Rn()-.5)*shake*.12,cp[2]+Math.cos(tt*.7)*dk*.05);
   if(inC){const bf=BASEF+Math.min(16,Math.abs(CAR.v)*.42);if(Math.abs(camera.fov-bf)>.05){camera.fov=bf;camera.updateProjectionMatrix();}}else if(camera.fov!==BASEF){camera.fov=BASEF;camera.updateProjectionMatrix();}
   if(inC&&Math.abs(CAR.v)>14)shake=Math.max(shake,(Math.abs(CAR.v)-14)*.004);
