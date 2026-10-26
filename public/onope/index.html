@@ -38,7 +38,8 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 @keyframes bump{0%{transform:scale(1.35)}100%{transform:scale(1)}}
 .tickets{display:flex;flex-direction:column;gap:4px;width:min(190px,32vw)}
 .tk{background:rgba(244,234,210,.93);color:var(--ink);border-radius:3px;padding:3px 8px 4px;font-size:11px;line-height:1.3;min-width:0;position:relative;box-shadow:0 2px 6px rgba(0,0,0,.3);border-left:3px solid var(--shu);display:grid;grid-template-columns:auto 1fr;column-gap:6px;align-items:baseline}
-.tk .tp,.tk .dk,.tk .pb{grid-column:1/-1}.tk .tp:empty,.tk .dk:empty{display:none}
+.tk .tp,.tk .dk,.tk .pb,.tk .dg{grid-column:1/-1}
+.tk .dg{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;color:#6a4a1a;margin-top:1px}.tk .dg b{flex:1;height:6px;background:rgba(0,0,0,.14);border-radius:3px;overflow:hidden}.tk .dg i{display:block;height:100%;border-radius:3px;transition:width .3s}.tk .tp:empty,.tk .dk:empty{display:none}
 .tk.empty{display:none}
 .tk.dish{background:rgba(16,18,24,.62);color:var(--paper);border-left-color:#8a8a8a}
 .tk .no{font-size:10px;font-weight:800;letter-spacing:.04em;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -948,7 +949,7 @@ const seats=SEATX.map((x,i)=>{
     press(){const c=seat.c;
       if(c&&c.state==='passout'&&!c.cs&&isGlass(hand)){splashPassout(c);return;}
       if(c&&c.state==='passout'&&!c.cs&&!hand&&W.closed){nagPassout(c);return;}
-      if(c&&c.state==='passout'&&!c.cs&&!hand){c.body.rotation.x=0;c.bac=Math.min(c.bac,25);say(c,W.closed?'…ん…あ、もう閉店…? すみません、帰ります…':'…ん…あれ、寝てた…? …お会計で…','quiet');startLeave(c,true);return;}
+      if(c&&c.state==='passout'&&!c.cs&&!hand){c.body.rotation.x=0;c.bac=Math.min(c.bac,25);say(c,c.gara?(W.closed?'…ん…なんや、閉店か。…帰るわ':'…ん…寝とったわ。…会計や'):W.closed?'…ん…あ、もう閉店…? すみません、帰ります…':'…ん…あれ、寝てた…? …お会計で…','quiet');startLeave(c,true);return;}
       if(isGlass(hand)){if(c&&SEATED.has(c.state))serveDrink(seat);else toast('今は出せない');return;}
       if(!hand&&seat.plate){const p=seat.plate.data;scene.remove(seat.plate.mesh);seat.plate=null;seat.ver++;setHand(p);sfx.clink();return;}
       if(!c||c.state!=='wait')return;
@@ -1655,18 +1656,32 @@ function updateDrinking(c,dt){
     const ph=Math.min(1,c.sipPh),w=ph<.18?ph/.18:ph>.82?(1-ph)/.18:1;handWorld(c,0,_hw);
     const rx=s.x-.24,ry=.77,rz=-3.86;c.glassMesh.position.set(rx+(_hw.x-rx)*w,ry+(_hw.y-.075-ry)*w,rz+(_hw.z-rz)*w);c.glassMesh.rotation.x=-1.1*k;
     armMix(c,0,'mugRest','drink',k,dt,9);headTo(c,0,-.28*k,0,dt,8);
-    if(c.sipPh>=.5&&!c.sipped){c.sipped=true;const amt=Math.min(d.left,.12*(1+c.lv*.25));d.left-=amt;c.stomach+=amt*Math.min(1,gSum(d)/POUR_MAX)*d.abv;rebuildGlass(c);}
-    if(c.sipPh>=1){c.sipPh=0;placeGlassRest(c);if(d.left<=.02)onGlassEmpty(c);}
-  }else{c.sipT-=dt;if(c.sipT<=0){c.sipPh=.001;c.sipped=false;c.sipT=(4+R()*4)/(1+c.lv*.4);}}
+    if(c.sipPh>=.5&&!c.sipped){c.sipped=true;const amt=Math.min(d.left,d.gulp?.34:.12*(1+c.lv*.25));d.left-=amt;c.stomach+=amt*Math.min(1,gSum(d)/POUR_MAX)*d.abv;rebuildGlass(c);}
+    if(c.sipPh>=1){c.sipPh=0;placeGlassRest(c);if(d.left<=.02){if(d.gulp){d.gulp=false;fakeWaterDone(c,d);}if(d.kind!=='water')onGlassEmpty(c);}}
+  }else{c.sipT-=dt;if(c.sipT<=0){c.sipPh=.001;c.sipped=false;c.sipT=d.gulp?.7+R()*.5:(4+R()*4)/(1+c.lv*.4);}}
 }
+function looksLikeWater(g){const c=g.comp;return !c.beer&&!c.whisky&&!c.lemon&&(c.shochu+c.soda+(c.water||0))>0;}
+function serveFakeWater(s){const c=s.c,g=hand;setHand(null);const abv=gAbv(g);
+  if(c.glassMesh)scene.remove(c.glassMesh);c.dGlass={comp:{...g.comp},abv,kind:'water',left:1,label:'お冷',gulp:true};c.glassMesh=makeGlassMesh(c.dGlass,1);scene.add(c.glassMesh);placeGlassRest(c);c.sipPh=0;c.sipT=.6;
+  c.wantWater=false;c.calling=false;c.dOrder=null;s.ver++;sfx.clink(.7);
+  say(c,c.gara?'…おう、助かるわ…':'あ…ありがとうございます…','quiet');
+  if(abv>0)W.log.push({name:c.name,line:`(お冷のつもりで${drinkName(g)}を一気に飲んだ)`});}
+// the "water" turned out to be alcohol: strong shochu gulped down usually comes right back up
+function fakeWaterDone(c,d){if(!(d.abv>0))return;
+  if(d.abv>=12&&R()<.85){say(c,c.gara?'…ぶはっ!? これ酒やんけ…うっ…':'…ごくっ…!? これ…お酒…うっ…','loud');later(()=>{if(W.running&&SEATED.has(c.state)&&!c.sick&&!c.cs)startSick(c);},1300);}
+  else say(c,c.gara?'…なんやこの水、変な味すんな…':'…このお水、なんか変な味…','quiet');}
 function serveDrink(s){
-  {const c=s.c,cg=c.dGlass;if(cg&&cg.kind!=='water'&&cg.left>.02&&gSum(hand)&&gKind(hand)!=='water'){
+  {const c=s.c,cg=c.dGlass,hk=gKind(hand);
+  // waiting for water: a clear drink (shochu / soda) passes as water and gets gulped down; anything else is refused
+  if(c.wantWater&&gSum(hand)&&hk!=='water'){if(looksLikeWater(hand))return serveFakeWater(s);
+    toast(`${c.name}はお冷を待ってる`);setExpr(c,'confused');say(c,c.gara?'…水や言うとるやろ。酒なんかいらんわ…':c.lv>=2?'…これお酒でしょぉ…お水がいいんですってばぁ…':'…あの、お水をお願いしたんですけど…','quiet');return;}
+  if(cg&&cg.kind!=='water'&&cg.left>.02&&gSum(hand)&&hk!=='water'){
     toast(`${c.name}はまだ飲んでる`);say(c,c.gara?'まだ残っとるやろ':c.lv>=2?'まだ飲んでるってぇ〜':'あ、まだ残ってるので大丈夫です','quiet');return;}}
   const c=s.c,g=hand;setHand(null);const dn=drinkName(g);
   const kind=gKind(g),abv=gAbv(g),vol=gSum(g)/POUR_MAX,ord=c.dOrder,service=!ord;
   if(kind==='water'){if(c.glassMesh)scene.remove(c.glassMesh);c.dGlass={comp:{...g.comp},abv:0,kind:'water',left:1};c.glassMesh=makeGlassMesh(c.dGlass,1);scene.add(c.glassMesh);placeGlassRest(c);c.sipPh=0;c.sipT=1;
-    if(c.wantWater){c.wantWater=false;c.calling=false;c.bac=Math.max(0,c.bac-6);c.stomach*=.6;say(c,'あ…ありがとうございます、助かります…','quiet');W.water=(W.water||0)+1;s.ver++;}
-    else say(c,c.lv>=2?'水ぅ? まだ飲めるってぇ〜':'あ、お冷ありがとうございます','quiet');
+    if(c.wantWater){c.wantWater=false;c.calling=false;c.bac=Math.max(0,c.bac-6);c.stomach*=.6;say(c,c.gara?'…おう、助かるわ…':'あ…ありがとうございます、助かります…','quiet');W.water=(W.water||0)+1;s.ver++;}
+    else say(c,c.gara?(c.lv>=2?'水ぅ? まだまだ飲めるわボケぇ':'おう、水か'):c.lv>=2?'水ぅ? まだ飲めるってぇ〜':'あ、お冷ありがとうございます','quiet');
     sfx.clink(.7);return;}
   const exp=ord?DRINKS[ord.kind].abv*(ord.strong?1.6:1):(DRINKS[kind]?DRINKS[kind].abv:5);
   const ratio=abv/Math.max(1,exp),sober=c.bac<12&&!c.gara,nm=ord?DRINKS[ord.kind].name:'';
@@ -1683,7 +1698,7 @@ function serveDrink(s){
   if(!refuse&&dn==='偽ビール'&&ord&&ord.kind==='beer')line=sober?'…これ、ビールですよね? なんか喉が焼けるんですけど…':c.gara?'なんやこのビール、えらい効くやんけ':'このビールすっごい効くぅ〜';
   if(gSum(g))servedMsg(g,c.name);
   if(refuse){say(c,line,cls);setExpr(c,'confused');c.dRefused=(c.dRefused||0)+1;W.conf++;bumpPill('#confP');W.log.push({name:c.name,line});
-    if(c.dRefused>=2&&ord){c.dOrder=null;s.ver++;say(c,'…やっぱり飲み物はもういいです','quiet');}return;}
+    if(c.dRefused>=2&&ord){c.dOrder=null;s.ver++;say(c,c.gara?'…もう酒はええわ':'…やっぱり飲み物はもういいです','quiet');}return;}
   if(c.glassMesh)scene.remove(c.glassMesh);
   c.dGlass={comp:{...g.comp},abv,kind,left:1,label:drinkLabel(g)};c.glassMesh=makeGlassMesh(c.dGlass,1);scene.add(c.glassMesh);placeGlassRest(c);s.ver++;
   if(ord){c.bill+=DRINKS[ord.kind].price;c.dOrder=null;c.dRefused=0;s.ver++;}
@@ -1712,7 +1727,7 @@ function witnessVomit(v){
     if(o.regular){if(!laughed&&R()<.6){laughed=true;say(o,pick(['うわ、吐いとる…','ぎゃはは、大丈夫かぁ?','きったね…']),'quiet');}return;}
     if(!SEATED.has(o.state))return;
     if(o.lv>=2||o.gara){if(R()<.5)say(o,o.gara?'うわっ、なにしとんねん…':'あはは、吐いてるぅ〜','quiet');return;}
-    if(R()<.3){W.giveup++;bumpPill('#confP');say(o,'…ごめんなさい、ちょっと無理です。お会計を…','quiet');W.log.push({name:o.name,line:'(隣で吐かれて帰った)'});startLeave(o,'drinks');}
+    if(R()<.3){W.giveup++;bumpPill('#confP');say(o,o.gara?'…きっしょ、もう帰るわ。会計や':'…ごめんなさい、ちょっと無理です。お会計を…','quiet');W.log.push({name:o.name,line:'(隣で吐かれて帰った)'});startLeave(o,'drinks');}
     else say(o,'うわっ…','quiet');});
 }
 function smellCheck(c,dt){
@@ -1729,7 +1744,7 @@ function startSick(c){
 function startPassout(c){c.state='passout';c.st=0;c.sipPh=0;placeGlassRest(c);if(c.dOrder){c.dOrder=null;c.seat.ver++;}W.passout++;say(c,'…あれぇ…なんか…ねむ…','quiet');}
 function afterVomit(c,seated){
   W.vomit++;c.vm=0;c.fl=0;c.sick=false;c.sickCD=25;c.bac=Math.max(0,c.bac-13);c.stomach=0;c.vomits=(c.vomits||0)+1;c.lv=lvOf(c);c.body.rotation.x=0;
-  say(c,pick(['…すみません…','…はぁ…はぁ…','…ふぅ、ちょっとスッキリした…']),'quiet');
+  say(c,pick(c.gara?['…うぇ…','…はぁ…はぁ…','…ふぅ、ちょっとマシになったわ…']:['…すみません…','…はぁ…はぁ…','…ふぅ、ちょっとスッキリした…']),'quiet');
   if(seated){c.state=c.resume;c.st=c.resumeSt;if(c.bac>=38*c.tol)startPassout(c);}
   else{c.state='fromToilet';c.st=0;c.path=null;}
 }
@@ -1897,9 +1912,9 @@ function witnessViolence(v){
   persons().forEach(o=>{if(o===v||o.cs||o.cop)return;const d=Math.hypot(o.g.position.x-v.g.position.x,o.g.position.z-v.g.position.z);if(d>6.5)return;
     if(o.regular&&v.regular&&o.group===v.group){
       if(isDrunkP(o)&&R()<.55){enterCombat(o,'join');say(o,'おいコラ、ツレに何すんねん!!','loud');}
-      else{if(R()<.5)say(o,pick(['ちょっ、やめてください!!','おい、何してんだよ!!']),'loud');if(!isDrunkP(o)&&R()<.25&&W.policeT==null&&!W.policeOn)enterCombat(o,'call');}
+      else{if(R()<.5)say(o,o.gara?pick(['おい、何しとんねん!!','やめぇや!!']):pick(['ちょっ、やめてください!!','おい、何してんだよ!!']),'loud');if(!isDrunkP(o)&&R()<.25&&W.policeT==null&&!W.policeOn)enterCombat(o,'call');}
     }else if(!isDrunkP(o)&&!o.gara){
-      if(R()<.3){enterCombat(o,'flee');say(o,pick(['…やば、出よ','え、こわ…','…ちょっと、帰ります']),'quiet');}
+      if(R()<.3){enterCombat(o,'flee');say(o,o.gara?pick(['…しょーもな、帰るわ','…アホくさ']):pick(['…やば、出よ','え、こわ…','…ちょっと、帰ります']),'quiet');}
       else if(R()<.12&&W.policeT==null&&!W.policeOn)enterCombat(o,'call');
     }
   });
@@ -1961,7 +1976,7 @@ function updateCombat0(p,dt){
     break;}
   case'rage':{
     faceTo(p,Math.atan2(dx,dz),dt,8);setExpr(p,'rage');legsWalk(p,dt,false);
-    if(!p.l1){p.l1=1;say(p,pick(['はぁ!? 何すんですか!!','ちょっと!! 何なんですかあなた!!','痛っ…何してくれてんの!?']),'loud');}
+    if(!p.l1){p.l1=1;say(p,p.gara?pick(['なにすんじゃコラァ!!','いったいのぉ…覚えとけよ!!']):pick(['はぁ!? 何すんですか!!','ちょっと!! 何なんですかあなた!!','痛っ…何してくれてんの!?']),'loud');}
     if(p.cst>1&&!p.shoved){p.shoved=1;if(d<1.05)hurtPlayer(5,p);}
     if(p.cst>.9&&p.cst<1.4){armTo(p,0,'shove',dt,25);armTo(p,1,'shove',dt,25);}
     else{armTo(p,0,'tense',dt,6);armTo(p,1,p.cst>2.6&&p.cst<3.6?'point':'tense',dt,6);}
@@ -2118,7 +2133,7 @@ function startClosing(){
   W.closed=true;toast('21:00 閉店。締め作業を始めよう');sub('店内放送','本日はご来店ありがとうございました。閉店のお時間です','quiet');
   customers.forEach(c=>{if(c.cs||!SEATED.has(c.state))return;if(c.dOrder){c.dOrder=null;c.seat.ver++;}
     const eating=c.state==='eat'||c.state==='inspect',drinking=c.dGlass&&c.dGlass.left>.02;
-    say(c,eating?pick(['あ、もう閉店か。急いで食べますね','閉店ですか、これ食べたら帰ります']):drinking?pick(['あ、もう閉店か。これ飲んだら帰ります','閉店かぁ、最後の一杯ゆっくり飲も']):pick(['あ、もう閉店か','ごちそうさまでした','お会計お願いします']),'quiet');});
+    say(c,c.gara?(eating?'閉店か。これ食うたら帰るわ':drinking?'これ飲んだら帰るわ':pick(['もう閉店か','ごっそさん','会計や'])):eating?pick(['あ、もう閉店か。急いで食べますね','閉店ですか、これ食べたら帰ります']):drinking?pick(['あ、もう閉店か。これ飲んだら帰ります','閉店かぁ、最後の一杯ゆっくり飲も']):pick(['あ、もう閉店か','ごちそうさまでした','お会計お願いします']),'quiet');});
   const gs=[...new Set(regulars.filter(r=>!r.student).map(r=>r.group))];gs.forEach((gid,i)=>{const at=W.t+18+i*9+R()*6;regulars.forEach(r=>{if(r.group===gid)r.leaveAt=at+R()*1.5;});});
   if(customers.some(c=>c.state==='passout'))later(()=>toast('酔いつぶれた客が起きない… 声をかける・飲み物をかける・暴力・背負って外へ'),2500);
   $('#tickets').hidden=true;$('#tasks').hidden=false;renderTasks();
@@ -2287,7 +2302,7 @@ const REG_SPOTS=[[-5.95,-5.15],[-5.3,-5.05],[-4.65,-5.0]];
 function regQueue(){return customers.filter(c=>c.state==='toReg'||c.state==='payWait').sort((a,b)=>a.regIdx-b.regIdx);}
 function payNow(c,byPlayer){
   W.money+=c.payDue;popMoney(`+¥${c.payDue.toLocaleString()}`);sfx.register();c.payDue=0;c.calling=false;W.chkP=0;
-  if(byPlayer)say(c,pick(['ごちそうさまでした','ごちそうさま、また来ます','おいしかったです']),'quiet');
+  if(byPlayer)say(c,pick(c.gara?['ごっそさん','うまかったわ','また来たるわ']:['ごちそうさまでした','ごちそうさま、また来ます','おいしかったです']),'quiet');
   c.state='leave';c.st=0;c.side=-1;c.paidAt=W.t;
 }
 function updateExtra(c,dt){
@@ -2312,7 +2327,7 @@ function updateExtra(c,dt){
     if(c.calling&&c.callT>10)armTo(c,1,'raise',dt,8);
     if(c.payT>70){
       if((c.gara||c.lv>=2)&&R()<.35){W.dine=(W.dine||0)+1;W.log.push({name:c.name,line:`(食い逃げされた ¥${c.payDue.toLocaleString()})`,rage:1});c.payDue=0;c.calling=false;c.state='leave';c.st=0;c.side=-1;c.angryExit=true;}
-      else{say(c,'…ここに置いときますね','quiet');payNow(c,false);}
+      else{say(c,c.gara?'…ここ置いとくで':'…ここに置いときますね','quiet');payNow(c,false);}
     }
   }
 }
@@ -2321,8 +2336,8 @@ let shoutCD=0;
 function answerCall(p){
   p.calling=false;
   if(p.addWant){p.addWant=false;const o=makeOrder();p.order=o;p.ate=false;p.state='wait';p.st=0;p.pat=p.maxPat*.9;p.nag=false;p.redo=0;p.calledFood=false;p.seat.ver++;setSlip(p.seat);
-    later(()=>{if(W.running&&p.state==='wait')say(p,`追加で${ITEMS[o.item].name}お願いします${o.req?'。'+o.req:''}`,'');},700);}
-  else if(p.wantWater){later(()=>{if(W.running)say(p,'お水お願いします…','quiet');},600);}
+    later(()=>{if(W.running&&p.state==='wait')say(p,p.gara?`追加で${ITEMS[o.item].name}や${o.req?'。'+o.req:''}`:`追加で${ITEMS[o.item].name}お願いします${o.req?'。'+o.req:''}`,'');},700);}
+  else if(p.wantWater){later(()=>{if(W.running)say(p,p.gara?'…水くれや…':'お水お願いします…','quiet');},600);}
   else if(p.state==='wait'){p.pat=Math.min(p.maxPat,p.pat+p.maxPat*.12);later(()=>{if(W.running)say(p,p.gara?'早よしてや':'あ、お願いしまーす','quiet');},600);}
   else if(p.state==='payWait'){p.payT=Math.max(0,p.payT-15);}
 }
@@ -2385,13 +2400,13 @@ function updateReturners(dt){
 // per-frame flavour
 function updateAruaru(dt){
   if(!W.lastOrder&&W.t>=W.dur*150/180){W.lastOrder=true;sub('あなた','ラストオーダーになりまーす!','');sfx.shout();
-    customers.forEach(c=>{if(SEATED.has(c.state)&&!c.cs&&!c.dOrder&&R()<.55){const o={kind:c.lastKind||pickDrink(),strong:c.lv>=2&&R()<.5};c.dOrder=o;c.dWait=0;c.seat.ver++;later(()=>{if(W.running&&c.dOrder)say(c,c.lv>=2?'じゃあラストでもう一杯ぃ〜':`じゃあラストで${DRINKS[o.kind].name}お願いします`,'quiet');},800+R()*2500);}});}
+    customers.forEach(c=>{if(SEATED.has(c.state)&&!c.cs&&!c.dOrder&&R()<.55){const o={kind:c.lastKind||pickDrink(),strong:c.lv>=2&&R()<.5};c.dOrder=o;c.dWait=0;c.seat.ver++;later(()=>{if(W.running&&c.dOrder)say(c,c.gara?`ほなラストで${DRINKS[o.kind].name}や`:c.lv>=2?'じゃあラストでもう一杯ぃ〜':`じゃあラストで${DRINKS[o.kind].name}お願いします`,'quiet');},800+R()*2500);}});}
   // calls from seated customers
   customers.forEach(c=>{if(c.cs)return;
     if(c.state==='wait'&&!c.calledFood&&c.pat/c.maxPat<.55){c.calledFood=true;c.calling=true;c.callT=15;say(c,c.gara?'おーい、店員!':'すみませーん!',c.gara?'loud':'');}
-    if(SEATED.has(c.state)&&c.dOrder&&c.dWait>45&&!c.calledDrink){c.calledDrink=true;c.calling=true;c.callT=15;say(c,'すみませーん! 飲み物まだですかー?','');}
-    if(SEATED.has(c.state)&&c.lv>=2&&!c.waterAsked&&R()<dt*.02){c.waterAsked=true;c.wantWater=true;c.calling=true;c.callT=15;c.seat.ver++;say(c,'すみません…お水もらえますか…','quiet');}
-    if(c.state==='linger'&&!c.addAsked&&!W.lastOrder&&!W.closed&&c.lingerT>10){c.addAsked=true;if(R()<.35){c.addWant=true;c.calling=true;c.callT=15;c.addT=0;say(c,'すみませーん! 追加いいですかー?','');}}
+    if(SEATED.has(c.state)&&c.dOrder&&c.dWait>45&&!c.calledDrink){c.calledDrink=true;c.calling=true;c.callT=15;say(c,c.gara?'おい、酒まだか!':'すみませーん! 飲み物まだですかー?',c.gara?'loud':'');}
+    if(SEATED.has(c.state)&&c.lv>=2&&!c.waterAsked&&R()<dt*.02){c.waterAsked=true;c.wantWater=true;c.calling=true;c.callT=15;c.seat.ver++;say(c,c.gara?'…おい、水くれや…':'すみません…お水もらえますか…','quiet');}
+    if(c.state==='linger'&&!c.addAsked&&!W.lastOrder&&!W.closed&&c.lingerT>10){c.addAsked=true;if(R()<.35){c.addWant=true;c.calling=true;c.callT=15;c.addT=0;say(c,c.gara?'おーい、追加や!':'すみませーん! 追加いいですかー?',c.gara?'loud':'');}}
     if(c.addWant){c.addT+=dt;if(c.addT>30){c.addWant=false;c.calling=false;say(c,'…まあいいや','quiet');}}
     if(c.calling&&SEATED.has(c.state)){c.callT-=dt;if(c.callT>13)armTo(c,1,'raise',dt,8);if(c.state==='wait')c.pat-=dt*.3;if(c.callT<=0){c.callT=15;say(c,c.gara?'おい、聞こえとんのか!':'すみませーん!!','');}}
   });
@@ -2582,9 +2597,10 @@ function updateTickets(){
       if(!c){d.className=s.plate?'tk dish':'tk empty';d.innerHTML=`<div class="no">${i+1}番</div><div class="it">${s.plate?'皿が残ってる':'空席'}</div><div class="tp">${s.plate?'下げる':''}</div><div class="dk"></div>`;}
       else{const tp=c.order.req?'※'+c.order.req.replace(/で$/,''):'通常盛り';
         const dk=c.wantWater?'飲: お冷':c.dOrder?`飲: ${DRINKS[c.dOrder.kind].name}${c.dOrder.strong?' 濃いめ':''}`:c.addWant?'追加注文あり':(c.dGlass&&c.dGlass.label&&c.dGlass.left>.02)?`出: ${c.dGlass.label}`:st;
-        d.className='tk';d.innerHTML=`<div class="no">${i+1}番 ${c.name}</div><div class="it">${c.ate?'料理済み':ITEMS[c.order.item].name}</div><div class="tp">${c.ate?'':(tp||'そのまま')}</div><div class="dk">${dk}</div><div class="pb"><i></i></div>${c.calling?'<span class="stamp">呼んでる</span>':c.redo?'<span class="stamp">作り直し</span>':''}`;}
+        d.className='tk';d.innerHTML=`<div class="no">${i+1}番 ${c.name}</div><div class="it">${c.ate?'料理済み':ITEMS[c.order.item].name}</div><div class="tp">${c.ate?'':(tp||'そのまま')}</div><div class="dk">${dk}</div><div class="dg"><span>残</span><b><i></i></b></div><div class="pb"><i></i></div>${c.calling?'<span class="stamp">呼んでる</span>':c.redo?'<span class="stamp">作り直し</span>':''}`;}
     }
-    if(c){const f=Math.max(0,c.pat/c.maxPat);const bar=d.querySelector('.pb i');if(bar){bar.style.width=(c.state==='wait'?f*100:100)+'%';bar.style.background=c.state!=='wait'?'#999':f>.5?'var(--ok)':f>.25?'var(--oil)':'var(--shu)';}}
+    if(c){const g=d.querySelector('.dg');if(g){const dg=c.dGlass,on=!!dg&&dg.left>.02;g.style.display=on?'':'none';if(on){const i=g.querySelector('i');i.style.width=Math.round(dg.left*100)+'%';i.style.background=dg.kind==='water'?'#6fb4e8':dg.left<.25?'var(--shu)':'#d8961e';}}
+      const f=Math.max(0,c.pat/c.maxPat);const bar=d.querySelector('.pb i');if(bar){bar.style.width=(c.state==='wait'?f*100:100)+'%';bar.style.background=c.state!=='wait'?'#999':f>.5?'var(--ok)':f>.25?'var(--oil)':'var(--shu)';}}
   });
 }
 
@@ -2962,7 +2978,7 @@ function askContact(p){
       setExpr(p,p.gara?'annoyed':'confused');return;}
     if(lv>=3){say(p,pick(['えぇ〜、いいよぉ〜。ふるふるするぅ?','いいよ〜! はい、QRぁ〜','店員さん、おもしろぉ〜い。交換しよ〜']),'');setExpr(p,'happy');addContact(p);return;}
     if(lv===2){say(p,pick(['えー、どうしよっかなぁ…やっぱやめとくぅ','あはは、店員さん酔ってるでしょ〜? だめ〜']),'quiet');setExpr(p,'happy');return;}
-    say(p,pick(['…え? いや、仕事中…ですよね…?','…ごめんなさい、そういうのはちょっと…','…え、こわ…']),'quiet');setExpr(p,'confused');
+    say(p,p.gara?pick(['…あ? なんやお前','…しばくぞ']):pick(['…え? いや、仕事中…ですよね…?','…ごめんなさい、そういうのはちょっと…','…え、こわ…']),'quiet');setExpr(p,'confused');
     W.conf++;bumpPill('#confP');W.log.push({name:p.name,line:'(店員に連絡先を聞かれてドン引きした)'});
   },1000);
 }
@@ -3068,14 +3084,14 @@ function wakeLines(n){return['…んん…','…あと5分…','…うるさい�
 // tap = call out (several times at closing), drink in hand = splash
 function nagPassout(c){c.nag=(c.nag||0)+1;sfx.clink(.2);
   if(c.nag<4){say(c,wakeLines(c.nag-1),'quiet');if(c.nag===1)sub('あなた','お客さーん、閉店ですよー','');return;}
-  c.body.rotation.x=0;c.bac=Math.min(c.bac,25);say(c,'…ん…あ、もう閉店…? すみません、帰ります…','quiet');startLeave(c,true);}
+  c.body.rotation.x=0;c.bac=Math.min(c.bac,25);say(c,c.gara?'…ん…なんや、閉店か。…帰るわ':'…ん…あ、もう閉店…? すみません、帰ります…','quiet');startLeave(c,true);}
 function shoutNag(){if(!W.closed)return false;const near=customers.filter(c=>c.state==='passout'&&!c.cs&&Math.hypot(c.g.position.x-player.x,c.g.position.z-player.z)<4.5);if(!near.length)return false;
   sub('あなた','お客さーん!! 閉店ですよー!!','loud');near.forEach(c=>later(()=>{if(c.state==='passout')nagPassout(c);},500));return true;}
 function splashPassout(c){const g=hand,amt=Object.values(g.comp).reduce((a,b)=>a+b,0);if(!amt)return toast('グラスが空っぽ');
   Object.keys(g.comp).forEach(k=>g.comp[k]=0);handV++;sfx.pour('soda');for(let i=0;i<14;i++)addDrop(c.g.position.x+(R()-.5)*.3,1.5,c.g.position.z+(R()-.5)*.3,0xdff2fa);
   c.body.rotation.x=0;c.bac=Math.min(c.bac,25);W.conf++;
   if(R()<.35&&!c.cs){say(c,'つめてぇっ!! …なにすんだテメェ!!','loud');enterCombat(c);return;}
-  say(c,pick(['つめたっ!! …な、なに!? …あ、閉店…? すみません…','うわっ!? びしょびしょ… か、帰ります…']),'loud');startLeave(c,true);}
+  say(c,c.gara?'つめたっ!! …なんやねん…閉店か。帰ったるわ':pick(['つめたっ!! …な、なに!? …あ、閉店…? すみません…','うわっ!? びしょびしょ… か、帰ります…']),'loud');startLeave(c,true);}
 // ---------- carrying
 function carryArms(){if(CARRY.arms)return CARRY.arms;const g=new THREE.Group();g.position.set(0,-.07,-.22);camera.add(g);g.visible=false;
   const sl=new THREE.MeshLambertMaterial({color:0x4a5a70}),sk=new THREE.MeshLambertMaterial({color:0xe2b898});
