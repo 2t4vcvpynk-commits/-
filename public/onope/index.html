@@ -114,13 +114,14 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 .mpm{font-size:13px;font-weight:800;margin:0;min-height:1.2em;color:var(--noren)}
 #mpBadge{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 50px);background:rgba(23,34,74,.85);color:#fff;font-size:11px;font-weight:800;padding:3px 10px;border-radius:10px;pointer-events:none}
 #netWait,#netBad{position:fixed;left:50%;transform:translateX(-50%);top:40%;background:rgba(0,0,0,.75);color:#fff;font-weight:800;font-size:14px;padding:8px 14px;border-radius:4px;pointer-events:none;max-width:86vw;text-align:center}
-#netBad{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 60px);font-size:12px;background:rgba(160,40,30,.85)}
+#netBad button{margin-top:6px;border:0;border-radius:3px;background:#fff;color:#7a1e14;font:inherit;font-weight:800;padding:5px 12px;cursor:pointer}
+#netBad{pointer-events:auto;top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 60px);font-size:12px;background:rgba(160,40,30,.85)}
 #punch small{display:block;font-size:8px;font-weight:500;opacity:.75;margin-top:1px}
 #punch.kick{background:rgba(120,20,14,.95)}
 #actionBtn{background:rgba(23,34,74,.8);font-size:10px;letter-spacing:-.04em;white-space:nowrap;padding:0}
 #drunkV{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,rgba(255,170,90,0) 35%,rgba(120,40,60,.55));mix-blend-mode:multiply}
 #fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .5s}
-#fade.on{opacity:1}
+#fade.on,#fade.zz{opacity:1}
 #actMenu{position:fixed;right:calc(max(16px,env(safe-area-inset-right,0px)) + 100px);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);width:min(300px,calc(100vw - 32px));display:grid;gap:7px;z-index:5;pointer-events:auto}
 #actMenu .amh{font-family:var(--f-display);font-size:12px;letter-spacing:.35em;color:var(--oil);text-align:right;opacity:0;transform:translateX(12px);transition:.25s}
 #actMenu.show .amh{opacity:1;transform:none}
@@ -247,7 +248,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 <div id="rotate"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M10.5 18.5h3"/></svg><b>このゲームは横向き専用です</b><span>スマホを横にしてください</span></div>
 <div id="mpBadge" hidden></div>
 <div id="netWait" hidden>相方の通信を待っています…</div>
-<div id="netBad" hidden>2人の画面にズレが出ました。気になる場合はやり直してください</div>
+<div id="netBad" hidden>2人の画面にズレが出ました。お客さんの動きなどが2人で違って見えるかもしれません<br><button id="netFix">最初からやり直す</button></div>
 <button id="act" hidden>使う</button>
 <button id="punch" class="atk" hidden>暴力<small>長押しで蹴り</small></button>
 <button id="actionBtn" class="atk" hidden>アクション</button>
@@ -883,7 +884,7 @@ const seats=SEATX.map((x,i)=>{
     prompt(){const c=seat.c;
       if(c&&c.state==='passout'&&!c.cs&&!hand)return W.closed?`<b>${c.name}に声をかける</b>${carrySolo()?'(長押しで背負う)':''}`:`<b>${c.name}を起こす</b>`;
       if(c&&c.state==='passout'&&!c.cs&&isGlass(hand))return`${c.name}に飲み物を<b>ぶっかける</b>`;
-      if(isGlass(hand)){if(!c||!SEATED.has(c.state))return c?c.name:'空席';return c.dOrder?`<b>${c.name}</b>に出す(${DRINKS[c.dOrder.kind].name}${c.dOrder.strong?' 濃いめ':''})`:`<b>${c.name}</b>にサービスで出す`;}
+      if(isGlass(hand)){if(!c||!SEATED.has(c.state))return c?c.name:'空席';if(c.dGlass&&c.dGlass.kind!=='water'&&c.dGlass.left>.02&&gKind(hand)!=='water')return`${c.name}(まだ飲んでる)`;return c.dOrder?`<b>${c.name}</b>に出す(${DRINKS[c.dOrder.kind].name}${c.dOrder.strong?' 濃いめ':''})`:`<b>${c.name}</b>にサービスで出す`;}
       if(!hand&&seat.plate)return'皿を<b>下げる</b>';
       if(!c)return seat.plate?'皿が残ってる':'空席';
       if(c.state!=='wait')return c.name;
@@ -1581,7 +1582,7 @@ function reorderLine(c,o){const n=DRINKS[o.kind].name;
   return`すみません、${n}${o.strong?'濃いめで':''}おかわりお願いします`;}
 function onGlassEmpty(c){
   const cap=c.gara?7:5;const p=clamp(.4+c.bac*.018+(c.gara?.1:0),0,.92);
-  if(!c.dOrder&&c.drinksHad<cap&&(c.state!=='linger'||c.lingerT<150)&&R()<p){
+  if(!c.dOrder&&!W.closed&&c.drinksHad<cap&&(c.state!=='linger'||c.lingerT<150)&&R()<p){
     const o={kind:R()<.75&&c.lastKind?c.lastKind:pickDrink(),strong:c.lv>=2?R()<.5:R()<.15};
     c.dOrder=o;c.dWait=0;c.seat.ver++;say(c,reorderLine(c,o),c.lv>=2?'':'quiet');
   }
@@ -1602,6 +1603,8 @@ function updateDrinking(c,dt){
   }else{c.sipT-=dt;if(c.sipT<=0){c.sipPh=.001;c.sipped=false;c.sipT=(4+R()*4)/(1+c.lv*.4);}}
 }
 function serveDrink(s){
+  {const c=s.c,cg=c.dGlass;if(cg&&cg.kind!=='water'&&cg.left>.02&&gSum(hand)&&gKind(hand)!=='water'){
+    toast(`${c.name}はまだ飲んでる`);say(c,c.gara?'まだ残っとるやろ':c.lv>=2?'まだ飲んでるってぇ〜':'あ、まだ残ってるので大丈夫です','quiet');return;}}
   const c=s.c,g=hand;setHand(null);const dn=drinkName(g);
   const kind=gKind(g),abv=gAbv(g),vol=gSum(g)/POUR_MAX,ord=c.dOrder,service=!ord;
   if(kind==='water'){if(c.glassMesh)scene.remove(c.glassMesh);c.dGlass={comp:{...g.comp},abv:0,kind:'water',left:1};c.glassMesh=makeGlassMesh(c.dGlass,1);scene.add(c.glassMesh);placeGlassRest(c);c.sipPh=0;c.sipT=1;
@@ -1739,7 +1742,11 @@ function updateCustomer(c,dt){
     if(!busy){c.idle=(c.idle||0)+dt;if(c.idle>3){say(c,c.gara?'…ごっそさん':pick(BYE_N),'quiet');startLeave(c,true);}}else c.idle=0;
     if(c.lingerT>240&&!c.sipPh){if(c.dOrder){c.dOrder=null;s.ver++;}if(c.dGlass)c.dGlass.left=0;}
   }
-  if(SEATED.has(c.state)&&W.closed){startLeave(c,c.ate?true:'drinks');return;}
+  if(SEATED.has(c.state)&&W.closed){
+    // after closing, whoever is still eating or has a drink left finishes first ('linger' leaves by itself once done)
+    const drinking=(c.dGlass&&c.dGlass.left>.02)||c.sipPh>0;
+    if(W.t>W.dur*1.45){say(c,c.gara?'…ほな帰るわ':'あ、すみません長居しちゃって','quiet');startLeave(c,c.ate?true:'drinks');return;}
+    if(c.state==='wait'&&!drinking){startLeave(c,'drinks');return;}}
   if(SEATED.has(c.state)){
     updateDrinking(c,dt);
     if(c.lv>=3&&!c.sick&&c.sickCD<=0&&!c.sipPh)startSick(c);
@@ -2051,8 +2058,10 @@ function renderTasks(){const op=W.commute&&!W.open;if(op){const t=openingTasks()
   const t=closingTasks();$('#tasks').innerHTML='<div class="h">締め作業</div>'+t.map(x=>`<div class="t${x.done?' done':''}">${x.done?'☑':'☐'} ${x.label}</div>`).join('')+'<div class="f">終わったら従業員室のタイムカードで退勤</div>';}
 function startClosing(){
   W.closed=true;toast('21:00 閉店。締め作業を始めよう');sub('店内放送','本日はご来店ありがとうございました。閉店のお時間です','quiet');
-  customers.forEach(c=>{if(c.cs)return;if(SEATED.has(c.state)){say(c,pick(['あ、もう閉店か','ごちそうさまでした','お会計お願いします']),'quiet');startLeave(c,c.ate?true:'drinks');}});
-  const gs=[...new Set(regulars.filter(r=>!r.student).map(r=>r.group))];gs.forEach((gid,i)=>{const at=W.t+3+i*7+R()*4;regulars.forEach(r=>{if(r.group===gid)r.leaveAt=at+R()*1.5;});});
+  customers.forEach(c=>{if(c.cs||!SEATED.has(c.state))return;if(c.dOrder){c.dOrder=null;c.seat.ver++;}
+    const eating=c.state==='eat'||c.state==='inspect',drinking=c.dGlass&&c.dGlass.left>.02;
+    say(c,eating?pick(['あ、もう閉店か。急いで食べますね','閉店ですか、これ食べたら帰ります']):drinking?pick(['あ、もう閉店か。これ飲んだら帰ります','閉店かぁ、最後の一杯ゆっくり飲も']):pick(['あ、もう閉店か','ごちそうさまでした','お会計お願いします']),'quiet');});
+  const gs=[...new Set(regulars.filter(r=>!r.student).map(r=>r.group))];gs.forEach((gid,i)=>{const at=W.t+18+i*9+R()*6;regulars.forEach(r=>{if(r.group===gid)r.leaveAt=at+R()*1.5;});});
   if(customers.some(c=>c.state==='passout'))later(()=>toast('酔いつぶれた客が起きない… 声をかける・飲み物をかける・暴力・背負って外へ'),2500);
   $('#tickets').hidden=true;$('#tasks').hidden=false;renderTasks();
 }
@@ -2531,7 +2540,7 @@ const PL0={i:0,pos:player,P,hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,a
 function mkPl(i){return{i,pos:{x:0,z:.2},P:{hp:100,atk:null,atkT:0,cd:0,lastHurt:-99,hitDone:false},hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,actT:0,pid:0,moved:false};}
 let players=[PL0],me=0,cur=0;
 // each player has their own whereabouts, car, bike and apartment; swapped in and out like the hand
-const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept'];
+const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil'];
 const CKEYS=['x','z','h','v','st','engine','starting','side','gear','gearDir','doorOpen','inCar','dead','fall','warnT','brakeL','acc','rpm','atg','cam','parked','lastAcc','ck'];
 const BKEYS=['x','z','h','v','riding','arrived','warned','g','front','crank','rw','fw','lampM'];
 const HKEYS=['mode','nap','endHow','tvOn','lightOn','fridgeOpen'];
@@ -2624,7 +2633,7 @@ function reset(){
   Object.assign(CAR,{x:9.1,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}});{const o=OOBST.find(o=>o.k==='cop');if(o)o.r=[-11.85,-10.95,19.6,20.4];if(OUT.cop)OUT.cop.g.position.x=-11.4;}RETA.forEach(a=>scene.remove(a.mesh));RETA.length=0;
   $('#carHud').hidden=true;$('#fade').classList.remove('on');
   {const com=startMode==='commute';players.forEach((q,i)=>{const ap=aptOf(i),v=VEH[i];
-    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false};
+    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null};
     q.car={x:9.1-i*2.6,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,brakeL:0,acc:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}};
     q.bike=Object.assign({x:ap.bike[0],z:ap.bike[1],h:0,v:0,riding:false,arrived:false,warned:false},v?v.bikeM:{g:null,front:null,crank:null,rw:null,fw:null,lampM:null});
     q.hm={mode:'start',nap:0,endHow:null,tvOn:false,lightOn:true,fridgeOpen:false};q.carM=v?Object.assign({},v.carM):{};});
@@ -2693,6 +2702,29 @@ $('#toTitle').addEventListener('click',()=>{toSolo();$('#result').hidden=true;$(
 
 /* ================= two-player room match (deterministic lockstep over `room`) ================= */
 const TICK=1/30;
+// Math.sin & co. may differ in the last bits between browsers (e.g. iPhone vs Android), which slowly splits
+// the two lockstep simulations. During 2P sim steps they are swapped for versions built only from + - * / sqrt.
+const DM=(()=>{const sq=Math.sqrt,PI=Math.PI,P1=1.57079632673412561417,P1T=6.07710050650619224932e-11,
+  S=[-1.66666666666666324348e-01,8.33333333332248946124e-03,-1.98412698298579493134e-04,2.75573137070700676789e-06,-2.50507602534068634195e-08,1.58969099521155010221e-10],
+  C=[4.16666666666666019037e-02,-1.38888888888741095749e-03,2.48015872894767294178e-05,-2.75573143513906633035e-07,2.08757232129817482790e-09,-1.13596475577881948265e-11];
+  const ks=r=>{const z=r*r;return r+r*z*(S[0]+z*(S[1]+z*(S[2]+z*(S[3]+z*(S[4]+z*S[5])))));},kc=r=>{const z=r*r;return 1-z*.5+z*z*(C[0]+z*(C[1]+z*(C[2]+z*(C[3]+z*(C[4]+z*C[5])))));};
+  const red=x=>{const k=Math.round(x*0.63661977236758134308);return[x-k*P1-k*P1T,k&3];};
+  const sin=x=>{if(!isFinite(x))return NaN;const[r,n]=red(x);return n===0?ks(r):n===1?kc(r):n===2?-ks(r):-kc(r);};
+  const cos=x=>{if(!isFinite(x))return NaN;const[r,n]=red(x);return n===0?kc(r):n===1?-ks(r):n===2?-kc(r):ks(r);};
+  const AH=[4.63647609000806093515e-01,7.85398163397448278999e-01,9.82793723247329054082e-01,1.57079632679489655800e+00],AL=[2.26987774529616870924e-17,3.06161699786838301793e-17,1.39033110312309984516e-17,6.12323399573676603587e-17],
+    T=[3.33333333333329318027e-01,-1.99999999998764832476e-01,1.42857142725034663711e-01,-1.11111104054623557880e-01,9.09088713343650656196e-02,-7.69187620504482999495e-02,6.66107313738753120669e-02,-5.83357013379057348645e-02,4.97687799461593236017e-02,-3.65315727442169155270e-02,1.62858201153657823623e-02];
+  const atan=x0=>{if(x0!==x0)return NaN;const neg=x0<0;let x=neg?-x0:x0,id=-1;if(x>=7.37869762948382064640e+19)return neg?-PI/2:PI/2;
+    if(x>=.4375){if(x<1.1875){if(x<.6875){id=0;x=(2*x-1)/(2+x);}else{id=1;x=(x-1)/(x+1);}}else if(x<2.4375){id=2;x=(x-1.5)/(1+1.5*x);}else{id=3;x=-1/x;}}
+    const z=x*x,w=z*z,s1=z*(T[0]+w*(T[2]+w*(T[4]+w*(T[6]+w*(T[8]+w*T[10]))))),s2=w*(T[1]+w*(T[3]+w*(T[5]+w*(T[7]+w*T[9]))));
+    const r=id<0?x-x*(s1+s2):AH[id]-((x*(s1+s2)-AL[id])-x);return neg?-r:r;};
+  const atan2=(y,x)=>{if(x!==x||y!==y)return NaN;if(x===0&&y===0)return 1/x<0?(1/y<0?-PI:PI):y;if(x===0)return y>0?PI/2:-PI/2;const a=atan(Math.abs(y/x)),ny=y<0||(y===0&&1/y<0);if(x>0)return ny?-a:a;return ny?a-PI:PI-a;};
+  const DV=new DataView(new ArrayBuffer(8)),p2=k=>{DV.setUint32(0,(k+1023)*1048576);DV.setUint32(4,0);return DV.getFloat64(0);};
+  const exp=x=>{if(x!==x)return NaN;if(x>709.78)return Infinity;if(x<-745.13)return 0;const k=Math.round(x*1.44269504088896338700),hi=x-k*6.93147180369123816490e-01,lo=k*1.90821492927058770002e-10,r=hi-lo,t=r*r,
+    c=r-t*(1.66666666666666019037e-01+t*(-2.77777777770155933842e-03+t*(6.61375632143793436117e-05+t*(-1.65339022054652515390e-06+t*4.13813679705723846039e-08)))),y=1-((lo-(r*c)/(2-c))-hi);
+    return k>1023?y*p2(1023)*p2(k-1023):k<-1022?y*p2(-1022)*p2(k+1022):y*p2(k);};
+  return{sin,cos,tan:x=>sin(x)/cos(x),atan,atan2,exp,hypot:(...a)=>{let t=0;for(const v of a)t+=v*v;return sq(t);},acos:x=>atan2(sq(1-x*x),x),asin:x=>atan2(x,sq(1-x*x))};})();
+const NM={};Object.keys(DM).forEach(k=>NM[k]=Math[k]);
+function detMath(on){const src=on?DM:NM;for(const k in NM)Math[k]=src[k];}
 const MP={on:false,role:null,room:null,code:'',partner:null,g:0,curG:-1,tick:0,gen:0,D:5,acc:0,rcv:0,pAck:-1,inp:[{},{}],sendT:0,stall:0,hash:{},desync:false,starting:false,goT:0,seed:0,hxT:0,myD:5,sent:0,rtt:0,jit:0,pgT:0,dT:0};
 let roomApi=null;
 try{const c=window.claude;if(c&&typeof c.use==='function')c.use('room').then(r=>{roomApi=r||null;}).catch(()=>{});}catch(_){}
@@ -2709,7 +2741,7 @@ async function mpJoin(code,role){
   R0.presence({v:'ope1',role}).catch(()=>{});
   R0.onPeers(ch=>{if(MP.room===R0)mpPeers(ch);},()=>{});
   R0.on('go',m=>{if(MP.room===R0)onGo(m);},()=>{});R0.on('ok',m=>{if(MP.room===R0)onOk(m);},()=>{});
-  R0.on('in',m=>{if(MP.room===R0)onIn(m);},()=>{});R0.on('hx',m=>{if(MP.room===R0)onHx(m);},()=>{});
+  R0.on('in',m=>{if(MP.room===R0)onIn(m);},()=>{});R0.on('hx',m=>{if(MP.room===R0)onHx(m);},()=>{});R0.on('rs',m=>{if(MP.room===R0&&!m.sameTab&&m.peer===MP.partner&&MP.role==='host')mpRestart();},()=>{});
   R0.on('pg',m=>{if(MP.room===R0&&!m.sameTab&&m.peer===MP.partner&&m.data)R0.emit('po',{s:m.data.s}).catch(()=>{});},()=>{});R0.on('po',m=>{if(MP.room===R0&&!m.sameTab&&m.peer===MP.partner&&m.data)onPo(m.data);},()=>{});
   mpMsg(role==='host'?`部屋番号「${code}」を相手に伝えてね。相手を待っています…`:`部屋「${code}」に入りました。ホストの開始を待っています…`);
 }
@@ -2721,6 +2753,8 @@ function mpPeers(ch){
     if(!W.running){$('#mpStart').hidden=!MP.partner;mpMsg(MP.partner?'相手が入りました! 「2人で営業開始」を押してね':`部屋番号「${MP.code}」を相手に伝えてね。相手を待っています…`);}
   }else if(!W.running){const h=others.find(p=>p.presence.role==='host');mpMsg(h?`部屋「${MP.code}」に入りました。ホストの開始を待っています…`:'まだホストがいません。部屋番号を確かめてね');}
 }
+function mpRestart(){if(MP.role!=='host')return;if(W.running)endGame({abort:'画面のズレを直すため、最初からやり直し'});mpHostStart();}
+$('#netFix').addEventListener('click',()=>{if(!MP.room)return;if(MP.role==='host')mpRestart();else{MP.room.emit('rs',{g:MP.curG}).catch(()=>{});$('#netFix').textContent='ホストに伝えました…';}});
 function mpHostStart(){if(MP.role!=='host'||!MP.partner||!MP.room)return;MP.g++;MP.seed=(Math.random()*2147483647)|0;MP.starting=true;MP.goT=0;mpMsg('開始の合図を送っています…');}
 function onGo(m){
   if(m.sameTab||MP.role!=='guest')return;const d=m.data;if(!d||typeof d.seed!=='number'||typeof d.g!=='number')return;
@@ -2734,7 +2768,7 @@ function onIn(m){
   const o=1-me;d.a.forEach((arr,i)=>{const t=d.t+i;if(t>=MP.tick&&!MP.inp[o][t]&&Array.isArray(arr)&&arr.length===9)MP.inp[o][t]=dec(arr.map(v=>+v||0));});
   while(MP.inp[o][MP.rcv+1]||MP.rcv+1<MP.tick)MP.rcv++;
 }
-function onHx(m){if(m.sameTab||m.peer!==MP.partner||!MP.on)return;const d=m.data;if(!d||d.g!==MP.curG)return;const mine=MP.hash[d.t];if(mine!=null&&mine!==d.h&&!MP.desync){MP.desync=true;$('#netBad').hidden=false;}}
+function onHx(m){if(m.sameTab||m.peer!==MP.partner||!MP.on)return;const d=m.data;if(!d||d.g!==MP.curG)return;const mine=MP.hash[d.t];if(mine!=null&&mine!==d.h&&!MP.desync){MP.desync=true;$('#netBad').hidden=false;if(document.exitPointerLock&&locked())document.exitPointerLock();}}
 function hashState(){let h=RS|0;const mix=v=>{h=Math.imul(h^(Math.round(v*100)|0),2654435761)>>>0;};
   mix(W.money);mix(customers.length);mix(regulars.length);mix(messes.length);players.forEach((p,i)=>{mix(p.pos.x);mix(p.pos.z);const c=i===cur?CAR:p.car;if(c){mix(c.x);mix(c.z);}});persons().forEach(p=>{mix(p.g.position.x);mix(p.g.position.z);});return h>>>0;}
 function quantize(){const q=v=>Math.round(v*1e4)/1e4;players.forEach(p=>{p.pos.x=q(p.pos.x);p.pos.z=q(p.pos.z);});
@@ -2744,7 +2778,7 @@ function startMulti(seed){
   players.forEach(p=>{if(p.av){scene.remove(p.av.g);p.av=null;}});
   players=[PL0,mkPl(1)];if(meI===1){players=[mkPl(0),PL0];}
   players.forEach((p,i)=>p.i=i);me=meI;cur=meI;loadPl(me);
-  seedR(seed);startMode='commute';startGame();
+  detMath(true);try{seedR(seed);startMode='commute';startGame();}finally{detMath(false);}$('#netFix').textContent='最初からやり直す';
   MP.tick=0;MP.gen=MP.D;MP.inp=[{},{}];for(let t=0;t<MP.D;t++){MP.inp[0][t]=IDLE();MP.inp[1][t]=IDLE();}MP.acc=0;MP.stall=0;MP.hash={};MP.desync=false;MP.sendT=0;MP.hxT=0;MP.rcv=MP.D-1;MP.pAck=-1;MP.myD=MP.D;MP.sent=0;MP.pgT=0;MP.dT=0;players.forEach(q=>{q.px=q.pos.x;q.pz=q.pos.z;});
   $('#netBad').hidden=true;$('#mpBadge').hidden=false;$('#mpBadge').textContent=`ふたりで営業中 / 部屋 ${MP.code}`;
   players.forEach((p,i)=>{if(i===me)return;const av=vis(()=>buildModel(STAFF_TYPE,'#e2b08a'));av.vis=true;av.type=STAFF_TYPE;av.skin='#e2b08a';av.ctx=av.fc.getContext('2d');av.expr='';av.hy=0;av.hp=0;av.hr=0;av.walkT=0;
@@ -2761,12 +2795,12 @@ function netStep(dt){
   MP.sendT-=dt;if(MP.gen>MP.sent||MP.sendT<=0){MP.sendT=1/6;MP.sent=MP.gen;sendInputs();}
   MP.pgT-=dt;if(MP.pgT<=0&&MP.room&&MP.partner){MP.pgT=.5;MP.room.emit('pg',{s:performance.now()}).catch(()=>{});}
   MP.dT-=dt;
-  let steps=0;
+  let steps=0;detMath(true);try{
   while(MP.acc>=TICK&&steps<5){const a=MP.inp[0][MP.tick],b=MP.inp[1][MP.tick];if(!a||!b){MP.stall+=dt;break;}
     MP.stall=0;players.forEach(q=>{q.px=q.pos.x;q.pz=q.pos.z;});simStep(TICK,[a,b]);if(!W.running)return;quantize();
     if(MP.tick%60===0){const h=hashState();MP.hash[MP.tick]=h;MP.room&&MP.room.emit('hx',{g:MP.curG,t:MP.tick,h}).catch(()=>{});}
     delete MP.inp[0][MP.tick-150];delete MP.inp[1][MP.tick-150];delete MP.hash[MP.tick-600];
-    MP.tick++;MP.acc-=TICK;steps++;genLocal();}
+    MP.tick++;MP.acc-=TICK;steps++;genLocal();}}finally{detMath(false);}
   $('#netWait').hidden=!(MP.stall>.6);
   if(MP.stall>15)mpAbort('相手との通信が15秒以上途切れました');
 }
@@ -2775,6 +2809,20 @@ function onPo(d){if(typeof d.s!=='number')return;const r=performance.now()-d.s;i
   if(!MP.rtt){MP.rtt=r;MP.jit=r*.25;}else{MP.jit+=(Math.abs(r-MP.rtt)-MP.jit)*.2;MP.rtt+=(r-MP.rtt)*.2;}
   const want=clamp(Math.ceil((MP.rtt/2+MP.jit*2+30)/(TICK*1000))+1,2,12);
   if(want>MP.myD){MP.myD=want;MP.dT=3;}else if(want<MP.myD&&MP.dT<=0){MP.myD--;MP.dT=2;}}
+// my own walking/cycling is shown right away: replay my inputs that the lockstep hasn't simulated yet
+const PRED={x:0,z:0,ok:false};
+function predictMe(){const q=players[me];if(!q||W.slept||W.napUntil!=null||W.transit||(W.outside&&CAR.inCar))return null;
+  const bike=W.outside&&BIKE.riding,wk=W.home?walkHome:(W.outside?walkOut:walkable);let x=bike?BIKE.x:q.pos.x,z=bike?BIKE.z:q.pos.z,v=BIKE.v;
+  for(let t=MP.tick;t<MP.gen;t++){const inp=MP.inp[me][t];if(!inp)break;
+    if(bike){const tgt=Math.max(-.3,-inp.mz)*5.6*((P.bac||0)>15?.7:1);v+=(tgt-v)*Math.min(1,TICK*(tgt>v?1.6:3));const nx=x-Math.sin(inp.yaw)*v*TICK,nz=z-Math.cos(inp.yaw)*v*TICK;
+      if(walkOut(nx,nz)){x=nx;z=nz;}else if(walkOut(nx,z))x=nx;else if(walkOut(x,nz))z=nz;continue;}
+    let mx=inp.mx,mz=inp.mz;if(P.phone){mx*=.6;mz*=.6;}if(Math.hypot(mx,mz)<=.001)continue;
+    const sp=2.4*(CARRY.c?.6:1),sn=Math.sin(inp.yaw),cs=Math.cos(inp.yaw),nx=x+(cs*mx+sn*mz)*sp*TICK,nz=z+(-sn*mx+cs*mz)*sp*TICK;
+    if(wk(nx,nz)){x=nx;z=nz;}else if(wk(nx,z))x=nx;else if(wk(x,nz))z=nz;}
+  return{x,z};}
+function updatePred(dt){const t=predictMe();if(!t){PRED.ok=false;return;}
+  if(!PRED.ok||Math.hypot(t.x-PRED.x,t.z-PRED.z)>1.5){PRED.x=t.x;PRED.z=t.z;PRED.ok=true;return;}
+  const k=Math.min(1,dt*18);PRED.x+=(t.x-PRED.x)*k;PRED.z+=(t.z-PRED.z)*k;}
 // draw positions between the last two sim ticks so movement looks smooth at any frame rate
 function ipos(q){if(!MP.on||q.px==null)return q.pos;const k=clamp(MP.acc/TICK,0,1),dx=q.pos.x-q.px,dz=q.pos.z-q.pz;if(dx*dx+dz*dz>1)return q.pos;return{x:q.px+dx*k,z:q.pz+dz*k};}
 function mpFrame(dt){if(MP.starting&&MP.room){MP.goT-=dt;if(MP.goT<=0){MP.goT=.4;MP.room.emit('go',{g:MP.g,seed:MP.seed}).catch(()=>{});}}}
@@ -3722,6 +3770,7 @@ let carHudV='',guideV='';
 const TAPW=isTouch?'をタップ':'を見てクリック';
 function guideText(){
   if(W.slept)return'おやすみなさい… <b>相方の帰宅</b>を待っています';
+  if(W.napUntil!=null)return`zzz… 二度寝中(${clockFmt(W.napUntil)}まで)`;
   if(W.clockedOut&&W.outside){if(Math.hypot(player.x-aptOf(cur).door[0],player.z-aptOf(cur).door[1])<14&&!CAR.inCar)return`<b>${aptOf(cur).room}号室のドア</b>から部屋に帰る`;if(CAR.inCar&&CAR.z>84)return'大通りを<b>東</b>へ。アパートの駐車場に止めて部屋へ';return CAR.inCar?'繁華街の通りを<b>北</b>へ → 大通りを<b>東</b>へ(マップ参照)':'車に乗ってアパートへ帰ろう';}
   if(W.home)return HOME.mode==='start'?'玄関のドアから<b>出かける</b>(冷蔵庫・テレビ・ベッドも使える)':'ベッドで<b>寝て</b>一日を終えよう';
   if(W.clockedOut||!W.commute||W.open)return'';
@@ -3739,7 +3788,7 @@ function guideText(){
   if(!CAR.parked)return'車か自転車で店の裏の駐車場へ';
   return'店の裏の<b>灰色のドア(通用口)</b>から入る';}
 function outsideView(dt){
-  if(W.slept)$('#fade').classList.add('on');
+  $('#fade').classList.toggle('zz',!!(W.slept||W.napUntil!=null));
   const inC=W.outside&&CAR.inCar,away=W.outside||W.home;$('#act').style.visibility=(inC&&isTouch)?'hidden':'';{const lb=BIKE.riding?'降りる':'使う';if($('#act').textContent!==lb)$('#act').textContent=lb;}$('#cross').style.visibility=inC?'hidden':'';$('#prompt').style.visibility=inC?'hidden':'';$('#hud').hidden=!!away;$('#drive').hidden=!(inC&&isTouch);$('#carHud').hidden=!(inC&&CAR.cam);$('#camBtn').hidden=!(inC&&isTouch);
   {const v=away?'hidden':'';$('#punch').style.visibility=v;$('#voice').style.visibility=v;$('#actionBtn').style.visibility=inC?'hidden':'';$('#hand').style.visibility=away?'hidden':'';}
   const gt=away?guideText():'';if(gt!==guideV){guideV=gt;const e=$('#guide');e.innerHTML=gt;e.hidden=!gt;}
@@ -3851,7 +3900,7 @@ function buildHome(){vis(()=>{
   hHit(1.1,.6,2.1,1.27,.35,-3.3,{carry(){if(HOME.mode!=='end')return;const c=CARRY.c;dropCarry();CARRY.bed=c;HOME.scene.add(c.g);c.g.rotation.order='YXZ';c.g.rotation.set(-1.45,0,0);c.g.position.set(HX+1.27,.62,-2.45);c.body.rotation.x=0;sfx.thud();sub('あなた','…今日はここで寝てください。オレは床で寝るか…','quiet');},
     carryPrompt(){return HOME.mode==='end'?`${CARRY.c.name}をベッドに<b>寝かせる</b>`:'';},
     prompt(){if(CARRY.bed&&HOME.mode==='end')return`ベッドは${CARRY.bed.name}が使ってる。<b>床で寝る</b>(一日を終える)`;return HOME.mode==='start'?'ベッド(<b>もう少し寝る</b>…10分)':'ベッドで<b>寝る</b>(一日を終える)';},
-    press(){if(HOME.mode==='start'){W.t+=W.dur/18;HOME.nap++;sfx.clink(.2);toast(`二度寝した… ${clockFmt(W.t)}`);if(HOME.nap>=3)sub('あなた','やばい、さすがに起きないと…','quiet');return;}
+    press(){if(HOME.mode==='start'){if(MP.on){if(W.napUntil!=null)return;W.napUntil=W.t+W.dur/18;HOME.nap++;sfx.clink(.2);toast('…あと10分だけ');return;}W.t+=W.dur/18;HOME.nap++;sfx.clink(.2);toast(`二度寝した… ${clockFmt(W.t)}`);if(HOME.nap>=3)sub('あなた','やばい、さすがに起きないと…','quiet');return;}
       if(MP.on){transit(()=>{W.slept=true;if(players.every((q,i)=>(i===cur?W:q.L).slept))endGame({clockout:true,allHome:true});});return;}
       transit(()=>endGame({clockout:true,home:HOME.endHow||'drive'}));}});
   hHit(.2,.7,1.1,-1.55,.72,-2.5,{prompt(){return HOME.tvOn?'テレビを<b>消す</b>':'テレビを<b>つける</b>';},press(){HOME.tvOn=!HOME.tvOn;sfx.clink(.4);}});
@@ -3890,7 +3939,8 @@ function sampleInput(){
   input.tap=false;input.tapAim=0;input.atkQ=0;input.shQ=0;input.acQ=0;return o;
 }
 function applyInput(q,inp,dt){
-  yaw=inp.yaw;pitch=inp.pitch;if(W.slept){q.moved=false;return;}
+  yaw=inp.yaw;pitch=inp.pitch;if(W.napUntil!=null&&W.t>=W.napUntil){W.napUntil=null;toast(`二度寝した… ${clockFmt(W.t)}`);if(HOME.nap>=3)sub('あなた','やばい、さすがに起きないと…','quiet');}
+  if(W.slept||W.napUntil!=null){q.moved=false;return;}
   P.bac=Math.max(0,(P.bac||0)-dt*(q.moved?.25:.04));
   let mx=inp.mx,mz=inp.mz;if(W.transit){mx=0;mz=0;}
   const inCarNow=W.outside&&CAR.inCar;
@@ -3964,9 +4014,10 @@ function simWorld(dt){
   if(W.t>=W.dur*2&&players.some((q,i)=>!(i===cur?W:q.L).clockedOut))endGame({missed:true});
   else if(MP.on&&W.t>=W.dur*3)endGame({clockout:true,allHome:true});
 }
-function camPose(){if(W.outside&&CAR.inCar){const c=Math.cos(CAR.h),s=Math.sin(CAR.h);if(CAR.cam){const yw=CAR.h+view.yaw,d=5.8;return[CAR.x+Math.sin(yw)*d,1.9,CAR.z+Math.cos(yw)*d,yw,-.17];}const lx=.38,lz=-.02;return[CAR.x+c*lx+s*lz,1.14,CAR.z-s*lx+c*lz,CAR.h+view.yaw];}const p=players[me]?ipos(players[me]):player;return[p.x,W.outside&&BIKE.riding?1.78:1.62,p.z,view.yaw];}
+function camPose(){if(W.outside&&CAR.inCar){const c=Math.cos(CAR.h),s=Math.sin(CAR.h);if(CAR.cam){const yw=CAR.h+view.yaw,d=5.8;return[CAR.x+Math.sin(yw)*d,1.9,CAR.z+Math.cos(yw)*d,yw,-.17];}const lx=.38,lz=-.02;return[CAR.x+c*lx+s*lz,1.14,CAR.z-s*lx+c*lz,CAR.h+view.yaw];}const p=players[me]?(MP.on&&PRED.ok?PRED:ipos(players[me])):player;return[p.x,W.outside&&BIKE.riding?1.78:1.62,p.z,view.yaw];}
 const MATE_VEH={prompt(){return'相方の乗り物';},press(){}};
 function viewUpdate(dt){
+  if(MP.on)updatePred(dt);else PRED.ok=false;
   const q=players[me];if(q&&q.moved)bob+=dt*8.5;
   if(W.outside&&CAR.inCar&&!CAR.cam)view.yaw=clamp(view.yaw,-2.4,2.4);
   const cp=camPose();camera.position.set(cp[0],cp[1],cp[2]);camera.rotation.set(cp[4]!=null?cp[4]:view.pitch,cp[3],0);camera.updateMatrixWorld&&camera.updateMatrixWorld();
