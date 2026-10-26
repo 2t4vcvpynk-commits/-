@@ -51,7 +51,11 @@ const server = http.createServer((req, res) => {
     serveFile(res, THREE_DIR, pathname.slice('/vendor/three/'.length));
     return;
   }
-  if (pathname === '/') pathname = '/index.html';
+  if (pathname === '/onope') {
+    res.writeHead(301, { Location: '/onope/' }).end();
+    return;
+  }
+  if (pathname.endsWith('/')) pathname += 'index.html';
   serveFile(res, PUBLIC_DIR, pathname.slice(1));
 });
 
@@ -78,7 +82,18 @@ function leaveRoom(ws) {
   }
 }
 
-const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 4096 });
+const wss = new WebSocketServer({ noServer: true, maxPayload: 4096 });
+const onopeWss = new WebSocketServer({ noServer: true, maxPayload: 16384 });
+
+server.on('upgrade', (req, socket, head) => {
+  const { pathname } = new URL(req.url, 'http://localhost');
+  const target = pathname === '/ws' ? wss : pathname === '/onope-ws' ? onopeWss : null;
+  if (!target) {
+    socket.destroy();
+    return;
+  }
+  target.handleUpgrade(req, socket, head, (ws) => target.emit('connection', ws, req));
+});
 
 wss.on('connection', (ws) => {
   ws.isAlive = true;
@@ -147,9 +162,73 @@ setInterval(() => {
   for (const room of rooms.values()) room.tick(now);
 }, 200);
 
+// ---- ワンオペ食堂: ルーム中継 (各自の入力をそのまま相手に配るだけ。ゲームの計算は両者の端末でロックステップ) ----
+const onopeRooms = new Map();
+const ONOPE_MAX_PEERS = 4;
+let onopeSeq = 0;
+
+function onopeBroadcastPeers(room) {
+  const peers = [...room].map((c) => ({ peer: c.peerId, presence: c.presence }));
+  const data = JSON.stringify({ t: 'peers', peers });
+  for (const c of room) if (c.readyState === c.OPEN) c.send(data);
+}
+
+function onopeLeave(ws) {
+  const room = ws.onopeRoom;
+  if (!room) return;
+  room.delete(ws);
+  ws.onopeRoom = null;
+  if (room.size === 0) onopeRooms.delete(ws.onopeRoomName);
+  else onopeBroadcastPeers(room);
+}
+
+onopeWss.on('connection', (ws) => {
+  ws.isAlive = true;
+  ws.peerId = `p${++onopeSeq}`;
+  ws.presence = null;
+  ws.onopeRoom = null;
+  ws.on('pong', () => { ws.isAlive = true; });
+  ws.on('message', (raw) => {
+    let msg;
+    try {
+      msg = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    if (!msg || typeof msg !== 'object') return;
+    if (msg.t === 'join') {
+      if (ws.onopeRoom) return;
+      const name = String(msg.room || '').slice(0, 32);
+      if (!/^ope-\d{4}$/.test(name)) return;
+      let room = onopeRooms.get(name);
+      if (!room) onopeRooms.set(name, (room = new Set()));
+      if (room.size >= ONOPE_MAX_PEERS) {
+        ws.send(JSON.stringify({ t: 'full' }));
+        return;
+      }
+      room.add(ws);
+      ws.onopeRoom = room;
+      ws.onopeRoomName = name;
+      ws.send(JSON.stringify({ t: 'joined', id: ws.peerId }));
+      onopeBroadcastPeers(room);
+      return;
+    }
+    const room = ws.onopeRoom;
+    if (!room) return;
+    if (msg.t === 'presence') {
+      ws.presence = msg.data ?? null;
+      onopeBroadcastPeers(room);
+    } else if (msg.t === 'emit' && typeof msg.topic === 'string' && msg.topic.length <= 16) {
+      const data = JSON.stringify({ t: 'msg', topic: msg.topic, peer: ws.peerId, data: msg.data });
+      for (const c of room) if (c !== ws && c.readyState === c.OPEN) c.send(data);
+    }
+  });
+  ws.on('close', () => onopeLeave(ws));
+});
+
 // 切断検知
 setInterval(() => {
-  for (const ws of wss.clients) {
+  for (const ws of [...wss.clients, ...onopeWss.clients]) {
     if (!ws.isAlive) {
       ws.terminate();
       continue;
@@ -161,4 +240,5 @@ setInterval(() => {
 
 server.listen(PORT, () => {
   console.log(`KOBUSHI 3D サーバー起動: http://localhost:${PORT}`);
+  console.log(`ワンオペ食堂: http://localhost:${PORT}/onope/`);
 });
