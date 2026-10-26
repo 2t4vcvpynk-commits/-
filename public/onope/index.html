@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>ワンオペ食堂</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,6 +20,7 @@
   color-scheme: dark;
 }
 [hidden]{display:none!important}
+*{touch-action:manipulation}
 html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--paper);font-family:var(--f-body);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
 #hud{position:fixed;inset:0;pointer-events:none;display:flex;flex-direction:column;gap:6px;
@@ -2548,8 +2549,8 @@ canvas.addEventListener('pointerdown',e=>{tapStart={id:e.pointerId,x:e.clientX,y
     lookId=e.pointerId;lookL=[e.clientX,e.clientY];return;
   }
   e.preventDefault();try{canvas.setPointerCapture(e.pointerId);}catch(_){}
-  if(e.clientX<innerWidth*.45&&joyId===null&&!(W.outside&&CAR.inCar)){joyId=e.pointerId;joyO=[e.clientX,e.clientY];joyEl.hidden=false;joyEl.style.left=e.clientX+'px';joyEl.style.top=e.clientY+'px';knob.style.transform='';}
-  else if(lookId===null){lookId=e.pointerId;lookL=[e.clientX,e.clientY];}
+  if(e.clientX<innerWidth*.45&&!(W.outside&&CAR.inCar)){joyId=e.pointerId;joyO=[e.clientX,e.clientY];joyEl.hidden=false;joyEl.style.left=e.clientX+'px';joyEl.style.top=e.clientY+'px';knob.style.transform='';}
+  else{lookId=e.pointerId;lookL=[e.clientX,e.clientY];}
 });
 canvas.addEventListener('pointermove',e=>{
   if(e.pointerId===joyId){let dx=e.clientX-joyO[0],dy=e.clientY-joyO[1];const l=Math.hypot(dx,dy),m=48;if(l>m){dx*=m/l;dy*=m/l;}input.jx=dx/m;input.jy=dy/m;knob.style.transform=`translate(${dx}px,${dy}px)`;}
@@ -2557,7 +2558,14 @@ canvas.addEventListener('pointermove',e=>{
 });
 function endPtr(e){if(tapStart&&e.pointerId===tapStart.id&&Math.hypot(e.clientX-tapStart.x,e.clientY-tapStart.y)<14&&performance.now()-tapStart.t<450&&!(e.pointerType==='mouse'&&locked()))carTap(e.clientX,e.clientY);tapStart=null;if(e.pointerType==='mouse'&&locked()&&e.button===0)actUp();if(e.pointerId===joyId){joyId=null;input.jx=input.jy=0;joyEl.hidden=true;}if(e.pointerId===lookId)lookId=null;}
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
-canvas.addEventListener('pointerup',endPtr);canvas.addEventListener('pointercancel',endPtr);
+canvas.addEventListener('pointerup',endPtr);canvas.addEventListener('pointercancel',endPtr);canvas.addEventListener('lostpointercapture',endPtr);
+// iOS can drop a finger without reporting it; forget every finger when the page loses focus
+function resetPtrs(){if(joyId!==null){joyId=null;input.jx=input.jy=0;joyEl.hidden=true;}lookId=null;}
+addEventListener('blur',resetPtrs);document.addEventListener('visibilitychange',resetPtrs);
+// no zooming: pinch (Safari gesture events) and double-tap. Menus and the phone keep normal taps.
+['gesturestart','gesturechange'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
+{let lastTE=0;document.addEventListener('touchend',e=>{const n=Date.now(),t=e.target;if(n-lastTE<400&&!(t.closest&&t.closest('input,textarea,select,#phone,#actMenu,.ov')))e.preventDefault();lastTE=n;},{passive:false});}
 document.addEventListener('mousemove',e=>{if(locked()&&W.running){view.yaw-=e.movementX*.0024;view.pitch-=e.movementY*.0024;clampPitch();}});
 function clampPitch(){view.pitch=clamp(view.pitch,-1.3,1.1);}
 addEventListener('keydown',e=>{const k=e.key.toLowerCase();input.keys[k]=true;if(W.running&&!e.repeat){if(k==='f')queueAtk('punch');else if(k==='g')queueAtk('kick');else if(k==='v')queueShout();}if((k==='e'||k===' ')&&!e.repeat&&W.running){e.preventDefault();actDown();}});
