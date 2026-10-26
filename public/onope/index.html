@@ -2666,7 +2666,7 @@ $('#toTitle').addEventListener('click',()=>{toSolo();$('#result').hidden=true;$(
 
 /* ================= two-player room match (deterministic lockstep over `room`) ================= */
 const TICK=1/30;
-const MP={on:false,role:null,room:null,code:'',partner:null,g:0,curG:-1,tick:0,gen:0,D:5,acc:0,rcv:0,pAck:-1,inp:[{},{}],sendT:0,stall:0,hash:{},desync:false,starting:false,goT:0,seed:0,hxT:0};
+const MP={on:false,role:null,room:null,code:'',partner:null,g:0,curG:-1,tick:0,gen:0,D:5,acc:0,rcv:0,pAck:-1,inp:[{},{}],sendT:0,stall:0,hash:{},desync:false,starting:false,goT:0,seed:0,hxT:0,myD:5,sent:0,rtt:0,jit:0,pgT:0,dT:0};
 let roomApi=null;
 try{const c=window.claude;if(c&&typeof c.use==='function')c.use('room').then(r=>{roomApi=r||null;}).catch(()=>{});}catch(_){}
 const enc=i=>[Math.round(i.mx*64),Math.round(i.mz*64),Math.round(i.yaw*1e4),Math.round(i.pitch*1e4),i.a?1:0,i.aid|0,i.atk|0,i.sh?1:0,i.ac|0];
@@ -2683,6 +2683,7 @@ async function mpJoin(code,role){
   R0.onPeers(ch=>{if(MP.room===R0)mpPeers(ch);},()=>{});
   R0.on('go',m=>{if(MP.room===R0)onGo(m);},()=>{});R0.on('ok',m=>{if(MP.room===R0)onOk(m);},()=>{});
   R0.on('in',m=>{if(MP.room===R0)onIn(m);},()=>{});R0.on('hx',m=>{if(MP.room===R0)onHx(m);},()=>{});
+  R0.on('pg',m=>{if(MP.room===R0&&!m.sameTab&&m.peer===MP.partner&&m.data)R0.emit('po',{s:m.data.s}).catch(()=>{});},()=>{});R0.on('po',m=>{if(MP.room===R0&&!m.sameTab&&m.peer===MP.partner&&m.data)onPo(m.data);},()=>{});
   mpMsg(role==='host'?`部屋番号「${code}」を相手に伝えてね。相手を待っています…`:`部屋「${code}」に入りました。ホストの開始を待っています…`);
 }
 function mpPeers(ch){
@@ -2716,7 +2717,7 @@ function startMulti(seed){
   players=[PL0,mkPl(1)];if(meI===1){players=[mkPl(0),PL0];}
   players.forEach((p,i)=>p.i=i);me=meI;cur=meI;loadPl(me);
   seedR(seed);startMode='quick';startGame();
-  MP.tick=0;MP.gen=MP.D;MP.inp=[{},{}];for(let t=0;t<MP.D;t++){MP.inp[0][t]=IDLE();MP.inp[1][t]=IDLE();}MP.acc=0;MP.stall=0;MP.hash={};MP.desync=false;MP.sendT=0;MP.hxT=0;MP.rcv=MP.D-1;MP.pAck=-1;
+  MP.tick=0;MP.gen=MP.D;MP.inp=[{},{}];for(let t=0;t<MP.D;t++){MP.inp[0][t]=IDLE();MP.inp[1][t]=IDLE();}MP.acc=0;MP.stall=0;MP.hash={};MP.desync=false;MP.sendT=0;MP.hxT=0;MP.rcv=MP.D-1;MP.pAck=-1;MP.myD=MP.D;MP.sent=0;MP.pgT=0;MP.dT=0;players.forEach(q=>{q.px=q.pos.x;q.pz=q.pos.z;});
   $('#netBad').hidden=true;$('#mpBadge').hidden=false;$('#mpBadge').textContent=`ふたりで営業中 / 部屋 ${MP.code}`;
   players.forEach((p,i)=>{if(i===me)return;const av=vis(()=>buildModel(STAFF_TYPE,'#e2b08a'));av.vis=true;av.type=STAFF_TYPE;av.skin='#e2b08a';av.ctx=av.fc.getContext('2d');av.expr='';av.hy=0;av.hp=0;av.hr=0;av.walkT=0;
     scene.add(av.g);const tag=new THREE.Sprite(new THREE.SpriteMaterial({map:ctex(128,48,(g,w,h)=>{g.fillStyle='rgba(20,30,60,.85)';g.fillRect(0,0,w,h);g.fillStyle='#fff';g.font='bold 26px "M PLUS 1p",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('相方',w/2,h/2+2);}),depthTest:false}));tag.scale.set(.42,.16,1);tag.position.y=2.0;av.g.add(tag);
@@ -2725,23 +2726,33 @@ function startMulti(seed){
 function mpAbort(msg){if(!MP.on)return;if(W.running)endGame({abort:msg});else MP.on=false;$('#mpBadge').hidden=true;}
 function sendInputs(){if(!MP.room)return;const from=Math.max(0,MP.pAck+1,MP.gen-40),a=[];for(let t=from;t<MP.gen;t++){const x=MP.inp[me][t];if(!x)break;a.push(enc(x));}
   MP.room.emit('in',{g:MP.curG,t:from,a,k:MP.rcv}).catch(()=>{});}
-function genLocal(){while(MP.gen<MP.tick+MP.D){MP.inp[me][MP.gen]=dec(enc(sampleInput()));MP.gen++;}}
+function genLocal(){while(MP.gen<MP.tick+MP.myD){MP.inp[me][MP.gen]=dec(enc(sampleInput()));MP.gen++;}}
 function netStep(dt){
   MP.acc=Math.min(MP.acc+dt,TICK*8);genLocal();
-  MP.sendT-=dt;if(MP.sendT<=0){MP.sendT=1/12;sendInputs();}
+  // send new inputs right away; resend unacked ones now and then in case the partner fell behind
+  MP.sendT-=dt;if(MP.gen>MP.sent||MP.sendT<=0){MP.sendT=1/6;MP.sent=MP.gen;sendInputs();}
+  MP.pgT-=dt;if(MP.pgT<=0&&MP.room&&MP.partner){MP.pgT=.5;MP.room.emit('pg',{s:performance.now()}).catch(()=>{});}
+  MP.dT-=dt;
   let steps=0;
   while(MP.acc>=TICK&&steps<5){const a=MP.inp[0][MP.tick],b=MP.inp[1][MP.tick];if(!a||!b){MP.stall+=dt;break;}
-    MP.stall=0;simStep(TICK,[a,b]);if(!W.running)return;quantize();
+    MP.stall=0;players.forEach(q=>{q.px=q.pos.x;q.pz=q.pos.z;});simStep(TICK,[a,b]);if(!W.running)return;quantize();
     if(MP.tick%60===0){const h=hashState();MP.hash[MP.tick]=h;MP.room&&MP.room.emit('hx',{g:MP.curG,t:MP.tick,h}).catch(()=>{});}
     delete MP.inp[0][MP.tick-150];delete MP.inp[1][MP.tick-150];delete MP.hash[MP.tick-600];
     MP.tick++;MP.acc-=TICK;steps++;genLocal();}
   $('#netWait').hidden=!(MP.stall>.6);
   if(MP.stall>15)mpAbort('相手との通信が15秒以上途切れました');
 }
+// input delay follows the measured round trip: just long enough for our input to reach the partner in time
+function onPo(d){if(typeof d.s!=='number')return;const r=performance.now()-d.s;if(r<0||r>5000)return;
+  if(!MP.rtt){MP.rtt=r;MP.jit=r*.25;}else{MP.jit+=(Math.abs(r-MP.rtt)-MP.jit)*.2;MP.rtt+=(r-MP.rtt)*.2;}
+  const want=clamp(Math.ceil((MP.rtt/2+MP.jit*2+30)/(TICK*1000))+1,2,12);
+  if(want>MP.myD){MP.myD=want;MP.dT=3;}else if(want<MP.myD&&MP.dT<=0){MP.myD--;MP.dT=2;}}
+// draw positions between the last two sim ticks so movement looks smooth at any frame rate
+function ipos(q){if(!MP.on||q.px==null)return q.pos;const k=clamp(MP.acc/TICK,0,1),dx=q.pos.x-q.px,dz=q.pos.z-q.pz;if(dx*dx+dz*dz>1)return q.pos;return{x:q.px+dx*k,z:q.pz+dz*k};}
 function mpFrame(dt){if(MP.starting&&MP.room){MP.goT-=dt;if(MP.goT<=0){MP.goT=.4;MP.room.emit('go',{g:MP.g,seed:MP.seed}).catch(()=>{});}}}
 function updateAvatars(dt){
   players.forEach((q,i)=>{const av=q.av;if(!av||i===me)return;
-    av.g.position.set(q.pos.x,0,q.pos.z);av.g.rotation.y=q.yaw+Math.PI;if(q.moved)legsWalk(av,dt,true);
+    {const ip=ipos(q);av.g.position.set(ip.x,0,ip.z);}av.g.rotation.y=q.yaw+Math.PI;if(q.moved)legsWalk(av,dt,true);
     av.head.rotation.set(-q.pitch*.7,0,0,'YXZ');
     if(q.P.atk==='punch')armTo(av,1,'punch',dt,20);else if(q.hand)armTo(av,1,'tray',dt,8);else armTo(av,1,'hang',dt,6);
     if(q.hand&&q.hand.type==='bag')armTo(av,0,'hang',dt,6);else armTo(av,0,q.hand?'tray':'hang',dt,6);
@@ -3901,7 +3912,7 @@ function simWorld(dt){
   if(W.closed){regularsClosing();W.taskT-=dt;if(W.taskT<=0){W.taskT=.4;renderTasks();}}
   if(W.t>=W.dur*2&&!W.clockedOut)endGame({missed:true});
 }
-function camPose(){if(W.outside&&CAR.inCar){const c=Math.cos(CAR.h),s=Math.sin(CAR.h);if(CAR.cam){const yw=CAR.h+view.yaw,d=5.8;return[CAR.x+Math.sin(yw)*d,1.9,CAR.z+Math.cos(yw)*d,yw,-.17];}const lx=.38,lz=-.02;return[CAR.x+c*lx+s*lz,1.14,CAR.z-s*lx+c*lz,CAR.h+view.yaw];}const p=players[me]?players[me].pos:player;return[p.x,W.outside&&BIKE.riding?1.78:1.62,p.z,view.yaw];}
+function camPose(){if(W.outside&&CAR.inCar){const c=Math.cos(CAR.h),s=Math.sin(CAR.h);if(CAR.cam){const yw=CAR.h+view.yaw,d=5.8;return[CAR.x+Math.sin(yw)*d,1.9,CAR.z+Math.cos(yw)*d,yw,-.17];}const lx=.38,lz=-.02;return[CAR.x+c*lx+s*lz,1.14,CAR.z-s*lx+c*lz,CAR.h+view.yaw];}const p=players[me]?ipos(players[me]):player;return[p.x,W.outside&&BIKE.riding?1.78:1.62,p.z,view.yaw];}
 function viewUpdate(dt){
   const q=players[me];if(q&&q.moved)bob+=dt*8.5;
   if(W.outside&&CAR.inCar&&!CAR.cam)view.yaw=clamp(view.yaw,-2.4,2.4);
