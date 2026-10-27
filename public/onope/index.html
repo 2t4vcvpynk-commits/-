@@ -157,7 +157,28 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 .bub{display:flex;align-items:flex-end;gap:5px}.bub span{background:#fff;border-radius:14px;padding:7px 10px;font-size:12px;line-height:1.45;max-width:78%}.bub time{font-size:9px;color:#234}
 .ph-read{font-size:10px;color:#234;text-align:center;opacity:.7}
 .post{display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid #eee;font-size:12px}.post small{color:#888}.post p{margin:3px 0 0;line-height:1.45}
-.ph-tabs{display:grid;grid-template-columns:1fr 1.15fr .9fr .9fr .8fr;border-top:1px solid #e1e3e6;background:#fff}
+.ph-nav{display:flex;align-items:center;justify-content:space-between;padding:6px 14px 10px;background:#fff;border-top:1px solid #e1e3e6}
+.ph-screen.home .ph-nav{background:transparent;border:0}
+.ph-nav button{border:0;background:none;font:inherit;font-size:11px;font-weight:700;color:#666;cursor:pointer;padding:4px 6px}
+.ph-nav button[data-tab="home"]{flex:1;display:flex;justify-content:center}.ph-nav button[data-tab="home"] span{width:90px;height:5px;border-radius:3px;background:#222;opacity:.75}
+.ph-screen.home .ph-nav button{color:#fff}.ph-screen.home .ph-nav button[data-tab="home"] span{background:#fff}
+.ph-screen.home{background:radial-gradient(120% 80% at 30% 0%,#ffb27a,#d9577a 45%,#3b2a6e)}
+.ph-screen.home .ph-status{color:#fff}
+.ph-home{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 12px 0;color:#fff}
+.ph-clock{font-size:46px;font-weight:300;letter-spacing:.02em;line-height:1;text-shadow:0 2px 10px rgba(0,0,0,.2)}
+.ph-date{font-size:12px;font-weight:700;opacity:.9;margin:4px 0 18px}
+.ph-apps{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 6px;width:100%}
+.ph-app{border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#fff;font:inherit}
+.ph-app .ic{position:relative;width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.25)}
+.ph-app .ic svg{width:28px;height:28px}
+.ph-app .ic i{position:absolute;right:-5px;top:-5px;font-style:normal;background:#ff3b30;color:#fff;font-size:10px;font-weight:800;border-radius:9px;padding:0 5px;line-height:16px}
+.ph-app small{font-size:9.5px;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.35);white-space:nowrap}
+.ph-bank{background:#f4f6fa;padding:10px}
+.bk-card{background:linear-gradient(135deg,#17325f,#2f5fa8);color:#fff;border-radius:12px;padding:12px 14px;display:grid;gap:2px;box-shadow:0 4px 12px rgba(23,50,95,.3)}
+.bk-card small{font-size:10px;opacity:.8}.bk-card b{font-size:24px;letter-spacing:.02em}.bk-card span{font-size:9px;opacity:.7}
+.bk-h{font-size:11px;font-weight:800;color:#556;margin:12px 2px 4px}
+.bk-row{display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:11px}
+.bk-row span small{display:block;font-size:9px;color:#999}.bk-row b.in{color:#1a8a3a}.bk-row b.out{color:#c8372c}
 .ph-tabs button{border:0;background:none;padding:10px 2px 14px;font:inherit;font-size:11px;font-weight:700;color:#888;cursor:pointer}
 .ph-tabs button.on{color:#06c755}
 .ph-map{flex:1;overflow:hidden;background:#e9e5dc;display:flex;align-items:center;justify-content:center}.ph-map canvas{width:100%;height:100%;object-fit:contain;display:block}
@@ -198,7 +219,6 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
   .card{max-width:900px;padding:16px 18px}.card h1{font-size:28px}.noren{height:40px;margin:-16px -18px 10px}
   #carHud{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 40px);padding:5px 12px}.tasks{font-size:11px}
   .card{display:flex;flex-direction:column}.btns{order:1;display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;margin:2px 0 12px}.btns .btn{margin:0;font-size:15px;padding:10px 8px}.btns .mp{grid-column:1/-1}.scrollcol{order:2}#ctrlText{order:3}
-  .ph-tabs button{font-size:10px;white-space:nowrap}
 }
 .hero{max-width:520px;text-align:center;background:linear-gradient(180deg,#f6eedb,#efe4c8)}
 .hero .kicker{font-size:10px;letter-spacing:.42em;color:#8a6a3a;margin:2px 0 0;font-weight:800}
@@ -2101,8 +2121,8 @@ hitBox(0.12,0.32,0.32,2.8,1.3,-3.0,S.lights);
 // time card (staff room)
 box(0.26,0.32,0.12,phong(0xd8d0bc,30),7.9,1.3,-7.47);box(0.12,0.05,0.005,new THREE.MeshBasicMaterial({color:0x7cc4a0}),7.9,1.4,-7.535);
 box(0.2,0.3,0.06,lam(0x8a8478),8.25,1.32,-7.44);for(let i=0;i<4;i++)box(0.04,0.16,0.005,lam(0xf4f0e2),8.18+i*.045,1.38,-7.475);
-S.timecard={prompt(){if(W.commute&&!W.clockedIn)return'タイムカードを押して<b>出勤</b>';if(!W.open)return'タイムカード(出勤済み)';if(!W.closed)return'タイムカード(まだ営業中)';if(W.clockedOut)return'タイムカード(退勤済み '+W.clockTxt+')';return'<b>タイムカードを押して退勤する</b>';},press(){if(W.commute&&!W.clockedIn){W.clockedIn=true;sfx.clink(.9);toast(`出勤 ${clockFmt(W.t)}`);return;}if(!W.open)return toast('出勤済み');if(!W.closed)return toast('まだ営業中');if(W.clockedOut)return toast('もう退勤した');
-  sfx.clink(.9);W.clockTxt=$('#clock').textContent;W.taskSnap=closingTasks().map(t=>({label:t.label,done:t.done}));W.clockedOut=true;if(cur===me)$('#tasks').hidden=true;sub('あなた','おつかれさまでしたー…','quiet');toast('退勤した。裏口(この部屋の奥)から帰ろう');}};
+S.timecard={prompt(){if(W.commute&&!W.clockedIn)return'タイムカードを押して<b>出勤</b>';if(!W.open)return'タイムカード(出勤済み)';if(!W.closed)return'タイムカード(まだ営業中)';if(W.clockedOut)return'タイムカード(退勤済み '+W.clockTxt+')';return'<b>タイムカードを押して退勤する</b>';},press(){if(W.commute&&!W.clockedIn){W.clockedIn=true;W.clockInT=W.t;sfx.clink(.9);toast(`出勤 ${clockFmt(W.t)}`);return;}if(!W.open)return toast('出勤済み');if(!W.closed)return toast('まだ営業中');if(W.clockedOut)return toast('もう退勤した');
+  sfx.clink(.9);W.clockTxt=$('#clock').textContent;W.taskSnap=closingTasks().map(t=>({label:t.label,done:t.done}));W.clockedOut=true;W.wage=wageFor(W.clockInT||0,W.t);if(cur===me){$('#tasks').hidden=true;BANK.add(W.wage,'給料振込 イザカヤノンベエ');laterP(()=>{toast(`💰 給料 ${yen(W.wage)} が振り込まれました`);sfx.coin&&sfx.coin();},1500);}sub('あなた','おつかれさまでしたー…','quiet');toast('退勤した。裏口(この部屋の奥)から帰ろう');}};
 hitBox(0.4,0.4,0.25,7.9,1.3,-7.55,S.timecard);
 // tasks
 function closingTasks(){return[
@@ -2614,7 +2634,7 @@ const PL0={i:0,pos:player,P,hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,a
 function mkPl(i){return{i,pos:{x:0,z:.2},P:{hp:100,atk:null,atkT:0,cd:0,lastHurt:-99,hitDone:false},hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,actT:0,pid:0,moved:false};}
 let players=[PL0],me=0,cur=0;
 // each player has their own whereabouts, car, bike and apartment; swapped in and out like the hand
-const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil','ride','homeRide'];
+const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil','ride','homeRide','clockInT','wage'];
 const CKEYS=['x','z','h','v','st','engine','starting','side','gear','gearDir','doorOpen','inCar','dead','fall','warnT','brakeL','acc','rpm','atg','cam','parked','lastAcc','ck'];
 const BKEYS=['x','z','h','v','riding','arrived','warned','g','front','crank','rw','fw','lampM'];
 const HKEYS=['mode','nap','endHow','tvOn','lightOn','fridgeOpen'];
@@ -2709,7 +2729,7 @@ function reset(){
   Object.assign(CAR,{x:9.1,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}});{const o=OOBST.find(o=>o.k==='cop');if(o)o.r=[-11.85,-10.95,19.6,20.4];if(OUT.cop)OUT.cop.g.position.x=-11.4;}RETA.forEach(a=>scene.remove(a.mesh));RETA.length=0;
   $('#carHud').hidden=true;$('#fade').classList.remove('on');
   {const com=startMode==='commute';players.forEach((q,i)=>{const ap=aptOf(i),v=VEH[i];
-    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null,ride:null,homeRide:false};
+    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null,ride:null,homeRide:false,clockInT:0,wage:0};
     q.car={x:9.1-i*2.6,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,brakeL:0,acc:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}};
     q.bike=Object.assign({x:ap.bike[0],z:ap.bike[1],h:0,v:0,riding:false,arrived:false,warned:false},v?v.bikeM:{g:null,front:null,crank:null,rw:null,fw:null,lampM:null});
     q.hm={mode:'start',nap:0,endHow:null,tvOn:false,lightOn:true,fridgeOpen:false};q.carM=v?Object.assign({},v.carM):{};});
@@ -2758,7 +2778,7 @@ function endGame(o={}){
     else if(miss.length<=2){title='ちょっと雑な締め';rank=`${clk}に退勤。翌朝、店長に「${miss[0].label}、忘れてたよ」と言われた。営業: ${biz}`;}
     else{title='店長から鬼電';rank=`${clk}に退勤。翌朝、店長から着信が${miss.length*6+3}件。営業: ${biz}`;}
     if(o.home)rank+=o.home==='drive'?' そのあと愛車で無事に帰宅した。':o.home==='bike'?' そのあとママチャリで帰った。':o.home==='ride'?' そのあと相方の車に乗せてもらって帰った。':' そのあと夜道を歩いて帰った。';rank+=carryEndNote();
-    rt.hidden=false;rt.innerHTML='<li class="ok"><span>締め作業</span>'+tasks.filter(t=>t.done).length+' / '+tasks.length+' 完了</li>'+tasks.map(t=>`<li class="${t.done?'ok':'rage'}">${t.done?'済':'未'} ${t.label}</li>`).join('');
+    rt.hidden=false;rt.innerHTML=(W.wage?`<li class="ok"><span>給料</span>${yen(W.wage)} 振込済み(残高 ${yen(BANK.bal)})</li>`:'')+'<li class="ok"><span>締め作業</span>'+tasks.filter(t=>t.done).length+' / '+tasks.length+' 完了</li>'+tasks.map(t=>`<li class="${t.done?'ok':'rage'}">${t.done?'済':'未'} ${t.label}</li>`).join('');
   }
   $('#rTitle').textContent=title;$('#rRank').textContent=rank+(W.commute&&W.openAt!=null?` (開店 ${clockFmt(W.openAt)})`:'');
   const log=$('#rLog');log.innerHTML='';
@@ -3019,8 +3039,16 @@ addEventListener('keydown',e=>{if(!W.running||e.repeat)return;const k=e.key.toLo
   if(menuOpen&&/^[1-3]$/.test(k)){pickAction(+k);return;}
   if(menuOpen&&k==='escape')openMenu(false);});
 
+/* ---- bank account: lives on this device (each player has their own in 2P) ---- */
+const BANK=(()=>{let d={bal:3000,hist:[{d:'前月からの繰越',amt:3000,when:'—'}]};try{const v=JSON.parse(localStorage.getItem('onope_bank_v1')||'null');if(v&&typeof v.bal==='number')d=v;}catch(_){}
+  const save=()=>{try{localStorage.setItem('onope_bank_v1',JSON.stringify(d));}catch(_){}};
+  return{get bal(){return d.bal;},get hist(){return d.hist;},
+    add(amt,label){d.bal+=amt;d.hist.unshift({d:label,amt,when:gameClock().txt});d.hist=d.hist.slice(0,40);save();}};})();
+const yen=n=>'¥'+Math.round(n).toLocaleString();
+// hourly ¥1,100, ×1.25 after 22:00 (late-night premium); game minutes are counted from 18:00
+function wageFor(tIn,tOut){const m0=Math.max(tIn,-200)/W.dur*180,m1=tOut/W.dur*180;let y=0;for(let m=Math.floor(m0);m<m1;m++)y+=(m>=240?1375:1100)/60;return Math.round(y/10)*10;}
 /* ---- the phone (local UI) ---- */
-let phoneShown=false,phoneTab='line',phoneChat=null,phoneSeen={};
+let phoneShown=false,phoneTab='home',phoneChat=null,phoneSeen={};
 function gameClock(){const mins=Math.floor(W.t/W.dur*180);return{h:18+Math.floor(mins/60),m:((mins%60)+60)%60,mins,txt:clockFmt(W.t)};}
 function lineThreads(){const m=gameClock().mins,me0=players[me].P,th=[];
   const at=mm=>`${18+Math.floor(mm/60)}:${String(((mm%60)+60)%60).padStart(2,'0')}`;
@@ -3054,15 +3082,23 @@ function snsPosts(){const P0=[];const add=(n,h,x,ago)=>P0.push({n,h,x,ago});
   add('ゼミの先輩','@senpai_hiro','卒論、まだ一文字も書いてない','2時間');
   add('ラーメン部','@ramen_bu','深夜のラーメンは罪の味','3時間');
   return P0;}
+const PH_APPS=[
+  {id:'line',name:'トーク',bg:'#06c755',svg:'<svg viewBox="0 0 24 24"><path d="M12 4c-4.7 0-8.5 3-8.5 6.8 0 3.4 3 6.2 7.1 6.7l-.5 2.6 3.4-2.6c3.8-.6 7-3.4 7-6.7C20.5 7 16.7 4 12 4z" fill="#fff"/></svg>'},
+  {id:'sns',name:'タイムライン',bg:'#1d9bf0',svg:'<svg viewBox="0 0 24 24"><path d="M5 6h14M5 11h14M5 16h9" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>'},
+  {id:'map',name:'マップ',bg:'linear-gradient(135deg,#34a853,#4285f4)',svg:'<svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0-6 6c0 4.5 6 11 6 11s6-6.5 6-11a6 6 0 0 0-6-6z" fill="#fff"/><circle cx="12" cy="9" r="2.2" fill="#ea4335"/></svg>'},
+  {id:'bank',name:'みなと銀行',bg:'#17325f',svg:'<svg viewBox="0 0 24 24"><path d="M4 9l8-5 8 5M6 10v7M10 10v7M14 10v7M18 10v7M4 19h16" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>'},
+  {id:'qr',name:'友だち追加',bg:'#2e2e33',svg:'<svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2v2h-2zM18 14h2v2h-2z" fill="#fff"/></svg>'}];
 function renderPhone(){const el=$('#phone');if(!phoneShown)return;const ck=gameClock(),th=lineThreads();let body='';
   if(phoneTab==='line'&&phoneChat){const t=th.find(x=>x.id===phoneChat);if(t){phoneSeen[t.id]=t.msgs.length;
       body=`<div class="ph-top"><button class="ph-back" data-act="back">‹</button><b>${t.name}</b></div><div class="ph-chat">${t.msgs.map(m=>`<div class="bub"><span>${m.x}</span><time>${m.t}</time></div>`).join('')}<div class="ph-read">既読をつけた</div></div>`;}}
   else if(phoneTab==='line'){body=`<div class="ph-top"><b>トーク</b></div><div class="ph-list">${th.map(t=>`<button class="ph-row" data-chat="${t.id}"><span class="av">${t.name[0]}</span><span class="tx"><b>${t.name}</b><small>${t.last.x}</small></span><span class="mt"><time>${t.last.t}</time>${t.unread>0?`<i>${t.unread}</i>`:''}</span></button>`).join('')}</div>`;}
   else if(phoneTab==='map'){body=`<div class="ph-top"><b>マップ</b><button class="ph-zoom" data-act="zoom">${mapZoom?'全体を見る':'現在地へ'}</button></div><div class="ph-map"><canvas id="phMap" width="440" height="640"></canvas></div>`;}
   else if(phoneTab==='qr'){const n=W.outside?null:nearCust();body=`<div class="ph-top"><b>友だち追加</b></div><div class="ph-list ph-qr"><div class="qrbox"></div><p>近くの人</p>${n?`<b class="qn">${cName(n)}</b><button class="qbtn" data-act="ask">LINEを聞く</button>`:'<p class="qn0">近くにお客がいない</p>'}<small>※仕事中です</small></div>`;}
+  else if(phoneTab==='home'){const un=th.reduce((s,t)=>s+Math.max(0,t.unread),0);
+    body=`<div class="ph-home"><div class="ph-clock">${ck.txt}</div><div class="ph-date">10月27日(火)</div><div class="ph-apps">${PH_APPS.map(a=>`<button class="ph-app" data-tab="${a.id}"><span class="ic" style="background:${a.bg}">${a.svg}${a.id==='line'&&un>0?`<i>${un}</i>`:''}</span><small>${a.name}</small></button>`).join('')}</div></div>`;}
+  else if(phoneTab==='bank'){body=`<div class="ph-top"><b>みなと銀行</b></div><div class="ph-list ph-bank"><div class="bk-card"><small>普通預金 残高</small><b>${yen(BANK.bal)}</b><span>みなと町支店 普通 1234567</span></div><div class="bk-h">入出金明細</div>${BANK.hist.map(h=>`<div class="bk-row"><span>${h.d}<small>${h.when}</small></span><b class="${h.amt>=0?'in':'out'}">${h.amt>=0?'+':'−'}${yen(Math.abs(h.amt))}</b></div>`).join('')}</div>`;}
   else{body=`<div class="ph-top"><b>タイムライン</b></div><div class="ph-list">${snsPosts().map(p=>`<div class="post"><span class="av g">${p.n[0]}</span><div><b>${p.n}</b> <small>${p.h}・${p.ago}</small><p>${p.x}</p></div></div>`).join('')}</div>`;}
-  const unread=th.reduce((s,t)=>s+Math.max(0,t.unread),0);
-  const html=`<div class="ph-screen"><div class="ph-status"><span>${ck.txt}</span><span class="isl"></span><span>${W.outside?'圏外ギリ':'4G'} 23%</span></div>${body}<div class="ph-tabs"><button data-tab="line" class="${phoneTab==='line'?'on':''}">トーク${unread>0?`<i>${unread}</i>`:''}</button><button data-tab="sns" class="${phoneTab==='sns'?'on':''}">タイムライン</button><button data-tab="map" class="${phoneTab==='map'?'on':''}">マップ</button><button data-tab="qr" class="${phoneTab==='qr'?'on':''}">友だち</button><button data-act="close">しまう</button></div></div>`;phoneApply(el,html);}
+  const html=`<div class="ph-screen${phoneTab==='home'?' home':''}"><div class="ph-status"><span>${ck.txt}</span><span class="isl"></span><span>${W.outside?'圏外ギリ':'4G'} 23%</span></div>${body}<div class="ph-nav"><button data-tab="home" aria-label="ホーム"><span></span></button><button data-act="close">しまう</button></div></div>`;phoneApply(el,html);}
 $('#phone').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
   if(b.dataset.tab){phoneTab=b.dataset.tab;phoneChat=null;}else if(b.dataset.chat)phoneChat=b.dataset.chat;else if(b.dataset.act==='back')phoneChat=null;else if(b.dataset.act==='close'){input.acQ=1;return;}else if(b.dataset.act==='ask'){input.acQ=4;return;}else if(b.dataset.act==='zoom'){mapZoom=!mapZoom;}
   renderPhone();});
@@ -3070,7 +3106,7 @@ let phoneRT=0,lastUnread=0,phoneLastHTML='',phoneLastView='';
 function phoneApply(el,html){if(html===phoneLastHTML&&el.firstChild)return;const view0=phoneTab+(phoneChat||''),sc=el.querySelector('.ph-list,.ph-chat'),top=sc?sc.scrollTop:0,same=view0===phoneLastView;phoneLastHTML=html;phoneLastView=view0;el.innerHTML=html;const sc2=el.querySelector('.ph-list,.ph-chat');if(sc2)sc2.scrollTop=same?top:(phoneChat?sc2.scrollHeight:0);}
 let mapZoom=false;
 function myMapPos(){if(W.home){const d=aptOf(cur).door;return[d[0],d[1],0];}if(W.outside&&CAR.inCar)return[CAR.x,CAR.z,CAR.h+view.yaw];const p=players[me].pos;return[p.x,p.z,view.yaw];}
-function phoneView(dt){const on=!!players[me].P.phone;
+function phoneView(dt){const on=!!players[me].P.phone;if(on&&!phoneShown)phoneTab='home';
   if(on&&phoneTab==='map'){const c=document.getElementById('phMap');if(c){const m=myMapPos();drawTownMap(c.getContext('2d'),c.width,c.height,{zoom:mapZoom,cx:m[0],cz:m[1],me:m,car:[CAR.x,CAR.z]});}}
   if(on!==phoneShown){phoneShown=on;const el=$('#phone');el.hidden=!on;if(on){phoneChat=null;renderPhone();if(document.exitPointerLock&&document.pointerLockElement)document.exitPointerLock();}}
   phoneRT-=dt;if(phoneRT<=0){phoneRT=1;if(phoneShown)renderPhone();const un=lineThreads().reduce((s,t)=>s+Math.max(0,t.unread),0);if(un>lastUnread&&!phoneShown){toast('📱 LINEが届いた');sfx.clink(2);}lastUnread=un;}
