@@ -176,6 +176,9 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 .ph-app .ic i{position:absolute;right:-5px;top:-5px;font-style:normal;background:#ff3b30;color:#fff;font-size:10px;font-weight:800;border-radius:9px;padding:0 5px;line-height:16px}
 .ph-app small{font-size:9.5px;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.35);white-space:nowrap}
 .ph-bank{background:#f4f6fa;padding:10px}
+.ph-health{background:#f2f2f7;padding:10px;display:grid;gap:7px;align-content:start}.hc-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.hc-sum div{background:#fff;border-radius:10px;padding:7px 8px;display:grid}.hc-sum small{font-size:9px;color:#888}.hc-sum b{font-size:17px;color:#111}.hc-sum i{font-style:normal;font-size:9px;color:#888;margin-left:2px}
+.hc-row{background:#fff;border-radius:10px;padding:7px 9px;display:grid;grid-template-columns:62px 1fr 74px;align-items:center;gap:6px;font-size:11px;color:#222}.hc-n{font-weight:700}.hc-bar{height:7px;border-radius:4px;background:#e6e6ea;overflow:hidden}.hc-bar i{display:block;height:100%;border-radius:4px}.hc-row b{font-size:10px;text-align:right;color:#444}
+.hc-sleep{background:#fff;border-radius:10px;padding:8px 9px;display:grid;gap:1px}.hc-sleep small{font-size:9px;color:#888}.hc-sleep b{font-size:16px;color:#5856d6}.hc-sleep span{font-size:9px;color:#666}.hc-tip{background:#fff4f6;border-radius:10px;padding:8px 9px;font-size:10px;color:#b0203a;line-height:1.5}
 .bk-card{background:linear-gradient(135deg,#17325f,#2f5fa8);color:#fff;border-radius:12px;padding:12px 14px;display:grid;gap:2px;box-shadow:0 4px 12px rgba(23,50,95,.3)}
 .bk-card small{font-size:10px;opacity:.8}.bk-card b{font-size:24px;letter-spacing:.02em}.bk-card span{font-size:9px;opacity:.7}
 .bk-h{font-size:11px;font-weight:800;color:#556;margin:12px 2px 4px}
@@ -1340,7 +1343,7 @@ function rigUpdate(p,dt){if(p.blob)p.blob.visible=Math.abs(p.g.rotation.x)<.3&&M
     leg.hip.rotation.x+=(hip-leg.hip.rotation.x)*kk;leg.knee.rotation.x+=(knee-leg.knee.rotation.x)*kk;leg.hip.rotation.y+=(yaw-leg.hip.rotation.y)*kk;const twg=L.tw?L.tw[i]:0;leg.tw.rotation.y+=(twg-leg.tw.rotation.y)*kk;
     const ank=-(leg.hip.rotation.x+leg.knee.rotation.x)+(ww>.01?-.25*Math.sin(phi+.6)*ww:0);leg.ankle.rotation.x=lp==='kneel'?.8:ank;
   });
-  if(p.kickE!=null){const L0=r.legs[0];L0.hip.rotation.x=-1.35*p.kickE;L0.knee.rotation.x=.2+.6*(1-p.kickE);}
+  if(p.kickE!=null){const L0=r.legs[p.kickLeg||0];L0.hip.rotation.x=-1.35*p.kickE;L0.knee.rotation.x=.2+.6*(1-p.kickE);}
   r.hips.position.y=.93+(ww>.01?.02*Math.abs(Math.sin(ph))*ww-.015*ww:0);
   r.hips.position.x=lp==='stand'?Math.sin(r.t*.45+r.seed)*.012:(ww>.01?Math.sin(ph)*.018*ww:0);
   r.spine.rotation.y=(ww>.01?.07*Math.sin(ph)*ww:0)+(drunk&&ww>.01?Math.sin(ph*.5)*.06:0);
@@ -1684,7 +1687,7 @@ function makeDoor(z,label,signDraw){
 makeDoor(TOILET_Z,'トイレ',(g,w,h)=>{g.fillStyle='#f4efe2';g.fillRect(0,0,w,h);g.fillStyle='#1d3a7a';g.beginPath();g.arc(40,34,12,0,7);g.fill();g.fillRect(28,50,24,44);g.fillStyle='#c22';g.beginPath();g.arc(88,34,12,0,7);g.fill();g.beginPath();g.moveTo(88,46);g.lineTo(104,96);g.lineTo(72,96);g.fill();g.fillStyle='#222';g.font='bold 15px "M PLUS 1p",sans-serif';g.textAlign='center';g.fillText('お手洗い',w/2,118);});
 makeDoor(STAFF_Z,'従業員室',(g,w,h)=>{g.fillStyle='#f4efe2';g.fillRect(0,0,w,h);g.fillStyle='#a22';g.fillRect(0,0,w,40);g.fillStyle='#fff';g.font='bold 20px sans-serif';g.textAlign='center';g.fillText('STAFF',w/2,27);g.fillStyle='#222';g.font='bold 18px sans-serif';g.fillText('ONLY',w/2,64);g.font='bold 11px "M PLUS 1p",sans-serif';g.fillText('関係者以外',w/2,92);g.fillText('立入禁止',w/2,110);});
 // toilet + sink interactions
-const toiletSt={prompt(){return'水を<b>流す</b>';},press(){sfx.flush();}};
+const toiletSt={prompt(){return'水を<b>流す</b>';},press(){sfx.flush();if(player.x>7&&player.z<-4.9&&relieve()&&cur===me)toast('用を足した。スッキリ');}};
 hitBox(0.6,0.9,0.6,8.5,0.5,-6.45,toiletSt);
 let handWash=0;
 hitBox(0.4,0.4,0.45,8.6,0.95,-5.2,{prompt(){return'手を<b>洗う</b>';},press(){handWash=1.2;},hold(){handWash=Math.max(handWash,.3);}});
@@ -3147,6 +3150,7 @@ function doAction(code){
     if(!isGlass(hand)||gSum(hand)<.05)return toast('飲めるものを持っていない');
     const s=gSum(hand),take=Math.min(s,1.6),abv=gAbv(hand),lb=drinkLabel(hand),wr=(hand.comp.water||0)/s,wasDrunk=(P.bac||0)>=35;
     for(const k in hand.comp){hand.comp[k]*=1-take/s;if(hand.comp[k]<.05)hand.comp[k]=0;}handV++;sfx.pour('beer');
+    hlAdd('thirst',-take*9);hlAdd('pee',take*6);
     if(abv>0){P.bac=(P.bac||0)+take*abv*.11;toast(`${lb}をぐいっと飲んだ`);}
     else{const before=P.bac||0;P.bac=Math.max(0,before-take*(1+wr*3));toast(before>=3?`${lb}を飲んだ。少し楽になった`:`${lb}を飲んだ`);}
     if(abv>0&&wasDrunk){const pi=cur;sub(cur===me?'あなた':'相方','…うっ…','quiet');later(()=>withPlayer(pi,playerVomit),900);return;}
@@ -3156,19 +3160,19 @@ function doAction(code){
     const cand=persons().filter(p=>!p.cs&&!p.cop&&p.g.position.y>-.5&&Math.hypot(p.g.position.x-player.x,p.g.position.z-player.z)<3).sort((a,b)=>Math.hypot(a.g.position.x-player.x,a.g.position.z-player.z)-Math.hypot(b.g.position.x-player.x,b.g.position.z-player.z))[0];
     if(!cand)return toast('近くにお客がいない');askContact(cand);return;}
   if(code>=100&&hand&&hand.type==='shopbag'){const k=GKEYS[code-100],i=hand.items.indexOf(k);if(i<0)return;const it=GOODS[k],dr=isDrinkGood(k);hand.items.splice(i,1);handV++;if(!hand.items.length)setHand(null);sfx.pour(dr?'soda':'beer');
-    if(it.bac)P.bac=Math.max(0,(P.bac||0)+it.bac);if(it.hp)P.hp=Math.min(100,P.hp+it.hp);toast(`${it.n}を${dr?'飲んだ':'食べた'}`);if(locOf(cur)==='shop')staffSeen(it.bac>0?'drink':'nibble');return;}
+    if(it.bac)P.bac=Math.max(0,(P.bac||0)+it.bac);if(it.hp)P.hp=Math.min(100,P.hp+it.hp);goodsBody(it,dr);toast(`${it.n}を${dr?'飲んだ':'食べた'}`);if(locOf(cur)==='shop')staffSeen(it.bac>0?'drink':'nibble');return;}
   if(code===6){if(!W.hasBall||W.ball)return;if(!onFootOut()||!inPark(player.x,player.z))return toast('ボールは公園でしか出せない');
     W.ball={x:player.x-Math.sin(yaw)*.6,z:player.z-Math.cos(yaw)*.6,y:BALL_R,vx:0,vz:0,vy:0,lt:cur,cool:0,goalT:0};if(cur===me){sfx.kickBall(.1);toast('⚽ 足で触れてドリブル、使うを長押し→離してシュート');}return;}
   if(code===7){if(W.ball){W.ball=null;if(cur===me)toast('ボールをしまった');}return;}
   if(code===5){
     if(!hand||hand.type!=='goods')return toast('買った物を持っていない');if(!hand.paid)return toast('先にレジでお会計');
     const it=GOODS[hand.g],dr=isDrinkGood(hand.g);setHand(null);sfx.pour(dr?'soda':'beer');
-    if(it.bac)P.bac=Math.max(0,(P.bac||0)+it.bac);if(it.hp)P.hp=Math.min(100,P.hp+it.hp);
+    if(it.bac)P.bac=Math.max(0,(P.bac||0)+it.bac);if(it.hp)P.hp=Math.min(100,P.hp+it.hp);goodsBody(it,dr);
     toast(`${it.n}を${dr?'飲んだ':'食べた'}${it.bac<0?'。少しすっきり':it.hp?'。元気が出た':''}`);
     if(locOf(cur)==='shop')staffSeen(it.bac>0?'drink':'nibble');return;}
   if(code===3){
     if(!isPlate(hand)||!hand.food)return toast('つまめる料理を持っていない');
-    const nm=ITEMS[hand.food.item].name;hand.food.bite=(hand.food.bite||0)+1;sfx.clink(.4);
+    const nm=ITEMS[hand.food.item].name;hand.food.bite=(hand.food.bite||0)+1;sfx.clink(.4);hlAdd('hunger',-7);
     if(foodLeft(hand.food)<=0){hand.food=null;toast(`${nm}を全部食べてしまった…`);}
     else toast(`${nm}をひとつ、つまみ食いした(残り${foodLeft(hand.food)}個)`);
     handV++;staffSeen('nibble');return;}
@@ -3279,11 +3283,37 @@ function snsPosts(){const P0=[];const add=(n,h,x,ago)=>P0.push({n,h,x,ago});
   add('ゼミの先輩','@senpai_hiro','卒論、まだ一文字も書いてない','2時間');
   add('ラーメン部','@ramen_bu','深夜のラーメンは罪の味','3時間');
   return P0;}
+/* ================= health (phone ヘルスケア app): hunger, thirst, bladder, bowels, body odour, sleepiness ================= */
+const HL_DEF=[['hunger','空腹',['満腹','ふつう','小腹がすいた','空腹','腹ペコ'],'#f08a24'],['thirst','喉の渇き',['うるおってる','ふつう','少し渇いた','渇いた','カラカラ'],'#2f8ad8'],
+  ['pee','尿意',['なし','ほぼなし','そろそろ','トイレ行きたい','限界'],'#d8b020'],['poo','便意',['なし','ほぼなし','ちょっと','行きたい','限界'],'#8a5a3a'],
+  ['odor','体臭',['無臭','ほぼ無臭','汗くさい','におう','かなり臭う'],'#7a9a3a'],['sleepy','眠気',['スッキリ','ふつう','少し眠い','眠い','限界'],'#6a5ad8']];
+const HL_TIP={hunger:'何か食べよう。コンビニのおにぎりやスーパーの弁当、店のつまみ食いでも',thirst:'水分をとろう。家の水道、コンビニの水やお茶',pee:'トイレへ。家のトイレか、店のお手洗い',poo:'トイレへ。家のトイレか、店のお手洗い',odor:'シャワーを浴びよう(家のユニットバス)',sleepy:'今日は早めに寝よう'};
+function health(Pp){return Pp.hl||(Pp.hl={hunger:38,thirst:30,pee:22,poo:14,odor:8,sleepy:22,steps:0,warn:{}});}
+function goodsBody(it,dr){if(dr){hlAdd('thirst',-28);hlAdd('pee',10);if(it.hp)hlAdd('hunger',-it.hp*.4);}else{hlAdd('hunger',-(it.hp||10)*1.3);hlAdd('poo',5);hlAdd('thirst',4);}}
+function hlAdd(k,v){const h=health(P);h[k]=Math.max(0,Math.min(100,h[k]+v));}
+function healthTick(q,dt){const h=health(P),gm=dt*180/W.dur,shop=!W.home&&!W.outside&&!W.store,bac=P.bac||0;
+  h.hunger=Math.min(100,h.hunger+gm*(q.moved?.2:.14));h.thirst=Math.min(100,h.thirst+gm*(.2+(shop?.08:0)+(bac>10?.1:0)));
+  h.pee=Math.min(100,h.pee+gm*(.1+bac*.004));h.poo=Math.min(100,h.poo+gm*.05);h.odor=Math.min(100,h.odor+gm*(.05+(q.moved?.04:0)+(shop?.05:0)));h.sleepy=Math.min(100,h.sleepy+gm*(.1+bac*.003));
+  if(q.moved)h.steps+=Math.hypot(q.vx||0,q.vz||0)*dt/.7;
+  if(cur!==me)return; // the warnings below are only toasts
+  [['pee',80,'トイレに行きたくなってきた…'],['poo',80,'お腹が…トイレに行きたい'],['hunger',80,'お腹すいた…'],['thirst',80,'喉が渇いた'],['odor',70,'汗くさいかも…シャワー浴びたい'],['sleepy',85,'眠い…']]
+    .forEach(([k,th,msg])=>{if(h[k]>=th&&!h.warn[k]){h.warn[k]=1;toast(msg);}else if(h[k]<th-15)h.warn[k]=0;});}
+function relieve(){const h=health(P);if(h.pee<12&&h.poo<12)return false;h.pee=0;h.poo=0;return true;}
+function healthView(){const Pm=players[me].P,h=health(Pm),bac=Pm.bac||0,mv=players[me].moved,hr=Math.round(64+bac*.55+(mv?22:0)+(h.sleepy>80?-4:0));
+  const drunk=bac<3?['しらふ',0]:bac<12?['ほろ酔い',25]:bac<25?['酔ってる',50]:bac<38?['だいぶ酔ってる',75]:['泥酔',100];
+  const worst=HL_DEF.map(d=>d[0]).sort((a,b)=>h[b]-h[a])[0];
+  return`<div class="ph-top"><b>ヘルスケア</b></div><div class="ph-list ph-health">
+  <div class="hc-sum"><div><small>歩数</small><b>${Math.round(h.steps).toLocaleString()}</b></div><div><small>心拍</small><b>${hr}<i>bpm</i></b></div><div><small>体力</small><b>${Math.round(Pm.hp)}<i>%</i></b></div></div>
+  ${HL_DEF.map(([k,n,lv,col])=>{const v=h[k];return`<div class="hc-row"><span class="hc-n">${n}</span><span class="hc-bar"><i style="width:${v.toFixed(0)}%;background:${col}"></i></span><b>${lv[Math.min(4,Math.floor(v/20.001))]}</b></div>`;}).join('')}
+  <div class="hc-row"><span class="hc-n">酔い</span><span class="hc-bar"><i style="width:${drunk[1]}%;background:#d8384a"></i></span><b>${drunk[0]}</b></div>
+  <div class="hc-sleep"><small>昨夜の睡眠</small><b>5時間42分</b><span>就寝 3:10 ・ 起床 8:52 ・ 眠りが浅い</span></div>
+  <div class="hc-tip">${h[worst]>=55?HL_TIP[worst]:'今のところ体調は良好です'}</div></div>`;}
 const PH_APPS=[
   {id:'line',name:'トーク',bg:'#06c755',svg:'<svg viewBox="0 0 24 24"><path d="M12 4c-4.7 0-8.5 3-8.5 6.8 0 3.4 3 6.2 7.1 6.7l-.5 2.6 3.4-2.6c3.8-.6 7-3.4 7-6.7C20.5 7 16.7 4 12 4z" fill="#fff"/></svg>'},
   {id:'sns',name:'タイムライン',bg:'#1d9bf0',svg:'<svg viewBox="0 0 24 24"><path d="M5 6h14M5 11h14M5 16h9" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>'},
   {id:'map',name:'マップ',bg:'linear-gradient(135deg,#34a853,#4285f4)',svg:'<svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0-6 6c0 4.5 6 11 6 11s6-6.5 6-11a6 6 0 0 0-6-6z" fill="#fff"/><circle cx="12" cy="9" r="2.2" fill="#ea4335"/></svg>'},
   {id:'bank',name:'みなと銀行',bg:'#17325f',svg:'<svg viewBox="0 0 24 24"><path d="M4 9l8-5 8 5M6 10v7M10 10v7M14 10v7M18 10v7M4 19h16" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>'},
+  {id:'health',name:'ヘルスケア',bg:'#fff',svg:'<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" fill="#ff3b5c"/></svg>'},
   {id:'qr',name:'友だち追加',bg:'#2e2e33',svg:'<svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2v2h-2zM18 14h2v2h-2z" fill="#fff"/></svg>'}];
 function renderPhone(){const el=$('#phone');if(!phoneShown)return;const ck=gameClock(),th=lineThreads();let body='';
   if(phoneTab==='line'&&phoneChat){const t=th.find(x=>x.id===phoneChat);if(t){phoneSeen[t.id]=t.msgs.length;
@@ -3293,6 +3323,7 @@ function renderPhone(){const el=$('#phone');if(!phoneShown)return;const ck=gameC
   else if(phoneTab==='qr'){const n=W.outside?null:nearCust();body=`<div class="ph-top"><b>友だち追加</b></div><div class="ph-list ph-qr"><div class="qrbox"></div><p>近くの人</p>${n?`<b class="qn">${cName(n)}</b><button class="qbtn" data-act="ask">LINEを聞く</button>`:'<p class="qn0">近くにお客がいない</p>'}<small>※仕事中です</small></div>`;}
   else if(phoneTab==='home'){const un=th.reduce((s,t)=>s+Math.max(0,t.unread),0);
     body=`<div class="ph-home"><div class="ph-clock">${ck.txt}</div><div class="ph-date">10月27日(火)</div><div class="ph-apps">${PH_APPS.map(a=>`<button class="ph-app" data-tab="${a.id}"><span class="ic" style="background:${a.bg}">${a.svg}${a.id==='line'&&un>0?`<i>${un}</i>`:''}</span><small>${a.name}</small></button>`).join('')}</div></div>`;}
+  else if(phoneTab==='health'){body=healthView();}
   else if(phoneTab==='bank'){body=`<div class="ph-top"><b>みなと銀行</b></div><div class="ph-list ph-bank"><div class="bk-card"><small>普通預金 残高</small><b>${yen(BANK.bal)}</b><span>みなと町支店 普通 1234567</span></div><div class="bk-h">入出金明細</div>${BANK.hist.map(h=>`<div class="bk-row"><span>${h.d}<small>${h.when}</small></span><b class="${h.amt>=0?'in':'out'}">${h.amt>=0?'+':'−'}${yen(Math.abs(h.amt))}</b></div>`).join('')}</div>`;}
   else{body=`<div class="ph-top"><b>タイムライン</b></div><div class="ph-list">${snsPosts().map(p=>`<div class="post"><span class="av g">${p.n[0]}</span><div><b>${p.n}</b> <small>${p.h}・${p.ago}</small><p>${p.x}</p></div></div>`).join('')}</div>`;}
   const html=`<div class="ph-screen${phoneTab==='home'?' home':''}"><div class="ph-status"><span>${ck.txt}</span><span class="isl"></span><span>${W.outside?'圏外ギリ':'4G'} 23%</span></div>${body}<div class="ph-nav"><button data-tab="home" aria-label="ホーム"><span></span></button><button data-act="close">しまう</button></div></div>`;phoneApply(el,html);}
@@ -3595,7 +3626,7 @@ function buildTown(S2,B,PL,ob,box,cyl){
     MAPB.push([-6,8,111,120,'#a8d8b0']);label(1,115,'コンビニ','#1a8a3a');
     oHit(2.4,2.4,.6,-4.1,1.2,110.6,{prompt(){return'コンビニに<b>入る</b>(24時間営業)';},press(){transit(()=>enterStore('konbini'));}});
     [-6,-2,2,6].forEach(x=>PL(.1,5,wl,x,.013,103,-Math.PI/2));PL(15,15,lam(0x3a3a3c),.5,.005,103.5,-Math.PI/2);
-    buildCourt(S2,B,PL,ob,cyl);MAPG.push([10,27.5,96,120]);label(18.75,110,'みなと公園(サッカーコート)','#2e7d32');}
+    buildCourt(S2,B,PL,ob,cyl,box);MAPG.push([10,27.5,96,120]);label(18.75,110,'みなと公園(サッカーコート)','#2e7d32');}
   // ---- apartment (メゾン山田) + its lot
   {const X=AOX;const ap=new THREE.Group();ap.position.x=X;S2.add(ap);bldBox(S2,98+X,124+X,108,120,9.2,6,false);B(26.4,.4,12.4,lam(0x5a5650),111,9.3,114,ap);
     B(26,.14,1.7,lam(0x9a968c),111,.07,107.15,ap);
@@ -3729,6 +3760,11 @@ function houseB(x,z,ry,k,rr,Wd=6.6,Dp=7.4){if(!OUTB.f)return;const M=new THREE.M
    The ball lives in each player's synced state (W.ball), so its physics runs inside the lockstep sim. */
 const PARK=[10,27.5,96,120],COURT={x0:11,x1:26.5,z0:97,z1:119,gx:18.75,gw:3.0,gh:2.0,gd:1.0},BALL_R=.11;
 const SOCCER={n:0,s:0}; // goals scored at the north / south goal
+const FENCE={x0:10.15,x1:27.35,z0:95.95,z1:120.05,h:3.4,d0:12.2,d1:13.4},CDOOR={open:false,ang:0,g:null}; // court fence, door in the south side
+// the fence stops people (except through the open door)
+function fenceBlock(x,z){const F=FENCE,t=.2,inX=x>F.x0-t&&x<F.x1+t,inZ=z>F.z0-t&&z<F.z1+t;
+  if(inX&&Math.abs(z-F.z0)<t)return!(CDOOR.open&&x>F.d0+.15&&x<F.d1-.15);
+  return(inX&&Math.abs(z-F.z1)<t)||(inZ&&Math.abs(x-F.x0)<t)||(inZ&&Math.abs(x-F.x1)<t);}
 const inPark=(x,z)=>x>PARK[0]&&x<PARK[1]&&z>PARK[2]&&z<PARK[3];
 function ballOf(i){return i===cur?W.ball:(players[i]&&players[i].L?players[i].L.ball:null);}
 function onFootOut(){return W.outside&&!CAR.inCar&&!BIKE.riding&&W.ride==null&&!W.transit;}
@@ -3744,19 +3780,29 @@ function kickBall(q,kind,power,pitch){
 function ballSkill(q,kind,inp){const fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
   if(q.sk&&q.sk.t>0)return;
   if(kind==='loop')return kickBall(q,'loop',0,0);
-  if(kind==='double'){const b=nearBall(player.x,player.z,1.0);if(!b){if(cur===me)toast('ボールに近づこう');return;}
-    const s=inp.mx>.2?1:inp.mx<-.2?-1:(q.dtS=-(q.dtS||1));b.vx=rx*s*4.3+fx*1.4;b.vz=rz*s*4.3+fz*1.4;b.lt=q.i;b.cool=.18;
-    q.sk={t:.24,dx:rx*s*4.2+fx*1.6,dz:rz*s*4.2+fz*1.6};sfx.kickBall(.1);if(cur===me)toast(s>0?'ダブルタッチ →':'← ダブルタッチ');return;}
+  if(kind==='double'){const b=nearBall(player.x,player.z,1.1);if(!b){if(cur===me)toast('ボールに近づこう');return;}
+    const s=inp.mx>.2?1:inp.mx<-.2?-1:(q.dtS=-(q.dtS||1)),D=.62,
+      P1x=b.x+rx*s*.62+fx*.18,P1z=b.z+rz*s*.62+fz*.18,P2x=P1x+fx*1.25+rx*s*.08,P2z=P1z+fz*1.25+rz*s*.08;
+    // the ball follows one smooth curve through the side-step point (quadratic through P1 at the half-way mark)
+    b.g={t:0,d:D,ax:b.x,az:b.z,cx:2*P1x-(b.x+P2x)/2,cz:2*P1z-(b.z+P2z)/2,bx:P2x,bz:P2z};b.vx=b.vz=b.vy=0;b.y=BALL_R;b.lt=q.i;
+    const Q2x=P2x-fx*.5,Q2z=P2z-fz*.5,Q1x=player.x+rx*s*.6+fx*.35,Q1z=player.z+rz*s*.6+fz*.35;
+    q.sk={t:D,d:D,curve:1,ax:player.x,az:player.z,cx:2*Q1x-(player.x+Q2x)/2,cz:2*Q1z-(player.z+Q2z)/2,bx:Q2x,bz:Q2z};
+    sfx.kickBall(.05);later(()=>sfx.kickBall(.12),D*450);if(cur===me){SELF.dt=D;toast(s>0?'ダブルタッチ →':'← ダブルタッチ');}return;}
   if(kind==='tackle'){q.sk={t:.32,dx:fx*6.4,dz:fz*6.4};sfx.whoosh('kick');if(cur===me)SELF.kickT=.3;}}
 function goalEvent(b,north){if(north)SOCCER.n++;else SOCCER.s++;sfx.goal();
   if(locOf(me)==='out'&&inPark(players[me].pos.x,players[me].pos.z)){const who=MP.on?`${b.lt+1}Pの`:'';toast(`⚽ ${who}ゴール!!  北 ${SOCCER.n} - ${SOCCER.s} 南`);}}
 // one tick of one ball: rolling / flying, touches from every player on foot, goals, leaving the park
+const bez=(g,u)=>{const a=(1-u)*(1-u),m=2*u*(1-u),c=u*u;return[a*g.ax+m*g.cx+c*g.bx,a*g.az+m*g.cz+c*g.bz];};
 function stepBall(b,dt,owner){const C=COURT,pz=b.z,px=b.x,py=b.y;
+  if(b.g){const g=b.g;g.t+=dt;const u=Math.min(1,g.t/g.d),[x,z]=bez(g,u);b.x=x;b.z=z;b.y=BALL_R;
+    if(u>=1){b.vx=2*(g.bx-g.cx)/g.d*.55;b.vz=2*(g.bz-g.cz)/g.d*.55;b.cool=.12;b.g=null;}else{b.vx=(b.x-px)/dt;b.vz=(b.z-pz)/dt;return inPark(b.x,b.z);}}
   if(b.goalT>0){b.goalT-=dt;if(b.goalT<=0){b.x=C.gx;b.z=(C.z0+C.z1)/2;b.y=BALL_R;b.vx=b.vz=b.vy=0;}}
   b.vy-=9.8*dt;b.x+=b.vx*dt;b.z+=b.vz*dt;b.y+=b.vy*dt;
   if(b.y<BALL_R){b.y=BALL_R;b.vy=b.vy<-1.2?-b.vy*.55:0;}
   const f=b.y<=BALL_R+.02?Math.exp(-1.15*dt):Math.exp(-.08*dt);b.vx*=f;b.vz*=f;if(Math.hypot(b.vx,b.vz)<.04&&b.y<=BALL_R+.01){b.vx=0;b.vz=0;}
   if(b.cool>0)b.cool-=dt;
+  {const F=FENCE,r=BALL_R;if(b.x<F.x0+r){b.x=F.x0+r;b.vx=Math.abs(b.vx)*.45;}if(b.x>F.x1-r){b.x=F.x1-r;b.vx=-Math.abs(b.vx)*.45;}if(b.z>F.z1-r){b.z=F.z1-r;b.vz=-Math.abs(b.vz)*.45;}
+    if(b.z<F.z0+r&&!(CDOOR.open&&b.x>F.d0+r&&b.x<F.d1-r)){b.z=F.z0+r;b.vz=Math.abs(b.vz)*.45;}}
   // goals (north z=119 opens to +z, south z=97 opens to -z)
   [[C.z1,1],[C.z0,-1]].forEach(([gz,s])=>{const inBox=(x,z,y)=>(z-gz)*s>0&&(z-gz)*s<C.gd&&Math.abs(x-C.gx)<C.gw/2&&y<C.gh;
     const crossed=(pz-gz)*s<=0&&(b.z-gz)*s>0;
@@ -3768,14 +3814,15 @@ function stepBall(b,dt,owner){const C=COURT,pz=b.z,px=b.x,py=b.y;
       if(Math.abs(b.x-C.gx)>C.gw/2-BALL_R){b.x=C.gx+Math.sign(b.x-C.gx)*(C.gw/2-BALL_R);b.vx=-b.vx*.2;}if(b.y>C.gh-BALL_R){b.y=C.gh-BALL_R;b.vy=-Math.abs(b.vy)*.2;}}});
   // touches: whoever runs into the ball pushes it ahead (dribble); standing still traps it
   if(!(b.cool>0)&&b.y<.45)players.forEach((p,j)=>{if(locOf(j)!=='out')return;const inCar=j===cur?CAR.inCar:(p.car&&p.car.inCar),rd=j===cur?BIKE.riding:(p.bike&&p.bike.riding);if(inCar||rd)return;
-    const dx=b.x-p.pos.x,dz=b.z-p.pos.z,d=Math.hypot(dx,dz);if(d>.44||d<1e-4)return;const vx=p.vx||0,vz=p.vz||0,sp=Math.hypot(vx,vz);
-    if(sp>.3){const ux=vx/sp,uz=vz/sp;b.vx=ux*(sp*1.08+.45);b.vz=uz*(sp*1.08+.45);b.x=p.pos.x+ux*.45;b.z=p.pos.z+uz*.45;b.lt=j;}
-    else{b.x=p.pos.x+dx/d*.44;b.z=p.pos.z+dz/d*.44;b.vx*=.25;b.vz*=.25;}});
+    const dx=b.x-p.pos.x,dz=b.z-p.pos.z,d=Math.hypot(dx,dz);if(d>.42||d<1e-4)return;const vx=p.vx||0,vz=p.vz||0,sp=Math.hypot(vx,vz),nx=dx/d,nz=dz/d;
+    if(d<.34){const k=Math.min(1,(.34-d)*.5/.34+.35);b.x+=nx*(.34-d)*k;b.z+=nz*(.34-d)*k;} // ease out of the body instead of jumping
+    if(sp>.3){const ux=vx/sp,uz=vz/sp,want=sp*1.1+.35,cv=b.vx*ux+b.vz*uz;if(nx*ux+nz*uz>-.3&&cv<want){b.vx+=(ux*want-b.vx)*.55;b.vz+=(uz*want-b.vz)*.55;}b.lt=j;}
+    else{const k=Math.exp(-6*dt);b.vx*=k;b.vz*=k;}});
   if(!inPark(b.x,b.z)&&!(b.goalT>0))return false; // left the park: put away
   return true;}
 function updateBalls(dt){players.forEach((p,i)=>withPlayer(i,()=>{if(!W.ball)return;if(!stepBall(W.ball,dt,i)){W.ball=null;if(cur===me)toast('ボールが公園の外に出たので、しまった');}}));}
 // ---- visuals
-let BALL_TEX=null;const BALLM=[];
+let BALL_TEX=null;const BALLM=[],_bt=new THREE.Vector3(),_ba=new THREE.Vector3(),_bq2=new THREE.Quaternion();
 function ballTex(){if(BALL_TEX)return BALL_TEX;const c=document.createElement('canvas');c.width=256;c.height=128;const g=c.getContext('2d');g.fillStyle='#f4f4f0';g.fillRect(0,0,256,128);
   const pent=(u,v,r)=>{const lat=(v-.5)*Math.PI,sx=1/Math.max(.25,Math.cos(lat));g.fillStyle='#16161a';g.beginPath();for(let k=0;k<5;k++){const a=k/5*Math.PI*2-Math.PI/2;const x=u*256+Math.cos(a)*r*sx,y=v*128+Math.sin(a)*r;k?g.lineTo(x,y):g.moveTo(x,y);}g.closePath();g.fill();
     if(u*256-r*sx<0||u*256+r*sx>256){g.save();g.translate(u*256-r*sx<0?256:-256,0);g.beginPath();for(let k=0;k<5;k++){const a=k/5*Math.PI*2-Math.PI/2;const x=u*256+Math.cos(a)*r*sx,y=v*128+Math.sin(a)*r;k?g.lineTo(x,y):g.moveTo(x,y);}g.closePath();g.fill();g.restore();}};
@@ -3783,13 +3830,14 @@ function ballTex(){if(BALL_TEX)return BALL_TEX;const c=document.createElement('c
   g.strokeStyle='rgba(40,40,44,.45)';g.lineWidth=1;for(let k=0;k<10;k++){g.beginPath();g.moveTo(k*25.6,0);g.lineTo(k*25.6+12,128);g.stroke();}
   BALL_TEX=new THREE.CanvasTexture(c);return BALL_TEX;}
 function ballMesh(r){const g=new THREE.Group(),m=new THREE.Mesh(new THREE.SphereGeometry(r,24,16),new THREE.MeshStandardMaterial({map:ballTex(),roughness:.45}));g.add(m);g.userData.ball=m;return g;}
-function drawBalls(dt){if(!OUT.scene)return;players.forEach((p,i)=>{const b=ballOf(i);let M=BALLM[i];
+function drawBalls(dt){if(!OUT.scene)return;if(CDOOR.g){CDOOR.ang+=((CDOOR.open?-1.7:0)-CDOOR.ang)*Math.min(1,dt*6);CDOOR.g.rotation.y=CDOOR.ang;}players.forEach((p,i)=>{const b=ballOf(i);let M=BALLM[i];
   if(!M){M=BALLM[i]=ballMesh(BALL_R);const sh=new THREE.Mesh(new THREE.CircleGeometry(BALL_R*1.1,16),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.35,depthWrite:false}));sh.rotation.x=-Math.PI/2;M.userData.sh=sh;OUT.scene.add(M,sh);}
-  const on=!!b&&W.outside;M.visible=on;M.userData.sh.visible=on;if(!on)return;
-  M.position.set(b.x,b.y,b.z);const bm=M.userData.ball;bm.rotation.x+=(b.vz||0)/BALL_R*dt;bm.rotation.z-=(b.vx||0)/BALL_R*dt;
-  M.userData.sh.position.set(b.x,.02,b.z);const k=Math.max(.3,1-(b.y-BALL_R)*.5);M.userData.sh.scale.setScalar(k);});}
+  const on=!!b&&W.outside;M.visible=on;M.userData.sh.visible=on;if(!on){M.userData.seen=false;return;}
+  const tg=_bt.set(b.x,b.y,b.z);if(M.position.distanceTo(tg)>2||!M.userData.seen)M.position.copy(tg);else M.position.lerp(tg,1-Math.exp(-dt*22));M.userData.seen=true;
+  const bm=M.userData.ball,sp=Math.hypot(b.vx||0,b.vz||0);if(sp>.02){_ba.set(b.vz/sp,0,-b.vx/sp);_bq2.setFromAxisAngle(_ba,sp*dt/BALL_R);bm.quaternion.premultiply(_bq2);}
+  M.userData.sh.position.set(M.position.x,.02,M.position.z);const k=Math.max(.3,1-(b.y-BALL_R)*.5);M.userData.sh.scale.setScalar(k);});}
 // ---- the court in the park: turf, lines, two goals with nets, floodlights
-function buildCourt(S2,B,PL,ob,cyl){const C=COURT,W2=C.x1-C.x0,L=C.z1-C.z0,cz=(C.z0+C.z1)/2,wl=new THREE.MeshBasicMaterial({color:0xeef2ea});
+function buildCourt(S2,B,PL,ob,cyl,box){const C=COURT,W2=C.x1-C.x0,L=C.z1-C.z0,cz=(C.z0+C.z1)/2,wl=new THREE.MeshBasicMaterial({color:0xeef2ea});
   const turf=ctex(256,256,(g,w,h)=>{for(let i=0;i<8;i++){g.fillStyle=i%2?'#3c7432':'#43823a';g.fillRect(0,i*32,w,32);}for(let i=0;i<3200;i++){g.fillStyle=`rgba(${R()<.5?20:110},${R()<.5?60:150},${R()<.5?20:60},.22)`;g.fillRect(R()*w,R()*h,1,2);}},[1,2.75]);
   PL(17.5,24,lam(0x34502c),18.75,.006,108,-Math.PI/2);PL(W2+1,L+1,new THREE.MeshLambertMaterial({map:turf}),C.gx,.009,cz,-Math.PI/2);
   const ln=(w,d,x,z)=>PL(w,d,wl,x,.013,z,-Math.PI/2);ln(W2,.08,C.gx,C.z0);ln(W2,.08,C.gx,C.z1);ln(.08,L,C.x0,cz);ln(.08,L,C.x1,cz);ln(W2,.08,C.gx,cz);
@@ -3806,6 +3854,17 @@ function buildCourt(S2,B,PL,ob,cyl){const C=COURT,W2=C.x1-C.x0,L=C.z1-C.z0,cz=(C
     ob(x0-.12,x1+.12,Math.min(gz,gz+s*C.gd)-.02,Math.max(gz,gz+s*C.gd)+.02,'goal');});
   [[10.4,96.4],[27.1,96.4],[10.4,119.6],[27.1,119.6]].forEach(([x,z])=>{cyl(.09,.12,7.5,lam(0x8a8a86),x,3.75,z,8);const hd=B(.9,.35,.25,new THREE.MeshBasicMaterial({color:0xf4f8ff}),x,7.4,z);hd.lookAt(C.gx,0,cz);ob(x-.2,x+.2,z-.2,z+.2,'pole');});
   const fl=new THREE.PointLight(0xf0f4ff,.75,34,1.4);fl.position.set(C.gx,9,cz);S2.add(fl);
+  {const F=FENCE,H=F.h,lk=ctex(64,64,(g,w,h)=>{g.clearRect(0,0,w,h);g.strokeStyle='rgba(205,210,214,.95)';g.lineWidth=1.6;for(let i=-w;i<w*2;i+=16){g.beginPath();g.moveTo(i,0);g.lineTo(i+h,h);g.stroke();g.beginPath();g.moveTo(i,h);g.lineTo(i+h,0);g.stroke();}});
+    const mesh=(len)=>{const t=lk.clone();t.needsUpdate=true;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(len/.5,H/.5);return new THREE.MeshLambertMaterial({map:t,transparent:true,alphaTest:.35,side:THREE.DoubleSide});};
+    const pm=lam(0x7a8288),side=(a,b,fixed,alongX)=>{const len=b-a,c=(a+b)/2;const pl=PL(len,H,mesh(len),alongX?c:fixed,H/2,alongX?fixed:c,0,alongX?0:Math.PI/2);
+      const n=Math.max(1,Math.round(len/2.5));for(let i=0;i<=n;i++){const t=a+len*i/n;cyl(.04,.04,H,pm,alongX?t:fixed,H/2,alongX?fixed:t,6);}
+      const rl=cyl(.03,.03,len,pm,alongX?c:fixed,H,alongX?fixed:c,6);rl.rotation.set(alongX?0:Math.PI/2,0,alongX?Math.PI/2:0);const rb=cyl(.025,.025,len,pm,alongX?c:fixed,.08,alongX?fixed:c,6);rb.rotation.copy(rl.rotation);};
+    side(F.x0,F.d0,F.z0,true);side(F.d1,F.x1,F.z0,true);side(F.x0,F.x1,F.z1,true);side(F.z0,F.z1,F.x0,false);side(F.z0,F.z1,F.x1,false);
+    const lt=B(F.d1-F.d0+.1,.08,.08,pm,(F.d0+F.d1)/2,2.2,F.z0);PL(F.d1-F.d0,H-2.24,mesh(F.d1-F.d0),(F.d0+F.d1)/2,2.24+(H-2.24)/2,F.z0,0,0);
+    const dg=new THREE.Group();dg.position.set(F.d0,0,F.z0);S2.add(dg);CDOOR.g=dg;const dw=F.d1-F.d0-.04,dm=lam(0x8a9298);
+    [[0,1.1,.05,2.2,.05],[dw,1.1,.05,2.2,.05],[dw/2,2.17,dw,.05,.05],[dw/2,.06,dw,.05,.05],[dw/2,1.1,dw,.04,.04]].forEach(([x,y,w,h,d])=>box(w,h,d,dm,x,y,0,dg));
+    const dp=new THREE.Mesh(new THREE.PlaneGeometry(dw,2.1),mesh(dw));dp.position.set(dw/2,1.1,0);dg.add(dp);box(.04,.14,.06,lam(0x222222),dw-.1,1.05,.04,dg);
+    oHit(F.d1-F.d0,2.2,.4,(F.d0+F.d1)/2,1.1,F.z0,{prompt(){return CDOOR.open?'金網のドアを<b>閉める</b>':'金網のドアを<b>開ける</b>(サッカーコート)';},press(){CDOOR.open=!CDOOR.open;sfx.door2&&sfx.door2(CDOOR.open);}});}
   [[9.2,100],[9.2,108],[9.2,116]].forEach(([x,z])=>{const t=cyl(.15,.2,2.2,lam(0x4a3828),x,1.1,z,6);const l=new THREE.Mesh(new THREE.IcosahedronGeometry(1.4,0),lam(0x2f5a2a));l.position.set(x,3.0,z);S2.add(l);});}
 function stowBall(){if(hand&&hand.type==='goods'&&hand.g==='ball'&&hand.paid){setHand(null);W.hasBall=true;}
   else if(hand&&hand.type==='shopbag'&&hand.items.includes('ball')){hand.items=hand.items.filter(k=>k!=='ball');handV++;W.hasBall=true;if(!hand.items.length)setHand(null);}else return;
@@ -3837,7 +3896,8 @@ function updateSelf(dt,cp){const sb=selfBody(),sc=camera.parent;if(!sc)return;if
   else if(hand&&heldMesh){tgt(R0,held.localToWorld(_sv.set(.07,.0,.02)),1.3);}
   // kick (attack kick or a soccer shot): swing the right leg
   if(P.atk==='kick')SELF.kickT=Math.max(SELF.kickT,.2);
-  sb.kickE=SELF.kickT>0?Math.sin(Math.min(1,1-SELF.kickT/.35)*Math.PI):null;SELF.kickT=Math.max(0,SELF.kickT-dt);
+  sb.kickE=SELF.kickT>0?Math.sin(Math.min(1,1-SELF.kickT/.35)*Math.PI):null;SELF.kickT=Math.max(0,SELF.kickT-dt);sb.kickLeg=0;
+  if(SELF.dt>0){const D=.62,u=1-SELF.dt/D;sb.kickLeg=u<.5?0:1;sb.kickE=Math.sin((u<.5?u*2:(u-.5)*2)*Math.PI)*.55;SELF.dt=Math.max(0,SELF.dt-dt);}
   vis(()=>rigUpdate(sb,dt));}
 
 /* ================= outside: downtown street, back lot, my car (solo only) ================= */
@@ -3859,6 +3919,7 @@ function carLocal(x,z){const dx=x-CAR.x,dz=z-CAR.z,c=Math.cos(CAR.h),s=Math.sin(
 function walkOut(x,z){
   if(!(onDrive(x,z)||inR(RG.door,x,z)||WALKX.some(r=>inR(r,x,z))))return false;
   if(obst().some(o=>x>o.r[0]-.2&&x<o.r[1]+.2&&z>o.r[2]-.2&&z<o.r[3]+.2))return false;
+  if(fenceBlock(x,z))return false;
   const [lx,lz]=carLocal(x,z);if(Math.abs(lx)<1.05&&Math.abs(lz)<2.2)return false;
   if(otherCars().some(c=>{const [ax,az]=carLocalOf(c,x,z);return Math.abs(ax)<1.05&&Math.abs(az)<2.2;}))return false;
   return true;}
@@ -4484,13 +4545,13 @@ function buildHome(){vis(()=>{
       transit(()=>endGame({clockout:true,home:HOME.endHow||'drive'}));}});
   hHit(.2,.7,1.1,-1.55,.72,-2.5,{prompt(){return HOME.tvOn?'テレビを<b>消す</b>':'テレビを<b>つける</b>';},press(){HOME.tvOn=!HOME.tvOn;sfx.clink(.4);}});
   hHit(.7,1.5,.7,-1.5,.75,1.43,{prompt(){return'冷蔵庫から<b>缶ビールを飲む</b>';},
-    press(){HOME.fridgeOpen=true;laterP(()=>{HOME.fridgeOpen=false;},1500);P.bac=(P.bac||0)+4.5;sfx.pour('beer');toast(HOME.mode==='start'?'プシュッ。…出勤前だけど、まあ1本くらい':'プシュッ。今日もおつかれ…');
+    press(){HOME.fridgeOpen=true;laterP(()=>{HOME.fridgeOpen=false;},1500);P.bac=(P.bac||0)+4.5;hlAdd('thirst',-14);hlAdd('pee',12);sfx.pour('beer');toast(HOME.mode==='start'?'プシュッ。…出勤前だけど、まあ1本くらい':'プシュッ。今日もおつかれ…');
       if(HOME.mode==='start'&&(P.bac||0)>=8)laterP(()=>sub('あなた','…これ、運転して大丈夫かな','quiet'),1200);}});
-  hHit(.4,.25,.35,-1.5,.95,.35,{prompt(){return'水道で<b>水を飲む</b>';},press(){const b=P.bac||0;P.bac=Math.max(0,b-4);sfx.pour('soda');toast(b>=3?'水を飲んだ。少しすっきりした':'水を飲んだ');}});
+  hHit(.4,.25,.35,-1.5,.95,.35,{prompt(){return'水道で<b>水を飲む</b>';},press(){const b=P.bac||0;P.bac=Math.max(0,b-4);hlAdd('thirst',-32);hlAdd('pee',8);sfx.pour('soda');toast(b>=3?'水を飲んだ。少しすっきりした':'水を飲んだ');}});
   hHit(.22,2.0,.62,.2,1.0,1.25,{prompt(){return HOME.bathOpen?'ドアを<b>閉める</b>':'ユニットバスの<b>ドアを開ける</b>';},press(){HOME.bathOpen=!HOME.bathOpen;sfx.door2(HOME.bathOpen);}});
-  hHit(1.3,1.3,.7,1.0,1.0,.42,{prompt(){return'<b>シャワーを浴びる</b>';},press(){sfx.pour('soda');transit(()=>{const b=P.bac||0;P.bac=Math.max(0,b-8);P.hp=Math.min(100,P.hp+25);toast(b>=3?'シャワーを浴びた。だいぶ酔いが醒めた':'シャワーを浴びた。さっぱりした');});}});
-  hHit(.55,.8,.6,1.45,.4,1.85,{prompt(){return(P.bac||0)>=20?'トイレで<b>吐く</b>':'<b>トイレに行く</b>';},press(){const b=P.bac||0;transit(()=>{if(b>=20){P.bac=b-12;toast('トイレで吐いた…少し楽になった');}else toast('トイレに行った');});}});
-  hHit(.4,.4,.5,1.62,.95,1.2,{prompt(){return'洗面台で<b>顔を洗う</b>';},press(){P.bac=Math.max(0,(P.bac||0)-1.5);sfx.pour('soda');toast('顔を洗った。少しシャキッとした');}});
+  hHit(1.3,1.3,.7,1.0,1.0,.42,{prompt(){return'<b>シャワーを浴びる</b>';},press(){sfx.pour('soda');transit(()=>{const b=P.bac||0;P.bac=Math.max(0,b-8);P.hp=Math.min(100,P.hp+25);health(P).odor=0;hlAdd('sleepy',-12);toast(b>=3?'シャワーを浴びた。だいぶ酔いが醒めた':'シャワーを浴びた。さっぱりした');});}});
+  hHit(.55,.8,.6,1.45,.4,1.85,{prompt(){return(P.bac||0)>=20?'トイレで<b>吐く</b>':'<b>トイレに行く</b>';},press(){const b=P.bac||0;transit(()=>{const u=relieve();if(b>=20){P.bac=b-12;toast('トイレで吐いた…少し楽になった');}else toast(u?'トイレに行った。スッキリ':'トイレに行った');});}});
+  hHit(.4,.4,.5,1.62,.95,1.2,{prompt(){return'洗面台で<b>顔を洗う</b>';},press(){P.bac=Math.max(0,(P.bac||0)-1.5);hlAdd('odor',-6);hlAdd('sleepy',-6);sfx.pour('soda');toast('顔を洗った。少しシャキッとした');}});
   hHit(.12,.14,.1,.16,1.2,-.05,{prompt(){return HOME.lightOn?'電気を<b>消す</b>':'電気を<b>つける</b>';},press(){HOME.lightOn=!HOME.lightOn;sfx.clink(.2);}});
   {const HG=new THREE.Group();HG.position.x=HX;[...S3.children].forEach(o=>HG.add(o));S3.add(HG);S3.updateMatrixWorld(true);}
   setShadows(S3);
@@ -4555,9 +4616,9 @@ function basketMesh(h){const g=new THREE.Group();
   g.scale.setScalar(.7);return g;}
 const STAFF_K={name:'店員',top:0x2f7a4a,pants:0x2a2a30,hair:0x2a1a12,hs:'short',shoe:0x1a1a1a,build:[1,1,1]},STAFF_S={name:'店員',top:0xe8e4da,pants:0x2a2a30,hair:0x3a2416,hs:'bun',fem:1,shoe:0x1a1a1a,build:[.95,1,.95],cardigan:0xe65100};
 const STORES={
-  konbini:{kind:'konbini',name:'DAILY MART',X:2000,hid:700000,rect:[-3.75,3.75,-4.6,4.7],spawn:[-2.5,3.9,0],out:[-4.1,109.3,0],obst:[[1.85,4.2,.3,5.2],[-1.75,-1.05,-3,1.5],[.05,.75,-3,1.5],[-4.2,-3.25,-2.6,1.6],[-4.2,1.9,-5.2,-4.25],[-4.2,-1.2,4.25,5.2],[-1.75,-1.05,4.0,4.6]],clerks:[],shoppers:[],
+  konbini:{kind:'konbini',name:'DAILY MART',X:2000,hid:700000,rect:[-3.75,3.75,-4.6,4.7],spawn:[-2.5,3.9,0],out:[-4.1,109.3,0],obst:[[1.85,4.2,.3,5.2],[-1.75,-1.05,-3,1.5],[.05,.75,-3,1.5],[-4.2,-3.25,-2.6,1.6],[-4.2,1.9,-5.2,-4.25],[-.95,1.65,4.3,5.2],[-1.75,-1.05,4.0,4.6]],clerks:[],shoppers:[],
     aisles:[-2.5,-.35,1.3],za:[-3.4,1.2],cross:[2.6,-3.75]},
-  konbini2:{kind:'konbini',name:'DAILY MART 繁華街店',X:2500,hid:650000,rect:[-3.75,3.75,-4.6,4.7],spawn:[-2.5,3.9,0],out:[-8.0,38.15,Math.PI/2],obst:[[1.85,4.2,.3,5.2],[-1.75,-1.05,-3,1.5],[.05,.75,-3,1.5],[-4.2,-3.25,-2.6,1.6],[-4.2,1.9,-5.2,-4.25],[-4.2,-1.2,4.25,5.2],[-1.75,-1.05,4.0,4.6]],clerks:[],shoppers:[],
+  konbini2:{kind:'konbini',name:'DAILY MART 繁華街店',X:2500,hid:650000,rect:[-3.75,3.75,-4.6,4.7],spawn:[-2.5,3.9,0],out:[-8.0,38.15,Math.PI/2],obst:[[1.85,4.2,.3,5.2],[-1.75,-1.05,-3,1.5],[.05,.75,-3,1.5],[-4.2,-3.25,-2.6,1.6],[-4.2,1.9,-5.2,-4.25],[-.95,1.65,4.3,5.2],[-1.75,-1.05,4.0,4.6]],clerks:[],shoppers:[],
     aisles:[-2.5,-.35,1.3],za:[-3.4,1.2],cross:[2.6,-3.75]},
   super:{kind:'super',name:'スーパーまるやす',X:3000,hid:600000,rect:[-7.6,7.6,-6.55,6.6],spawn:[5.6,5.9,0],out:[37.3,85.1,Math.PI],open:[9,20],obst:[[-1.5,-.5,3.2,5.4],[1.5,2.5,3.2,5.4],[-7.6,-6.45,1.75,5.55],[-5.05,-3.95,2.75,4.45],[-4.0,-3.0,-4.6,1.4],[-.5,.5,-4.6,1.4],[3.0,4.0,-4.6,1.4],[-7.8,7.8,-7.2,-6.2],[7.0,8.2,-4.6,1.6],[4.3,4.9,5.9,6.5],[6.55,7.25,4.95,5.65]],clerks:[],shoppers:[],
     aisles:[-5.4,-1.75,1.75,5.4],za:[-4.2,1.0],cross:[1.95,-5.5]}};
@@ -4671,7 +4732,7 @@ function buildStore(k){vis(()=>{const S=STORES[k];const sc=new THREE.Scene();S.s
     gondola(G,M,-1.4,-.75,4.5,[['bag','bag','box','cup'],['cup','box','jar','bag']],rr,1.5);gondola(G,M,.4,-.75,4.5,[['box','jar','box','bag'],['bag','cup','box','jar']],rr,1.5);
     hit(.3,1.2,1.5,-1.95,.8,-1.5,shelfSt('chips'));hit(.3,1.2,1.5,-.85,.8,-1.5,shelfSt('noodle'));
     // magazine rack under the window
-    B(2.9,.8,.5,lam(0xd8d6d0),-2.7,.4,4.65);for(let i=0;i<14;i++){const mg=B(.18,.25,.01,lam(BRANDS[i%BRANDS.length]),-4.0+i*.2,.92,4.42);mg.rotation.x=-.25;}
+    B(2.5,.8,.5,lam(0xd8d6d0),.35,.4,4.65);for(let i=0;i<12;i++){const mg=B(.18,.25,.01,lam(BRANDS[i%BRANDS.length]),-.75+i*.2,.92,4.42);mg.rotation.x=-.25;}
     baskets(-1.4,4.3);hit(.6,.5,.6,-1.4,.3,4.3,basketSt);
     // counter: register, hot snack case, cigarettes, clerk
     B(.7,1.0,3.2,lam(0xe8e4dc),2.2,.5,2.0);B(.74,.04,3.24,lam(0x8a7a6a),2.2,1.02,2.0);B(.32,.22,.3,lam(0x2a2a2c),2.2,1.15,2.6);B(.02,.16,.24,new THREE.MeshBasicMaterial({color:0x3cd070}),2.03,1.2,2.6);
@@ -4763,7 +4824,7 @@ function applyInput(q,inp,dt){
   if(W.ball&&(!onFootOut()||Math.hypot(W.ball.x-player.x,W.ball.z-player.z)>25)){W.ball=null;if(cur===me&&W.outside)toast('ボールをしまった');} // back in the bag when I drive off or walk away
   const ox=player.x,oz=player.z,bm=soccerMode();
   P.bac=Math.max(0,(P.bac||0)-dt*(q.moved?.25:.04));
-  const riding=W.outside&&W.ride!=null;let mx=inp.mx,mz=inp.mz;if(W.transit||riding){mx=0;mz=0;}
+  const riding=W.outside&&W.ride!=null;let mx=inp.mx,mz=inp.mz;if(W.transit||riding||(q.sk&&q.sk.t>0)){mx=0;mz=0;}
   const inCarNow=W.outside&&CAR.inCar;
   if(inCarNow){carStep({mx,mz},dt);mx=0;mz=0;}
   else if(W.outside&&BIKE.riding){bikeStep({mx,mz},dt);mx=0;mz=0;}
@@ -4777,8 +4838,9 @@ function applyInput(q,inp,dt){
       &&!others.some(o=>{const a=Math.hypot(o.pos.x-x,o.pos.z-z);return a<.42&&a<Math.hypot(o.pos.x-player.x,o.pos.z-player.z);});
     if(okP(nx,nz)){player.x=nx;player.z=nz;}else if(okP(nx,player.z))player.x=nx;else if(okP(player.x,nz))player.z=nz;
   }
-  if(q.sk&&q.sk.t>0){q.sk.t-=dt;const nx=player.x+q.sk.dx*dt,nz=player.z+q.sk.dz*dt;if(W.outside&&walkOut(nx,nz)){player.x=nx;player.z=nz;}q.moved=true;}
+  if(q.sk&&q.sk.t>0){q.sk.t-=dt;let nx,nz;if(q.sk.curve){const u=Math.min(1,1-q.sk.t/q.sk.d);[nx,nz]=bez(q.sk,u);}else{nx=player.x+q.sk.dx*dt;nz=player.z+q.sk.dz*dt;}if(W.outside&&walkOut(nx,nz)){player.x=nx;player.z=nz;}q.moved=true;}
   q.vx=(player.x-ox)/dt;q.vz=(player.z-oz)/dt;
+  if(W.running)healthTick(q,dt);
   if(W.store==='super'&&!storeOpen('super')&&!W.transit){toast('閉店時間になりました');sub('店内放送','本日はご来店ありがとうございました。まもなく閉店いたします','quiet');transit(exitStore);}
   if(riding){const rc=rideCar();if(rc){const st2=seatOf(rc);player.x=st2.x;player.z=st2.z;}q.moved=false;}
   else if(W.outside&&!inCarNow)footOutStep();
