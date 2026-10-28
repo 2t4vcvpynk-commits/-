@@ -2815,7 +2815,7 @@ const PL0={i:0,pos:player,P,hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,a
 function mkPl(i){return{i,pos:{x:0,z:.2},P:{hp:100,atk:null,atkT:0,cd:0,lastHurt:-99,hitDone:false},hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,actT:0,pid:0,moved:false};}
 let players=[PL0],me=0,cur=0;
 // each player has their own whereabouts, car, bike and apartment; swapped in and out like the hand
-const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil','ride','homeRide','clockInT','wage','store','hasBall','ball'];
+const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil','ride','homeRide','clockInT','wage','store','ball'];
 const CKEYS=['x','z','h','v','st','engine','starting','side','gear','gearDir','doorOpen','inCar','dead','fall','warnT','brakeL','acc','rpm','atg','cam','parked','lastAcc','ck'];
 const BKEYS=['x','z','h','v','riding','arrived','warned','g','front','crank','rw','fw','lampM'];
 const HKEYS=['mode','nap','endHow','tvOn','lightOn','fridgeOpen','bathOpen'];
@@ -2911,7 +2911,7 @@ function reset(){
   Object.assign(CAR,{x:9.1,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}});{const o=OOBST.find(o=>o.k==='cop');if(o)o.r=[-11.85,-10.95,19.6,20.4];if(OUT.cop)OUT.cop.g.position.x=-11.4;}RETA.forEach(a=>scene.remove(a.mesh));RETA.length=0;
   $('#carHud').hidden=true;$('#fade').classList.remove('on');
   {const com=startMode==='commute';players.forEach((q,i)=>{const ap=aptOf(i),v=VEH[i];
-    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null,ride:null,homeRide:false,clockInT:0,wage:0,store:null,hasBall:false,ball:null};
+    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null,ride:null,homeRide:false,clockInT:0,wage:0,store:null,ball:null};
     q.car={x:9.1-i*2.6,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,brakeL:0,acc:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}};
     q.bike=Object.assign({x:ap.bike[0],z:ap.bike[1],h:0,v:0,riding:false,arrived:false,warned:false},v?v.bikeM:{g:null,front:null,crank:null,rw:null,fw:null,lampM:null});
     q.hm={mode:'start',nap:0,endHow:null,tvOn:false,lightOn:true,fridgeOpen:false,bathOpen:false};q.carM=v?Object.assign({},v.carM):{};});
@@ -3161,7 +3161,8 @@ function doAction(code){
     if(!cand)return toast('近くにお客がいない');askContact(cand);return;}
   if(code>=100&&hand&&hand.type==='shopbag'){const k=GKEYS[code-100],i=hand.items.indexOf(k);if(i<0)return;const it=GOODS[k],dr=isDrinkGood(k);hand.items.splice(i,1);handV++;if(!hand.items.length)setHand(null);sfx.pour(dr?'soda':'beer');
     if(it.bac)P.bac=Math.max(0,(P.bac||0)+it.bac);if(it.hp)P.hp=Math.min(100,P.hp+it.hp);goodsBody(it,dr);toast(`${it.n}を${dr?'飲んだ':'食べた'}`);if(locOf(cur)==='shop')staffSeen(it.bac>0?'drink':'nibble');return;}
-  if(code===6){if(!W.hasBall||W.ball)return;if(!onFootOut()||!inPark(player.x,player.z))return toast('ボールは公園でしか出せない');
+  if(code===6){if(W.ball)return; // only sent by a player who owns a ball (checked on their device)
+   if(!onFootOut()||!inPark(player.x,player.z))return toast('ボールは公園でしか出せない');
     W.ball={x:player.x-Math.sin(yaw)*.6,z:player.z-Math.cos(yaw)*.6,y:BALL_R,vx:0,vz:0,vy:0,lt:cur,cool:0,goalT:0};if(cur===me){sfx.kickBall(.1);toast('⚽ 足で触れてドリブル、使うを長押し→離してシュート');}return;}
   if(code===7){if(W.ball){W.ball=null;if(cur===me)toast('ボールをしまった');}return;}
   if(code===5){
@@ -3217,7 +3218,7 @@ let menuOpen=false;
 function actionItems(){const q=players[me],h=me===cur?hand:q.hand,ph=q.P.phone,inShop=locOf(me)==='shop';
   const it=[{code:1,icon:'phone',t:ph?'スマホをしまう':'スマホを見る',s:ph?'仕事に戻る':'LINE・SNSをチェック(見られると印象が悪い)',ok:true}];
   if(inShop)it.push({code:2,icon:'drink',t:'持ってる飲み物を飲む',s:isGlass(h)&&gSum(h)>.05?drinkLabel(h):'ジョッキを持っていない',ok:isGlass(h)&&gSum(h)>.05});
-  {const L=me===cur?W:q.L;if(L.outside&&L.hasBall){const pp=players[me].pos,inP=inPark(pp.x,pp.z),foot=me===cur?onFootOut():true;
+  {const L=me===cur?W:q.L;if(L.outside&&OWN.ball){const pp=players[me].pos,inP=inPark(pp.x,pp.z),foot=me===cur?onFootOut():true;
     if(L.ball)it.push({code:7,icon:'ball',t:'ボールをしまう',s:'カバンにしまう',ok:true});
     else it.push({code:6,icon:'ball',t:'サッカーボールを出す',s:inP?'足で触れてドリブル・使うでシュート':'公園(サッカーコート)でしか出せない',ok:inP&&foot});}}
   if(h&&h.type==='goods'&&!GOODS[h.g].toy)it.push({code:5,icon:isDrinkGood(h.g)?'drink':'bite',t:`${GOODS[h.g].n}を${isDrinkGood(h.g)?'飲む':'食べる'}`,s:h.paid?goodsEffect(h.g):'まだお会計していない',ok:!!h.paid});
@@ -3245,6 +3246,10 @@ const BANK=(()=>{let d={bal:3000,hist:[{d:'前月からの繰越',amt:3000,when:
   const save=()=>{try{localStorage.setItem('onope_bank_v1',JSON.stringify(d));}catch(_){}};
   return{get bal(){return d.bal;},get hist(){return d.hist;},
     add(amt,label){d.bal+=amt;d.hist.unshift({d:label,amt,when:gameClock().txt});d.hist=d.hist.slice(0,40);save();}};})();
+// belongings saved on this device (like the bank). Older saves that already paid for a ball get it back.
+const OWN=(()=>{let o={};try{o=JSON.parse(localStorage.getItem('onope_items_v1')||'null')||{};}catch(_){}
+  if(o.ball==null)o.ball=BANK.hist.some(h=>/サッカーボール/.test(h.d)&&h.amt<0);return o;})();
+function saveOwn(){try{localStorage.setItem('onope_items_v1',JSON.stringify(OWN));}catch(_){}}
 const yen=n=>'¥'+Math.round(n).toLocaleString();
 // hourly ¥1,100, ×1.25 after 22:00 (late-night premium); game minutes are counted from 18:00
 function wageFor(tIn,tOut){const m0=Math.max(tIn,-200)/W.dur*180,m1=tOut/W.dur*180;let y=0;for(let m=Math.floor(m0);m<m1;m++)y+=(m>=240?1375:1100)/60;return Math.round(y/10)*10;}
@@ -3866,9 +3871,9 @@ function buildCourt(S2,B,PL,ob,cyl,box){const C=COURT,W2=C.x1-C.x0,L=C.z1-C.z0,c
     const dp=new THREE.Mesh(new THREE.PlaneGeometry(dw,2.1),mesh(dw));dp.position.set(dw/2,1.1,0);dg.add(dp);box(.04,.14,.06,lam(0x222222),dw-.1,1.05,.04,dg);
     oHit(F.d1-F.d0,2.2,.4,(F.d0+F.d1)/2,1.1,F.z0,{prompt(){return CDOOR.open?'金網のドアを<b>閉める</b>':'金網のドアを<b>開ける</b>(サッカーコート)';},press(){CDOOR.open=!CDOOR.open;sfx.door2&&sfx.door2(CDOOR.open);}});}
   [[9.2,100],[9.2,108],[9.2,116]].forEach(([x,z])=>{const t=cyl(.15,.2,2.2,lam(0x4a3828),x,1.1,z,6);const l=new THREE.Mesh(new THREE.IcosahedronGeometry(1.4,0),lam(0x2f5a2a));l.position.set(x,3.0,z);S2.add(l);});}
-function stowBall(){if(hand&&hand.type==='goods'&&hand.g==='ball'&&hand.paid){setHand(null);W.hasBall=true;}
-  else if(hand&&hand.type==='shopbag'&&hand.items.includes('ball')){hand.items=hand.items.filter(k=>k!=='ball');handV++;W.hasBall=true;if(!hand.items.length)setHand(null);}else return;
-  if(cur===me)later(()=>toast('⚽ サッカーボールを手に入れた。公園でアクションから出せる'),1200);}
+function stowBall(){if(hand&&hand.type==='goods'&&hand.g==='ball'&&hand.paid){setHand(null);}
+  else if(hand&&hand.type==='shopbag'&&hand.items.includes('ball')){hand.items=hand.items.filter(k=>k!=='ball');handV++;if(!hand.items.length)setHand(null);}else return;
+  if(cur===me){OWN.ball=true;saveOwn();later(()=>toast('⚽ サッカーボールを手に入れた。公園でアクションから出せる'),1200);}}
 Object.assign(sfx,{kickBall(p=.5){burst(.07,420+p*300,.22+p*.2,'lowpass');tone(110,.08,'sine',.12);},goal(){[523,659,784,1046].forEach((f,i)=>tone(f,.22,'triangle',.07,null,i*.11));burst(1.2,1800,.08,'bandpass',.1);}});
 /* ================= first-person body: my own torso, arms and legs under the camera (head hidden) ================= */
 const SELF={m:null,k:-1,kickT:0};
@@ -4701,7 +4706,7 @@ function buildStore(k){vis(()=>{const S=STORES[k];const sc=new THREE.Scene();S.s
     press(){if(hand&&hand.type==='basket'){setHand(null);sfx.clink(.8);return;}if(hand)return toast('手がふさがってる');setHand({type:'basket',items:[]});sfx.clink(.8);}};
   const regSt={prompt(){const due=dueAt(hand);if(!due)return hand&&hand.type==='basket'?'カゴが空っぽ':hand&&(hand.paid||hand.type==='shopbag')?'お会計済み':'レジ';const n=hand.type==='basket'?hand.items.length:1;return`<b>レジで会計</b> ${n}点 ${yen(due)}(口座から引き落とし)`;},
     press(){const due=dueAt(hand);if(!due)return toast(hand&&hand.type==='basket'?'カゴが空っぽ':'商品を持ってきてね');sfx.register();
-      const label=hand.type==='basket'?`${S.name} ${hand.items.length}点`:`${S.name} ${GOODS[hand.g].n}`;
+      const its=hand.type==='basket'?hand.items.slice().sort((a,b)=>(b==='ball')-(a==='ball')):null,label=its?`${S.name} ${GOODS[its[0]].n}${its.length>1?` 他${its.length-1}点`:''}`:`${S.name} ${GOODS[hand.g].n}`;
       if(hand.type==='basket')setHand({type:'shopbag',items:hand.items.slice()});else{hand.paid=true;handV++;}stowBall();
       if(cur===me){BANK.add(-due,label);toast(`お会計 ${yen(due)}(残高 ${yen(BANK.bal)})`);}sub('店員',pick(['ありがとうございましたー','ありがとうございます、またお越しくださいませー']),'quiet');}};
   const doorSt={prompt(){return dueAt(hand)?'お会計がまだ…':'店を<b>出る</b>';},press(){if(dueAt(hand)){sub('店員','お客様、お会計がまだですー!','');return toast('先にレジでお会計');}transit(exitStore);}};
@@ -4951,7 +4956,7 @@ function render(dt){
   const sc=W.store&&STORES[W.store].scene?STORES[W.store].scene:W.home&&HOME.scene?HOME.scene:(W.outside&&OUT.scene?OUT.scene:scene);if(camera.parent!==sc){sc.add(camera);camera.far=sc===scene?40:sc===OUT.scene?170:30;camera.updateProjectionMatrix();}
   drawScene(sc,dt);fpsWatch(dt);
 }
-if(window.__TEST__)window.__G={SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
+if(window.__TEST__)window.__G={OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
 camera.position.set(0,1.62,.2);
 {const _bm=buildModel;buildModel=function(t,s){const m=_bm(t,s);if(SHADOWS)m.g.traverse(o=>{if(o.isMesh)o.castShadow=true;});m.blob=blob(m.g,0,.02,.6,.48,.012);return m;};}
 setShadows(scene);if(HQ)loadPP();
