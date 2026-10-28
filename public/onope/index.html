@@ -2906,7 +2906,7 @@ function refreshHeld(){
 const W={running:false,t:0,dur:600,money:0,rage:0,conf:0,giveup:0,mild:0,happy:0,log:[],spawnT:1};
 let shake=0;
 function reset(){
-  customers.slice().forEach(removeCustomer);customers=[];
+  customers.slice().forEach(removeCustomer);customers=[];clearCrew();
   cops.forEach(p=>scene.remove(p.g));cops.length=0;messes.slice().forEach(removeMess);spawnRegulars();toiletUser=null;doors.forEach(d=>{d.open=false;d.npcT=0;});
   seats.forEach(s=>{s.c=null;if(s.plate)scene.remove(s.plate.mesh);s.plate=null;s.leaving=null;s.ver++;setSlip(s);});
   fryers.forEach(f=>{if(f.mesh)f.basket.remove(f.mesh);f.food=null;f.mesh=null;f.up=false;});
@@ -3928,20 +3928,21 @@ const needShiftDay=n=>n>=2&&(n-2)%8===0;
 function dayDate(n){const d=new Date(2026,9,26+n);return{m:d.getMonth()+1,d:d.getDate(),w:'日月火水木金土'[d.getDay()]};}
 const dayLabel=n=>{const t=dayDate(n);return`${t.m}月${t.d}日(${t.w})`;};
 const CREW=[
-  {n:'権田 剛志',r:'店長・45歳',d:'バイトの女子大生にだけやたら優しい。シフト表の「白石」の欄にだけハートが付いている',c:'#9a3a2a',w:[1,1,1,1,1,1,0]},
-  {n:'三好 恭平',r:'社員・32歳・独身',d:'発注ミスと伝票ミスの常習犯。悪い人ではない。休みの日は一人でパチンコ',c:'#5a6a7a',w:[1,1,0,1,1,1,1]},
-  {n:'桐谷 蓮',r:'大学3年・飲みサー幹事長',d:'仕事が異常に速い。ドリンク場を一人で回し、飲み会の段取りも完璧',c:'#2a5a9a',w:[0,1,1,0,1,1,0]},
-  {n:'白石 ひなの',r:'大学1年・新人',d:'店のアイドル。常連のおっちゃんはだいたいひなの目当て',c:'#d8558a',w:[1,0,1,0,0,1,1]},
-  {n:'早川 美咲',r:'大学4年・古株',d:'内定が出てからシフト入りまくり。毒舌の姉御で、三好さんに一番厳しい',c:'#7a4a9a',w:[1,1,0,1,0,0,1]},
-  {n:'大森 拓海',r:'大学2年・軽音サークル',d:'ギターを背負って出勤。遅刻とシフト交代のお願いの常習犯。まかないを一番食べる',c:'#3a8a5a',w:[0,0,1,1,0,1,0]}];
+  {n:'権田 剛志',r:'店長・45歳',d:'バイトの女子大生にだけやたら優しい。シフト表の「白石」の欄にだけハートが付いている',c:'#9a3a2a',w:[1,0,1,0,1,1,0]},
+  {n:'三好 恭平',r:'社員・32歳・独身',d:'発注ミスと伝票ミスの常習犯。悪い人ではない。休みの日は一人でパチンコ',c:'#5a6a7a',w:[1,1,0,1,0,1,1]},
+  {n:'桐谷 蓮',r:'大学3年・飲みサー幹事長',d:'仕事が異常に速い。ドリンク場を一人で回し、飲み会の段取りも完璧',c:'#2a5a9a',w:[0,1,1,0,1,0,0]},
+  {n:'白石 ひなの',r:'大学1年・新人',d:'店のアイドル。常連のおっちゃんはだいたいひなの目当て',c:'#d8558a',w:[1,0,0,1,0,1,0]},
+  {n:'早川 美咲',r:'大学4年・古株',d:'内定が出てからシフト入りまくり。毒舌の姉御で、三好さんに一番厳しい',c:'#7a4a9a',w:[0,1,0,0,1,0,1]},
+  {n:'大森 拓海',r:'大学2年・軽音サークル',d:'ギターを背負って出勤。遅刻とシフト交代のお願いの常習犯。まかないを一番食べる',c:'#3a8a5a',w:[0,0,1,1,0,0,1]}];
 // whoever has today in their submitted week works; in 2P one scheduled player means both are called in
 function isWorkDay(n){if(n<=1)return true;if(needShiftDay(n))return false;const k=n-DAY.base;if(k<0||k>6)return false;
   const mine=i=>DAY.shift[i]!=null&&((DAY.shift[i]>>k)&1);return MP.on?players.some((q,i)=>mine(i)):mine(me);}
 function allSleptCheck(){if(players.every((q,i)=>(i===cur?W:q.L).slept)&&!DAY.choosing){DAY.choosing=true;players.forEach((q,i)=>{(i===cur?W:q.L).dayChoice=null;});}}
 function dayChoice(c){if(!DAY.choosing||W.dayChoice)return;W.dayChoice=c;const cs=players.map((q,i)=>(i===cur?W:q.L).dayChoice);
   if(cs.includes('quit')){DAY.choosing=false;DAY.pending='quit';}else if(cs.every(x=>x==='next')){DAY.choosing=false;DAY.pending='next';}}
+function crewHello(){const cs=crewToday();if(!cs.length)return;const names=cs.filter(m=>CREW_POST[m.n].role!=='boss').map(m=>m.n.split(' ')[1]);if(names.length)later(()=>toast(`今日のシフト: ${names.join('・')} とあなた`),2600);}
 function nextDay(){DAY.n++;const work=isWorkDay(DAY.n);startMode='commute';reset();W.running=true;
-  if(work){W.t=-230;players.forEach((q,i)=>withPlayer(i,()=>{startAtHome();if(MP.on&&DAY.n>2&&!(DAY.shift[i]!=null&&((DAY.shift[i]>>(DAY.n-DAY.base))&1)))laterP(()=>toast('人手が足りなくて呼び出された…今日も出勤'),1600);}));}
+  if(work){W.t=-230;spawnCrew();crewHello();players.forEach((q,i)=>withPlayer(i,()=>{startAtHome();if(MP.on&&DAY.n>2&&!(DAY.shift[i]!=null&&((DAY.shift[i]>>(DAY.n-DAY.base))&1)))laterP(()=>toast('人手が足りなくて呼び出された…今日も出勤'),1600);}));}
   else{W.offDay=true;W.commute=false;W.open=false;W.t=-480/180*W.dur; // 10:00
     if(needShiftDay(DAY.n)){DAY.shift=players.map(()=>null);DAY.base=DAY.n+1;}
     players.forEach((q,i)=>withPlayer(i,startOffHome));}
@@ -3979,6 +3980,64 @@ function dayEndView(){const el=$('#dayEnd'),on=W.running&&DAY.choosing;if(el.hid
   $('#deNext').disabled=!!mine;$('#deQuit').disabled=!!mine;$('#deWait').textContent=mine?(MP.on?(mate.some(x=>!x)?'相方の選択を待っています…':''):''):'';
   if(document.exitPointerLock&&locked())document.exitPointerLock();}
 $('#deNext').addEventListener('click',()=>{if(!W.dayChoice)input.acQ=20;});$('#deQuit').addEventListener('click',()=>{if(!W.dayChoice)input.acQ=21;});
+/* ================= the crew at work: fixed posts, one job each (no running around the kitchen) ================= */
+const CREW_LOOK={
+  '権田 剛志':{top:0x2a2a30,pants:0x2a2a30,hair:0x1a1614,hs:'slick',build:[1.08,1.25,1.05],old:1,stubble:1,shoe:0x15100c,glasses:1},
+  '三好 恭平':{top:0x1f2c55,pants:0x2a2a2a,hair:0x16120f,hs:'side',build:[1.1,1.2,1.05],glasses:1,shoe:0x111111,workcap:0x1f2c55},
+  '桐谷 蓮':{top:0x1f2c55,pants:0x2a2a2a,hair:0x3a2616,hs:'side',build:[1,.95,1.02],shoe:0x111111,young:1,workcap:0x1f2c55},
+  '白石 ひなの':{top:0x1f2c55,pants:0x2a2a2a,hair:0x2a1c14,hs:'pony',fem:1,young:1,curvy:1,lip:'#d0505a',blush:1,build:[.88,.92,.95],shoe:0x111111,skin:'#f6dccb'},
+  '早川 美咲':{top:0x1f2c55,pants:0x2a2a2a,hair:0x4a2c1a,hs:'bun',fem:1,young:1,lip:'#b8404a',blush:1,build:[.9,.95,.95],shoe:0x111111},
+  '大森 拓海':{top:0x4a5a3a,pants:0x2a2a30,hair:0x161210,hs:'messy',hood:1,young:1,build:[.98,1.0,1.0],shoe:0xe8e8e8}};
+// post: where they stand, which way they face, what they do there
+const CREW_POST={'権田 剛志':{role:'boss',x:-4.55,z:-6.35,ry:-2.4},'三好 恭平':{role:'reg',x:-6.6,z:-6.95,ry:0},'桐谷 蓮':{role:'drinks',x:4.7,z:-4.5,ry:Math.PI},
+  '白石 ひなの':{role:'hall',x:-4.0,z:-5.65,ry:-Math.PI/2},'早川 美咲':{role:'dish',x:-2.25,z:1.35,ry:-Math.PI/2},'大森 拓海':{role:'slack',x:8.4,z:-8.3,ry:Math.PI,sit:1}};
+const CREW_NOW=[];
+const CREW_LINES={
+  hall:['いらっしゃいませー! 何名様ですかー?','いらっしゃいませー!','お好きなお席どうぞー!'],
+  reg:['ありがとうございましたー','またお越しくださいませー','…えっと、お会計は…あれ?'],
+  drinks:['{n}番さん、{d}お待たせしましたー!','{d}あがりました! {n}番さんどうぞー','はい{d}! {n}番さんの分、出しときますね'],
+  dish:['洗い物やっとくね','三好さん、またおしぼり発注ミスってない?','皿たまってるよー、回しといた'],
+  boss:['ひなのちゃん、今日もかわいいね〜','ひなのちゃん、このあと空いてる?(笑)','ちょっと様子見に来ただけだから、気にしないで','…ひなのちゃん、シフト増やしてもいいんだよ?'],
+  hina:['店長、仕事してください〜(笑)','あはは…(助けて)','店長、ドリンク場めっちゃ混んでますよ?'],
+  slack:['(従業員室からYouTubeの音が聞こえる…)','(従業員室から笑い声が聞こえる)','(大森が誰かとLINEしている気配)']};
+const pickL=(k,o)=>{let t=pick(CREW_LINES[k]);if(o)Object.keys(o).forEach(x=>t=t.replace('{'+x+'}',o[x]));return t;};
+// who works today: the published week (days 3–9 etc.). Day 1 is a one-person shift.
+function crewToday(){if(W.offDay||DAY.n<3)return[];const k=DAY.n-DAY.base;if(k<0||k>6)return[];return CREW.filter(m=>m.w[k]);}
+function clearCrew(){CREW_NOW.forEach(p=>{if(p.g.parent)p.g.parent.remove(p.g);});CREW_NOW.length=0;}
+function spawnCrew(){clearCrew();crewToday().forEach(m=>{const post=CREW_POST[m.n],L=CREW_LOOK[m.n],type={name:m.n.split(' ')[0],...L},sk=skinFor(type),md=buildModel(type,sk);
+    const p={...md,type,skin:sk,ctx:md.fc.getContext('2d'),expr:'',hy:0,hp:0,hr:0,walkT:0,name:m.n.split(' ')[0],crew:m.n,post,t:5+R()*8,lt:10+R()*20,bac:0,lv:0};
+    md.g.position.set(post.x,post.sit?-.24:0,post.z);md.g.rotation.y=post.ry;scene.add(md.g);setExpr(p,'normal');if(post.role==='slack'){p.phone.visible=true;}
+    if(post.role==='boss')md.g.visible=false;CREW_NOW.push(p);});}
+const crewBy=r=>CREW_NOW.find(p=>p.post.role===r);
+function crewServe(s,c){const o=c.dOrder,g=newGlass(),st=o.strong;
+  if(o.kind==='beer')g.comp.beer=POUR_MAX;else if(o.kind==='highball'){g.comp.whisky=st?3.2:2;g.comp.soda=POUR_MAX-g.comp.whisky;}else{g.comp.shochu=st?3.8:2.4;g.comp.lemon=1;g.comp.soda=POUR_MAX-1-g.comp.shochu;}
+  const h0=hand,v0=handV;hand=g;serveDrink(s);hand=h0;handV=v0+1;}
+function crewStep(dt){if(!CREW_NOW.length)return;const mins=W.t/W.dur*180;
+  CREW_NOW.forEach(p=>{const r=p.post.role;p.t-=dt;p.lt-=dt;
+    // idle body language at the post
+    if(r==='slack'){armTo(p,1,'phone',dt,4);armTo(p,0,'belly',dt,3);headTo(p,0,-.35,0,dt,3);}
+    else if(r==='reg'){armTo(p,0,'counter',dt,3);armTo(p,1,'counter',dt,3);headTo(p,Math.sin(W.t*.3)*.3,.05,0,dt,2);}
+    else if(r==='dish'){armTo(p,0,'chop',dt,4);armTo(p,1,'chop',dt,4);headTo(p,0,-.3,0,dt,3);}
+    else{armTo(p,0,'hang',dt,3);armTo(p,1,'hang',dt,3);headTo(p,Math.sin(W.t*.4+p.t)*.35,.05,0,dt,2);}
+    rigUpdate(p,dt);
+    if(!W.open||W.closed)return;
+    if(r==='hall'){customers.forEach(c=>{if(c.state==='walkIn'&&!c.hina){c.hina=1;c.maxPat*=1.15;c.pat*=1.15;if(p.lt<0){p.lt=6;say(p,pickL('hall'),'quiet');setExpr(p,'happy');}}});}
+    if(r==='reg'){customers.forEach(c=>{if(c.state!=='payWait')return;c.pwT=(c.pwT||0)+dt;if(c.pwT<7)return;c.pwT=-99;
+      if(R()<.15){W.money+=c.payDue-500;c.payDue=500;payNow(c,false);W.conf++;say(c,c.gara?'おい、お釣り500円足りひんぞ':'…あの、お釣り500円少ないんですけど…','');say(p,'す、すみません!! …あれ、レジが合わない…','');setExpr(p,'scared');}
+      else{payNow(c,false);say(p,pickL('reg'),'quiet');}});}
+    if(r==='drinks'&&p.t<=0){p.t=4;const s=seats.find(s=>{const c=s.c;return c&&SEATED.has(c.state)&&!c.cs&&c.dOrder&&c.dWait>25&&!(c.dGlass&&c.dGlass.left>.02)&&!c.wantWater;});
+      if(s){const c=s.c,d=DRINKS[c.dOrder.kind].name;crewServe(s,c);say(p,pickL('drinks',{n:s.i+1,d}),'quiet');p.t=35;}}
+    if(r==='dish'&&p.t<=0){p.t=4;if(returns.length&&rack.length<6){const pl=returns.shift();pl.dirt=0;pl.food=null;pl.tops={};rack.push(pl);refreshReturns();refreshRack();p.t=20;if(p.lt<0){p.lt=40;say(p,pickL('dish'),'quiet');}}}
+    if(r==='boss'){const on=mins>=60&&mins<115;if(on!==p.g.visible){p.g.visible=on;if(on){say(p,'おつかれ〜。ちょっと様子見に来たよ','');p.lt=8;}else say(p,'じゃ、本部戻るわ! あとよろしく〜','quiet');}
+      if(on&&p.lt<0){p.lt=22+R()*15;const hn=crewBy('hall');say(p,hn?pickL('boss'):'今日も平和だね〜。あ、俺もう帰るから','quiet');if(hn)later(()=>{if(W.running)say(hn,pickL('hina'),'quiet');},2200);}}
+    if(r==='slack'&&p.lt<0){p.lt=45+R()*30;if(!p.helping)sub('',pickL('slack'),'quiet');}
+    if(r==='slack'&&p.helping){p.helping-=dt;if(p.t<=0){p.t=6;if(returns.length&&rack.length<6){const pl=returns.shift();pl.dirt=0;pl.food=null;pl.tops={};rack.push(pl);refreshReturns();refreshRack();}}
+      if(p.helping<=0){p.helping=0;p.g.position.set(p.post.x,-.24,p.post.z);p.g.rotation.y=p.post.ry;p.phone.visible=true;say(p,'…ちょっと休憩いただきまーす','quiet');}}});}
+// scold the slacker: he goes to the sink for a minute, then drifts back
+S.omori={prompt(){const p=crewBy('slack');if(!p||p.helping)return'';return'大森を<b>注意する</b>(YouTube見てる)';},
+  press(){const p=crewBy('slack');if(!p||p.helping)return;p.helping=60;p.t=3;p.phone.visible=false;p.g.position.set(-2.3,0,.2);p.g.rotation.y=-Math.PI/2;say(p,pick(['あっ、すんません! すぐ入ります!','やべ…今行きます!','いや、ちょうど今戻ろうと思ってて…']),'');}};
+hitBox(.7,1.3,.7,8.4,.7,-8.3,S.omori);
+
 // soccer score resets once the court is empty
 const inFence=(x,z)=>x>FENCE.x0&&x<FENCE.x1&&z>FENCE.z0&&z<FENCE.z1;
 function courtCheck(){const any=players.some((p,i)=>locOf(i)==='out'&&inFence(p.pos.x,p.pos.z));
@@ -4026,6 +4085,8 @@ function facadeTex(floors,seed,shop){const rr=seedRand(seed);return ctex(128,256
 function oSignTex(txt,bg,fg,vert,sub){return ctex(vert?64:256,vert?256:64,(g,w,h)=>{g.fillStyle=bg;g.fillRect(0,0,w,h);g.strokeStyle=fg;g.globalAlpha=.6;g.lineWidth=3;g.strokeRect(3,3,w-6,h-6);g.globalAlpha=1;g.fillStyle=fg;g.textAlign='center';g.textBaseline='middle';
   if(vert){const n=txt.length,fs=Math.min(46,(h-16)/n);g.font=`bold ${fs}px "Dela Gothic One","Hiragino Sans",sans-serif`;[...txt].forEach((ch,i)=>g.fillText(ch,w/2,10+fs/2+i*fs));}
   else{g.font=`bold ${sub?26:34}px "Dela Gothic One","Hiragino Sans",sans-serif`;g.fillText(txt,w/2,sub?h/2-8:h/2+2);if(sub){g.font='bold 14px sans-serif';g.fillText(sub,w/2,h-12);}}});}
+function skyDayTex(){return ctex(512,256,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h*.5);gr.addColorStop(0,'#3a78d0');gr.addColorStop(.7,'#8ab8e8');gr.addColorStop(1,'#cfe2f2');g.fillStyle=gr;g.fillRect(0,0,w,h*.5);g.fillStyle='#cfe2f2';g.fillRect(0,h*.5,w,h*.5);
+  for(let i=0;i<26;i++){const x=R()*w,y=20+R()*h*.3,r=10+R()*26;g.fillStyle='rgba(255,255,255,.75)';for(let k=0;k<5;k++){g.beginPath();g.ellipse(x+k*r*.6,y+Math.sin(k)*4,r,r*.45,0,0,7);g.fill();}}});}
 function skyTex(dusk){return ctex(512,256,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h*.5);
   if(dusk){gr.addColorStop(0,'#1a1840');gr.addColorStop(.55,'#6a3a6a');gr.addColorStop(.85,'#e0805a');gr.addColorStop(1,'#f2b070');}else{gr.addColorStop(0,'#04060e');gr.addColorStop(.7,'#121a34');gr.addColorStop(1,'#2a2440');}
   g.fillStyle=gr;g.fillRect(0,0,w,h*.5);g.fillStyle=dusk?'#f2b070':'#2a2440';g.fillRect(0,h*.5,w,h*.5);
@@ -4286,8 +4347,8 @@ function buildOut(){vis(()=>{
   // the dead end (south) + north road continues into haze
   buildTown(S2,B,PL,(x0,x1,z0,z1,k)=>ob(x0,x1,z0,z1,k),box,cyl);
   frontDoorHit();buildVehicles(S2);CARRY.hits=true;
-  oHit(1.0,2.1,.3,9.85,1.05,-10.8,{prompt(){if(CAR.inCar)return'';if(!W.clockedOut&&!CAR.parked)return'通用口(先に車を駐車場に停めよう)';return W.clockedOut?'通用口から<b>店に戻る</b>':'通用口から<b>店に入る</b>';},
-    press(){if(CAR.inCar)return;if(!W.clockedOut&&!CAR.parked)return toast('先に車を裏の駐車場に停めよう');transit(goInside);}});
+  oHit(1.0,2.1,.3,9.85,1.05,-10.8,{prompt(){if(CAR.inCar)return'';if(W.offDay)return'通用口(今日は休み。鍵がかかっている)';if(!W.clockedOut&&!CAR.parked)return'通用口(先に車を駐車場に停めよう)';return W.clockedOut?'通用口から<b>店に戻る</b>':'通用口から<b>店に入る</b>';},
+    press(){if(CAR.inCar)return;if(W.offDay)return toast('今日は休み。店は閉まってる');if(!W.clockedOut&&!CAR.parked)return toast('先に車を裏の駐車場に停めよう');transit(goInside);}});
   OUTB.wq.forEach(f=>f());OUTB.wq=[];
   OUTB.meshes=[flushBatch(OUTB.f,S2),flushBatch(OUTB.l,S2,true),flushBatch(OUTB.i,S2,true)];OUTB.f=OUTB.l=OUTB.i=null;
   setShadows(S2);OUT.sky.castShadow=false;OUT.built=true;
@@ -4321,7 +4382,12 @@ function enterCar(){CAR.inCar=true;CAR.doorOpen=false;laterP(()=>sfx.carDoor(fal
 function exitCar(){CAR.inCar=false;CAR.doorOpen=true;sfx.carDoor(true);const c=Math.cos(CAR.h),s=Math.sin(CAR.h);let px=CAR.x+c*1.5+s*.2,pz=CAR.z-s*1.5+c*.2;if(!walkOut(px,pz)){px=CAR.x-c*1.5;pz=CAR.z+s*1.5;}player.x=px;player.z=pz;view.yaw=CAR.h-Math.PI/2;
   if(!W.clockedOut&&CAR.parked&&!W.toldDoor){W.toldDoor=true;toast('通用口(建物の裏の灰色のドア)から店に入ろう');}}
 function transit(fn){if(W.transit)return;W.transit=true;if(cur===me)$('#fade').classList.add('on');laterP(()=>{fn();if(cur===me)$('#fade').classList.remove('on');laterP(()=>{W.transit=false;},450);},550);}
-function setSky(){if(!OUT.sky)return;const dusk=W.t<-40;OUT.sky.material.map=dusk?OUT.skyDusk:OUT.skyNight;OUT.sky.material.needsUpdate=true;OUT.hemi.intensity=dusk?.75:.5;OUT.scene.fog.color.set(dusk?0x3a2c3a:0x14121e);OUT.scene.background.set(dusk?0x3a2c3a:0x0a0c16);}
+function skyMode(){const c=gameClock(),hr=c.h+c.m/60;return hr<16.3?'day':W.t<-40?'dusk':'night';}
+function setSky(){if(!OUT.sky)return;const md=skyMode();OUT.skyMode=md;if(md==='day'&&!OUT.skyDay)OUT.skyDay=skyDayTex();const day=md==='day',dusk=md==='dusk';
+  OUT.sky.material.map=day?OUT.skyDay:dusk?OUT.skyDusk:OUT.skyNight;OUT.sky.material.needsUpdate=true;
+  OUT.hemi.intensity=day?1.05:dusk?.75:.5;OUT.hemi.color.set(day?0xcfe2ff:0x8090c0);OUT.hemi.groundColor.set(day?0x6a6252:0x2a2018);
+  OUT.moon.intensity=day?1.0:.32;OUT.moon.color.set(day?0xfff2dc:0xc0c8ff);
+  const fc=day?0xb8cce0:dusk?0x3a2c3a:0x14121e;OUT.scene.fog.color.set(fc);OUT.scene.background.set(day?0xb8cce0:dusk?0x3a2c3a:0x0a0c16);}
 function goOutside(){if(!OUT.built)buildOut();W.outside=true;player.x=9.85;player.z=-11.6;yaw=0;pitch=-.05;if(cur===me){view.yaw=0;view.pitch=-.05;setSky();$('#tickets').hidden=true;$('#tasks').hidden=!!W.clockedOut||!!W.open;if(murmur)murmur.gain.value=0;}sfx.door2(false);W.outMins=gameClock().mins;}
 function goInside(){W.outside=false;player.x=9.75;player.z=-9.75;yaw=Math.PI;pitch=-.05;sfx.door2(false);if(cur!==me)return;view.yaw=Math.PI;view.pitch=-.05;if(!W.open){$('#tasks').hidden=false;withPlayer(me,renderTasks);}else if(!W.closed)$('#tickets').hidden=false;}
 function startCommute(){if(!OUT.built)buildOut();const ap=aptOf(cur);
@@ -4384,7 +4450,7 @@ function copAside(){const o=OOBST.find(o=>o.k==='cop');if(o)o.r=[-8.6,-7.8,19.6,
 function footOutStep(){
   const ck=CAR.ck;if(CK_ON()&&!ck.done&&player.z>14&&player.z<26&&player.x<-7&&player.x>-20){ck.done=true;copAside();psub('警察官','こんばんは。歩きですか、気をつけて帰ってくださいね','');}
 }
-function updateOutside(dt){
+function updateOutside(dt){if(OUT.sky&&skyMode()!==OUT.skyMode)setSky();
   if(!OUT.built)return;OUT.sky.position.set(camera.position.x,0,camera.position.z);
   if(OUT.sig){const ph=(W.t%30+30)%30,ns=ph<12?0:ph<15?1:2;OUT.sig.forEach(s=>{const st=s.ns?ns:(ph<15?2:ph<27?0:1);s.L.forEach((l,i)=>l.m.color.set(i===st?l.c:0x222222));});}
   {const fx=CAR.inCar?CAR.x:player.x,fz=CAR.inCar?CAR.z:player.z;OUT.moon.position.set(fx-20,50,fz+15);OUT.moon.target.position.set(fx,0,fz);}
@@ -4989,6 +5055,7 @@ function simWorld(dt){
   if(RETA.length)updateReta(dt);
   if(W.commute&&!W.open){W.taskT-=dt;if(W.taskT<=0){W.taskT=.4;withPlayer(me,renderTasks);}if(W.t>=W.dur*.85&&!W.noOpenEnd){W.noOpenEnd=true;endGame({crash:['開店できなかった','結局のれんを出せないまま夜が更けた。店長から長文のLINEが届いている']});return;}}
   customers.slice().forEach(c=>{if(W.running)updateCustomer(c,dt);});if(!W.running)return;
+  crewStep(dt);if(!W.running)return;
   updateRooms(dt);updateRegulars(dt);updateStudents(dt);updateCops(dt);updateAmbience();if(!W.running)return;
   persons().forEach(p=>rigUpdate(p,dt));
   updateDecor(dt);updateAruaru(dt);updateStaffPhone(dt);updateCarry(dt);if(!W.running)return;
@@ -5045,7 +5112,7 @@ function render(dt){
   const sc=W.store&&STORES[W.store].scene?STORES[W.store].scene:W.home&&HOME.scene?HOME.scene:(W.outside&&OUT.scene?OUT.scene:scene);if(camera.parent!==sc){sc.add(camera);camera.far=sc===scene?40:sc===OUT.scene?170:30;camera.updateProjectionMatrix();}
   drawScene(sc,dt);fpsWatch(dt);
 }
-if(window.__TEST__)window.__G={DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
+if(window.__TEST__)window.__G={CREW_NOW,crewToday,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
 camera.position.set(0,1.62,.2);
 {const _bm=buildModel;buildModel=function(t,s){const m=_bm(t,s);if(SHADOWS)m.g.traverse(o=>{if(o.isMesh)o.castShadow=true;});m.blob=blob(m.g,0,.02,.6,.48,.012);return m;};}
 setShadows(scene);if(HQ)loadPP();
