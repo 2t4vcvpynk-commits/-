@@ -1796,7 +1796,7 @@ function startSick(c){
 }
 function startPassout(c){c.state='passout';c.st=0;c.sipPh=0;placeGlassRest(c);if(c.dOrder){c.dOrder=null;c.seat.ver++;}W.passout++;say(c,'…あれぇ…なんか…ねむ…','quiet');}
 function afterVomit(c,seated){
-  W.vomit++;c.vm=0;c.fl=0;c.sick=false;c.sickCD=25;c.bac=Math.max(0,c.bac-13);c.stomach=0;c.vomits=(c.vomits||0)+1;c.lv=lvOf(c);c.body.rotation.x=0;
+  W.vomit++;c.vm=0;c.fl=0;c.sick=false;c.sickCD=25;c.pRoll=null;c.bac=Math.max(0,c.bac-13);c.stomach=0;c.vomits=(c.vomits||0)+1;c.lv=lvOf(c);c.body.rotation.x=0;
   say(c,pick(c.gara?['…うぇ…','…はぁ…はぁ…','…ふぅ、ちょっとマシになったわ…']:['…すみません…','…はぁ…はぁ…','…ふぅ、ちょっとスッキリした…']),'quiet');
   if(seated){c.state=c.resume;c.st=c.resumeSt;if(c.bac>=38*c.tol)startPassout(c);}
   else{c.state='fromToilet';c.st=0;c.path=null;}
@@ -1874,7 +1874,8 @@ function updateCustomer(c,dt){
     if(c.state==='wait'&&!drinking){startLeave(c,'drinks');return;}}
   if(SEATED.has(c.state)){
     updateDrinking(c,dt);
-    if(c.lv>=3&&!c.sick&&c.sickCD<=0&&!c.sipPh)startSick(c);
+    // past the limit some throw up, some just pass out (gara types are more likely to hold it and throw up); really heavy drinking makes passing out likelier
+    if(c.lv>=3&&!c.sick&&c.sickCD<=0&&!c.sipPh){if(c.pRoll==null)c.pRoll=R();if(c.pRoll<(c.gara?.35:.5)+(c.bac>=42*c.tol?.25:0))startPassout(c);else startSick(c);}
     else if(c.lv>=4&&!c.sipPh)startPassout(c);
     else smellCheck(c,dt);
   }
