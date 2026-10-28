@@ -2342,7 +2342,7 @@ function openingTasks(){return[
   {label:'のれんを出して開店',done:!!W.open}];}
 function openShop(){W.open=true;W.openAt=W.t;norenMesh.visible=true;spawnRegulars();W.spawnT=20;$('#tasks').hidden=true;$('#tickets').hidden=false;sfx.clink(.3);toast(`開店! ${clockFmt(W.t)}`);sub('あなた','営業はじめまーす!','');}
 function renderTasks(){const op=W.commute&&!W.open,all=op?openingTasks().filter(x=>x.label!=='のれんを出して開店'):closingTasks(),t=all.filter(x=>!x.done);
-  $('#tasks').innerHTML=`<div class="h">${op?'開店作業':'締め作業'}${t.length?`<span>残り${t.length}</span>`:''}</div>`+(t.length?t.map(x=>`<div class="t">・${x.label}</div>`).join(''):`<div class="t ok">${op?'準備完了! 入口でのれんを出そう':'完了! タイムカードで退勤'}</div>`);}
+  $('#tasks').innerHTML=`<div class="h">${op?'開店作業':'締め作業'}${t.length?`<span>残り${t.length}</span>`:''}</div>`+(t.length?t.map(x=>{const o=crewTaskOwner(x.label,op);return`<div class="t${o?' ok':''}">・${x.label}${o?` <small>(${o}がやってくれる)</small>`:''}</div>`;}).join(''):`<div class="t ok">${op?'準備完了! 入口でのれんを出そう':'完了! タイムカードで退勤'}</div>`);}
 function startClosing(){
   W.closed=true;toast('21:00 閉店。締め作業を始めよう');sub('店内放送','本日はご来店ありがとうございました。閉店のお時間です','quiet');
   customers.forEach(c=>{if(c.cs||!SEATED.has(c.state))return;if(c.dOrder){c.dOrder=null;c.seat.ver++;}
@@ -2828,7 +2828,7 @@ const PL0={i:0,pos:player,P,hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,a
 function mkPl(i){return{i,pos:{x:0,z:.2},P:{hp:100,atk:null,atkT:0,cd:0,lastHurt:-99,hitDone:false},hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,actT:0,pid:0,moved:false};}
 let players=[PL0],me=0,cur=0;
 // each player has their own whereabouts, car, bike and apartment; swapped in and out like the hand
-const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil','ride','homeRide','clockInT','wage','store','ball','dayChoice'];
+const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil','ride','homeRide','clockInT','wage','store','ball','dayChoice','makaSeat'];
 const CKEYS=['x','z','h','v','st','engine','starting','side','gear','gearDir','doorOpen','inCar','dead','fall','warnT','brakeL','acc','rpm','atg','cam','parked','lastAcc','ck'];
 const BKEYS=['x','z','h','v','riding','arrived','warned','g','front','crank','rw','fw','lampM'];
 const HKEYS=['mode','nap','endHow','tvOn','lightOn','fridgeOpen','bathOpen'];
@@ -2924,7 +2924,7 @@ function reset(){
   Object.assign(CAR,{x:9.1,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}});{const o=OOBST.find(o=>o.k==='cop');if(o)o.r=[-11.85,-10.95,19.6,20.4];if(OUT.cop)OUT.cop.g.position.x=-11.4;}RETA.forEach(a=>scene.remove(a.mesh));RETA.length=0;
   $('#carHud').hidden=true;$('#fade').classList.remove('on');
   {const com=startMode==='commute';players.forEach((q,i)=>{const ap=aptOf(i),v=VEH[i];
-    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null,ride:null,homeRide:false,clockInT:0,wage:0,store:null,ball:null,dayChoice:null};
+    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null,ride:null,homeRide:false,clockInT:0,wage:0,store:null,ball:null,dayChoice:null,makaSeat:false};
     q.car={x:9.1-i*2.6,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,brakeL:0,acc:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}};
     q.bike=Object.assign({x:ap.bike[0],z:ap.bike[1],h:0,v:0,riding:false,arrived:false,warned:false},v?v.bikeM:{g:null,front:null,crank:null,rw:null,fw:null,lampM:null});
     q.hm={mode:'start',nap:0,endHow:null,tvOn:false,lightOn:true,fridgeOpen:false,bathOpen:false};q.carM=v?Object.assign({},v.carM):{};});
@@ -3601,7 +3601,7 @@ function buildTown(S2,B,PL,ob,box,cyl){
   // ground outside the roads
   PL(160,232,lam(0x2a2a26),24,-.02,35,-Math.PI/2);
   // lamps along all roads (glow heads only)
-  const poleM=lam(0x5a5a5a),glow=new THREE.MeshBasicMaterial({color:0xfff1d0});
+  const poleM=lam(0x5a5a5a),glow=lampMat(0xfff1d0);
   ROADS.forEach(([x0,x1,z0,z1,d],i)=>{if(d==='ns'){for(let z=z0+8;z<z1;z+=24){if(i===0&&z>-62&&z<64)continue;if(ROADS.some(r=>r[4]==='ew'&&z>r[2]-4&&z<r[3]+4))continue;const x=x1+SW-.4;cyl(.07,.09,5.2,poleM,x,2.6,z,8);B(.4,.1,.24,glow,x-.6,5.08,z);ob(x-.15,x+.15,z-.15,z+.15,'pole');}}
     else{for(let x=x0+8;x<x1;x+=24){if(ROADS.some(r=>r[4]==='ns'&&x>r[0]-4&&x<r[1]+4))continue;const z=z0-SW+.4;cyl(.07,.09,5.2,poleM,x,2.6,z,8);B(.24,.1,.4,glow,x,5.08,z+.6);ob(x-.15,x+.15,z-.15,z+.15,'pole');}}});
   // ---- helpers
@@ -3626,7 +3626,7 @@ function buildTown(S2,B,PL,ob,box,cyl){
     for(let i=0;i<4;i++)B(1.6,1.8,.5,lam(0x2a5aa0),46+i*2,.9,76.3);ob(45,53,76,76.6,'kiosk');
     // elevated tracks behind the station + a parked train
     B(31,.9,5,lam(0x8a8880),57,7.2,61.5);for(let x=44;x<74;x+=6)B(.9,6.8,.9,lam(0x8a8880),x,3.4,61.5);
-    {const tr=lam(0xe8eaec),bl=new THREE.MeshBasicMaterial({color:0x1a4fa0});B(24,2.8,2.8,tr,55,9.1,61.5);B(24.05,.3,2.82,bl,55,8.4,61.5);for(let i=0;i<10;i++)B(1.2,.9,2.84,new THREE.MeshBasicMaterial({color:0xfff4d8}),45+i*2.2,9.5,61.5);}
+    {const tr=lam(0xe8eaec),bl=new THREE.MeshBasicMaterial({color:0x1a4fa0});B(24,2.8,2.8,tr,55,9.1,61.5);B(24.05,.3,2.82,bl,55,8.4,61.5);for(let i=0;i<10;i++)B(1.2,.9,2.84,nightMat(0xfff4d8),45+i*2.2,9.5,61.5);}
     simpleCar(S2,48,81.2,Math.PI/2,0x1c3a7a,true);simpleCar(S2,54,81.2,Math.PI/2,0xf2f2f2,true);ob(45.8,50.2,80.3,82.1,'car');ob(51.8,56.2,80.3,82.1,'car');
     B(6,.12,1.6,lam(0x8a8880),64,.06,79);hSign(S2,64,2.6,79.85,0,'タクシーのりば','#222','#ffd84a',2.4);ob(61,67,78.2,79.8,'island');
     // bus stop + bike parking
@@ -3656,7 +3656,7 @@ function buildTown(S2,B,PL,ob,box,cyl){
     [98.3,104.8,111.3,117.8,123.7].forEach(x=>{B(.24,6.1,.24,lam(0xb8b4ac),x,3.05,106.45,ap);ob(x-.2+X,x+.2+X,106.25,106.65,'col');});
     for(let f=0;f<3;f++)for(let k=0;k<4;k++){const dx=101.5+k*6.2;B(.95,2.1,.06,lam(0x4a5a6a),dx,f*3+1.15,107.97,ap);B(.06,.06,.08,lam(0xc0c0c0),dx+.38,f*3+1.1,107.92,ap);
       B(.28,.16,.02,new THREE.MeshBasicMaterial({color:f===0&&k===1?0xfff0c8:0xd8d8d8}),dx+.8,f*3+1.9,107.93,ap);const lit=R()<.55,wx=dx+2.3,wy=f*3+1.6,fr=lam(0xb8bcc0);
-      PL(1.5,1.05,lit?new THREE.MeshBasicMaterial({color:R()<.5?0xf0c890:0xe8dcc4}):lam(0x2a3038),wx+X,wy,107.975,0,Math.PI);
+      PL(1.5,1.05,lit?nightMat(R()<.5?0xf0c890:0xe8dcc4):lam(0x2a3038),wx+X,wy,107.975,0,Math.PI);
       PL(1.5,1.05,YMAT.glass||yMats().glass,wx+X,wy,107.94,0,Math.PI);
       B(1.62,.05,.07,fr,wx,wy+.55,107.95,ap);B(1.62,.05,.07,fr,wx,wy-.55,107.95,ap);B(.05,1.12,.07,fr,wx-.79,wy,107.95,ap);B(.05,1.12,.07,fr,wx+.79,wy,107.95,ap);B(.04,1.05,.05,fr,wx,wy,107.94,ap);
       B(1.75,.05,.16,lam(0x9a968c),wx,wy-.6,107.9,ap);
@@ -3703,6 +3703,13 @@ function buildTown(S2,B,PL,ob,box,cyl){
 
 // ---- real facades: window frames, sills, balconies, AC units, shop interiors — all merged into a few batches per scene
 const OUTB={};
+// things that are only lit after dark: windows go to dim glass and lamp bulbs go grey in daylight (setSky)
+const NIGHT={wins:[],lamps:[]};
+function nightMat(c){const m=new THREE.MeshBasicMaterial({color:c});NIGHT.wins.push([m,c]);return m;}
+function lampMat(c){const m=new THREE.MeshBasicMaterial({color:c});NIGHT.lamps.push([m,c]);return m;}
+function setNight(md){if(NIGHT.md===md)return;NIGHT.md=md;const day=md==='day',dk=new THREE.Color(0x3c4a58);
+  NIGHT.wins.forEach(([m,c])=>{m.color.set(c);if(day)m.color.multiply(dk);});NIGHT.lamps.forEach(([m,c])=>m.color.set(day?0xa8a69e:c));
+  (OUT.nightL||[]).forEach(([l,i])=>l.intensity=day?0:i);}
 const LITC=[0xe8c88a,0xdcd6c4,0xb4cce0,0xe8c49a,0xd8b878];
 function winFaces(x0,x1,z0,z1,h,style,shopFace){if(!OUTB.f)return;OUTB.boxes.push([x0,x1,z0,z1,h]);if(style===6)return;const rr=seedRand(Math.abs(Math.round(x0*7+z0*13+h*3))+style);
   ['nx','px','nz','pz'].forEach(f=>OUTB.wq.push(()=>winFace(f,x0,x1,z0,z1,h,style,f===shopFace?3.2:0,rr)));}
@@ -3711,7 +3718,7 @@ function winFace(f,x0,x1,z0,z1,h,style,yMin,rr){if(!OUTB.f)return;const ax=f==='
   const S=[{w:2.0,h:1.5,sp:2.9,slab:1},{w:1.6,h:1.95,sp:3.3,bal:1},{w:1.2,h:1.4,sp:2.4,slab:1},{w:.9,h:1.5,sp:1.9},{w:1.5,h:1.3,sp:2.7,ac:1},{w:1.1,h:1.25,sp:1.25,band:1}][style%6];
   const n=Math.floor((L-.8)/S.sp);if(n<1)return;const u0=c-(n-1)*S.sp/2,F=OUTB.f,Lt=OUTB.l;
   const put=(bw,bh,t,col,u,y,o,Bt)=>bBox(Bt||F,ax?t:bw,bh,ax?bw:t,col,ax?pf+sgn*o:u,y,ax?u:pf+sgn*o),hid=(u,y)=>hiddenAt(ax?pf+sgn*.3:u,y,ax?u:pf+sgn*.3);
-  const fr=[0xb8bcc0,0x8a8478,0xd8d6d0,0x5a4030,0x9aa0a6,0x2a2e34][style%6],glass=()=>{const lit=rr()<.55;return lit?[LITC[Math.floor(rr()*LITC.length)],Lt]:[0x161a20,F];};
+  const fr=[0xb8bcc0,0x8a8478,0xd8d6d0,0x5a4030,0x9aa0a6,0x2a2e34][style%6],glass=()=>{const lit=rr()<.55;return lit?[LITC[Math.floor(rr()*LITC.length)],OUTB.w]:[0x161a20,F];};
   for(let fl=0;fl<12;fl++){const yb=fl*3.2;if(yb<yMin-.01)continue;const wy=yb+(S.bal?1.13:1.55),top=wy+S.h/2;if(top>h-.35)break;
     if(hid(u0,wy)&&hid(u0+(n-1)*S.sp,wy))continue;
     if(S.band){put(L-.3,S.h+.1,.02,0x1a1e24,c,wy,.01);for(let i=0;i<n;i++){const u=u0+i*S.sp,[gc,gb]=glass();put(S.sp-.1,S.h-.08,.03,gc,u,wy,.02,gb);put(.06,S.h,.09,fr,u+S.sp/2,wy,.045);}
@@ -3719,7 +3726,7 @@ function winFace(f,x0,x1,z0,z1,h,style,yMin,rr){if(!OUTB.f)return;const ax=f==='
     for(let i=0;i<n;i++){const u=u0+i*S.sp,[gc,gb]=glass();if(hid(u,wy))continue;put(S.w,S.h,.02,gc,u,wy,.01,gb);
       put(S.w+.14,.07,.1,fr,u,wy+S.h/2+.035,.05);put(.07,S.h,.1,fr,u-S.w/2-.035,wy,.05);put(.07,S.h,.1,fr,u+S.w/2+.035,wy,.05);
       put(S.w+.22,.06,.2,0x9a968e,u,wy-S.h/2-.03,.1);if(S.w>1.3)put(.045,S.h,.06,fr,u,wy,.03);
-      if(gb===Lt&&rr()<.45)put(S.w*.42,S.h-.12,.012,0xc8b89a,u-S.w*.27,wy,.03,Lt); // curtain half drawn
+      if(gb===OUTB.w&&rr()<.45)put(S.w*.42,S.h-.12,.012,0xc8b89a,u-S.w*.27,wy,.03,OUTB.w); // curtain half drawn
       if(S.ac&&rr()<.3){put(.72,.52,.3,0xd8d8d2,u+S.w/2-.2,wy-S.h/2-.45,.15);put(.4,.4,.01,0x5a5a5a,u+S.w/2-.3,wy-S.h/2-.45,.305);}
       if(style%6===2&&rr()<.5){put(S.w+.1,.5,.25,0x4a4a4a,u,wy-S.h/2-.25,.13);}} // flower box railing
     if(S.bal){put(L-.4,.16,.95,0xc8c4bc,c,yb+.08,.475);put(L-.4,1.0,.06,0xe0dcd4,c,yb+.66,.92);put(L-.4,.06,.12,0x8a8680,c,yb+1.19,.92);
@@ -3769,7 +3776,7 @@ function houseB(x,z,ry,k,rr,Wd=6.6,Dp=7.4){if(!OUTB.f)return;const M=new THREE.M
   b(Wd,H,Dp,wall,0,H/2,0);bAdd(F,'prism',Wd,1.35,Dp,wall,0,H,0,0,0,0,M);const sl=Math.hypot(F2,1.35),an=Math.atan2(1.35,F2);
   [-1,1].forEach(s=>b(Wd+.6,.14,sl+.55,roof,0,H+.675+.08,s*F2/2,F,s*an));b(Wd+.6,.12,.2,roof,0,H+1.38,0);
   const win=(u,y,w,h,face)=>{const lit=rr()<.55,o=face==='f'?F2:face==='b'?-F2:0,sx=face==='l'?-1:face==='r'?1:0,P=(bw,bh,t,c,uu,yy,oo,bt)=>sx?b(t,bh,bw,c,sx*(Wd/2+oo),yy,uu,bt):b(bw,bh,t,c,uu,yy,(face==='b'?-1:1)*(F2+oo),bt);
-    P(w,h,.02,lit?LITC[Math.floor(rr()*LITC.length)]:0x161a20,u,y,.01,lit?Lt:F);P(w+.12,.06,.1,fr,u,y+h/2+.03,.05);P(.06,h,.1,fr,u-w/2-.03,y,.05);P(.06,h,.1,fr,u+w/2+.03,y,.05);P(w+.2,.06,.16,0x9a968e,u,y-h/2-.03,.08);P(.04,h,.05,fr,u,y,.03);P(w+.2,.22,.2,0xa8a49c,u,y+h/2+.17,.1);};
+    P(w,h,.02,lit?LITC[Math.floor(rr()*LITC.length)]:0x161a20,u,y,.01,lit?OUTB.w:F);P(w+.12,.06,.1,fr,u,y+h/2+.03,.05);P(.06,h,.1,fr,u-w/2-.03,y,.05);P(.06,h,.1,fr,u+w/2+.03,y,.05);P(w+.2,.06,.16,0x9a968e,u,y-h/2-.03,.08);P(.04,h,.05,fr,u,y,.03);P(w+.2,.22,.2,0xa8a49c,u,y+h/2+.17,.1);};
   const dxd=Wd/2-1.2;b(.95,2.05,.06,0x5a4632,dxd,1.03,F2+.03);b(.04,.18,.05,0xc8c8c8,dxd-.35,1.0,F2+.07);b(1.5,.08,.9,0x6a6a6a,dxd,2.4,F2+.45);b(.14,.14,.05,0xfff0c8,dxd+.6,2.1,F2+.05,Lt);b(1.4,.15,.8,0x9a968c,dxd,.075,F2+.4);
   win(-1.1,1.35,1.8,1.3,'f');win(-1.4,4.05,1.3,1.1,'f');win(dxd,4.15,.9,.9,'f');win(0,1.5,1.0,1.0,'l');win(0,4.1,1.0,1.0,'l');win(0,1.5,1.0,1.0,'r');win(.8,4.1,.8,.9,'r');win(-1.2,1.5,1.4,1.1,'b');win(1.2,4.1,1.2,1.0,'b');
   b(3.0,.12,.95,0xb8b4ac,-1.4,3.12,F2+.47);b(3.0,.95,.05,0xd8d4cc,-1.4,3.62,F2+.92);b(3.0,.05,.1,0x8a8680,-1.4,4.1,F2+.92);[-2.88,.08].forEach(u=>b(.05,1.0,.95,0x9a968e,u,3.62,F2+.47));
@@ -3874,8 +3881,8 @@ function buildCourt(S2,B,PL,ob,cyl,box){const C=COURT,W2=C.x1-C.x0,L=C.z1-C.z0,c
     const cb=cyl(.05,.05,C.gw+.1,post,C.gx,C.gh,gz,10);cb.rotation.z=Math.PI/2;const bb=cyl(.03,.03,C.gw,post,C.gx,.03,gz+s*C.gd,8);bb.rotation.z=Math.PI/2;
     PL(C.gw,C.gh,nm(12,8),C.gx,C.gh/2,gz+s*C.gd,0,0);[x0,x1].forEach(x=>PL(C.gd,C.gh,nm(4,8),x,C.gh/2,gz+s*C.gd/2,0,Math.PI/2));PL(C.gw,C.gd,nm(12,4),C.gx,C.gh,gz+s*C.gd/2,Math.PI/2,0);
     ob(x0-.12,x1+.12,Math.min(gz,gz+s*C.gd)-.02,Math.max(gz,gz+s*C.gd)+.02,'goal');});
-  [[10.4,96.4],[27.1,96.4],[10.4,119.6],[27.1,119.6]].forEach(([x,z])=>{cyl(.09,.12,7.5,lam(0x8a8a86),x,3.75,z,8);const hd=B(.9,.35,.25,new THREE.MeshBasicMaterial({color:0xf4f8ff}),x,7.4,z);hd.lookAt(C.gx,0,cz);ob(x-.2,x+.2,z-.2,z+.2,'pole');});
-  const fl=new THREE.PointLight(0xf0f4ff,.75,34,1.4);fl.position.set(C.gx,9,cz);S2.add(fl);
+  [[10.4,96.4],[27.1,96.4],[10.4,119.6],[27.1,119.6]].forEach(([x,z])=>{cyl(.09,.12,7.5,lam(0x8a8a86),x,3.75,z,8);const hd=B(.9,.35,.25,lampMat(0xf4f8ff),x,7.4,z);hd.lookAt(C.gx,0,cz);ob(x-.2,x+.2,z-.2,z+.2,'pole');});
+  const fl=new THREE.PointLight(0xf0f4ff,.75,34,1.4);fl.position.set(C.gx,9,cz);S2.add(fl);OUT.nightL.push([fl,.75]);
   {const F=FENCE,H=F.h,lk=ctex(64,64,(g,w,h)=>{g.clearRect(0,0,w,h);g.strokeStyle='rgba(205,210,214,.95)';g.lineWidth=1.6;for(let i=-w;i<w*2;i+=16){g.beginPath();g.moveTo(i,0);g.lineTo(i+h,h);g.stroke();g.beginPath();g.moveTo(i,h);g.lineTo(i+h,0);g.stroke();}});
     const mesh=(len)=>{const t=lk.clone();t.needsUpdate=true;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(len/.5,H/.5);return new THREE.MeshLambertMaterial({map:t,transparent:true,alphaTest:.35,side:THREE.DoubleSide});};
     const pm=lam(0x7a8288),side=(a,b,fixed,alongX)=>{const len=b-a,c=(a+b)/2;const pl=PL(len,H,mesh(len),alongX?c:fixed,H/2,alongX?fixed:c,0,alongX?0:Math.PI/2);
@@ -3929,10 +3936,10 @@ function dayDate(n){const d=new Date(2026,9,26+n);return{m:d.getMonth()+1,d:d.ge
 const dayLabel=n=>{const t=dayDate(n);return`${t.m}月${t.d}日(${t.w})`;};
 const CREW=[
   {n:'権田 剛志',r:'店長・45歳',d:'バイトの女子大生にだけやたら優しい。シフト表の「白石」の欄にだけハートが付いている',c:'#9a3a2a',w:[1,0,1,0,1,1,0]},
-  {n:'三好 恭平',r:'社員・32歳・独身',d:'発注ミスと伝票ミスの常習犯。悪い人ではない。休みの日は一人でパチンコ',c:'#5a6a7a',w:[1,1,0,1,0,1,1]},
+  {n:'三好 恭平',r:'社員・32歳・独身',d:'発注ミスと伝票ミスの常習犯。悪い人ではない。休みの日は一人でパチンコ',c:'#5a6a7a',w:[1,1,0,1,0,1,0]},
   {n:'桐谷 蓮',r:'大学3年・飲みサー幹事長',d:'仕事が異常に速い。ドリンク場を一人で回し、飲み会の段取りも完璧',c:'#2a5a9a',w:[0,1,1,0,1,0,0]},
   {n:'白石 ひなの',r:'大学1年・新人',d:'店のアイドル。常連のおっちゃんはだいたいひなの目当て',c:'#d8558a',w:[1,0,0,1,0,1,0]},
-  {n:'早川 美咲',r:'大学4年・古株',d:'内定が出てからシフト入りまくり。毒舌の姉御で、三好さんに一番厳しい',c:'#7a4a9a',w:[0,1,0,0,1,0,1]},
+  {n:'早川 美咲',r:'大学4年・古株',d:'内定が出てからシフト入りまくり。毒舌の姉御で、三好さんに一番厳しい',c:'#7a4a9a',w:[0,1,0,0,1,0,0]},
   {n:'大森 拓海',r:'大学2年・軽音サークル',d:'ギターを背負って出勤。遅刻とシフト交代のお願いの常習犯。まかないを一番食べる',c:'#3a8a5a',w:[0,0,1,1,0,0,1]}];
 // whoever has today in their submitted week works; in 2P one scheduled player means both are called in
 function isWorkDay(n){if(n<=1)return true;if(needShiftDay(n))return false;const k=n-DAY.base;if(k<0||k>6)return false;
@@ -3940,9 +3947,8 @@ function isWorkDay(n){if(n<=1)return true;if(needShiftDay(n))return false;const 
 function allSleptCheck(){if(players.every((q,i)=>(i===cur?W:q.L).slept)&&!DAY.choosing){DAY.choosing=true;players.forEach((q,i)=>{(i===cur?W:q.L).dayChoice=null;});}}
 function dayChoice(c){if(!DAY.choosing||W.dayChoice)return;W.dayChoice=c;const cs=players.map((q,i)=>(i===cur?W:q.L).dayChoice);
   if(cs.includes('quit')){DAY.choosing=false;DAY.pending='quit';}else if(cs.every(x=>x==='next')){DAY.choosing=false;DAY.pending='next';}}
-function crewHello(){const cs=crewToday();if(!cs.length)return;const names=cs.filter(m=>CREW_POST[m.n].role!=='boss').map(m=>m.n.split(' ')[1]);if(names.length)later(()=>toast(`今日のシフト: ${names.join('・')} とあなた`),2600);}
 function nextDay(){DAY.n++;const work=isWorkDay(DAY.n);startMode='commute';reset();W.running=true;
-  if(work){W.t=-230;spawnCrew();crewHello();players.forEach((q,i)=>withPlayer(i,()=>{startAtHome();if(MP.on&&DAY.n>2&&!(DAY.shift[i]!=null&&((DAY.shift[i]>>(DAY.n-DAY.base))&1)))laterP(()=>toast('人手が足りなくて呼び出された…今日も出勤'),1600);}));}
+  if(work){W.t=-230;spawnCrew();crewMorning();players.forEach((q,i)=>withPlayer(i,()=>{startAtHome();if(MP.on&&DAY.n>2&&!(DAY.shift[i]!=null&&((DAY.shift[i]>>(DAY.n-DAY.base))&1)))laterP(()=>toast('人手が足りなくて呼び出された…今日も出勤'),1600);}));}
   else{W.offDay=true;W.commute=false;W.open=false;W.t=-480/180*W.dur; // 10:00
     if(needShiftDay(DAY.n)){DAY.shift=players.map(()=>null);DAY.base=DAY.n+1;}
     players.forEach((q,i)=>withPlayer(i,startOffHome));}
@@ -4003,23 +4009,58 @@ const CREW_LINES={
 const pickL=(k,o)=>{let t=pick(CREW_LINES[k]);if(o)Object.keys(o).forEach(x=>t=t.replace('{'+x+'}',o[x]));return t;};
 // who works today: the published week (days 3–9 etc.). Day 1 is a one-person shift.
 function crewToday(){if(W.offDay||DAY.n<3)return[];const k=DAY.n-DAY.base;if(k<0||k>6)return[];return CREW.filter(m=>m.w[k]);}
-function clearCrew(){CREW_NOW.forEach(p=>{if(p.g.parent)p.g.parent.remove(p.g);});CREW_NOW.length=0;}
-function spawnCrew(){clearCrew();crewToday().forEach(m=>{const post=CREW_POST[m.n],L=CREW_LOOK[m.n],type={name:m.n.split(' ')[0],...L},sk=skinFor(type),md=buildModel(type,sk);
-    const p={...md,type,skin:sk,ctx:md.fc.getContext('2d'),expr:'',hy:0,hp:0,hr:0,walkT:0,name:m.n.split(' ')[0],crew:m.n,post,t:5+R()*8,lt:10+R()*20,bac:0,lv:0};
-    md.g.position.set(post.x,post.sit?-.24:0,post.z);md.g.rotation.y=post.ry;scene.add(md.g);setExpr(p,'normal');if(post.role==='slack'){p.phone.visible=true;}
-    if(post.role==='boss')md.g.visible=false;CREW_NOW.push(p);});}
-const crewBy=r=>CREW_NOW.find(p=>p.post.role===r);
+function clearCrew(){CREW_NOW.forEach(p=>{if(p.g.parent)p.g.parent.remove(p.g);});CREW_NOW.length=0;MAKA.on=false;MAKA.done=false;MAKA.lines=null;MAKA.joined=[];if(MAKA.bowls){MAKA.bowls.forEach(b=>scene.remove(b));MAKA.bowls=null;}}
+const MAKA={on:false,done:false,t:0,lines:null,li:0,joined:[],bowls:null,wait:0};
+const CANCEL={'大森 拓海':['すみません、熱が出ちゃって…今日休ませてください🙏','(インスタのストーリーにライブハウスの写真が上がっている)'],'白石 ひなの':['すみません!レポートの締切が今日で…お休みさせてください🙇‍♀️',null],'桐谷 蓮':['サークルの代表会議入っちゃって、今日だけ代わりいなくて…すみません!',null],'早川 美咲':['ごめん!内定先の懇親会がずれて今日になった!',null],'三好 恭平':['すみません、本部研修が入ってしまい…',null]};
+// crew day plan (seeded, so both players agree): who cancels, who leaves early, who arrives when
+function spawnCrew(){clearCrew();const today=crewToday(),out=[];
+  today.forEach(m=>{const post=CREW_POST[m.n];if(post.role!=='boss'&&R()<(post.role==='slack'?.3:.1)){out.push(m);return;}
+    const L=CREW_LOOK[m.n],type={name:m.n.split(' ')[0],...L},sk=skinFor(type),md=buildModel(type,sk);
+    const p={...md,type,skin:sk,ctx:md.fc.getContext('2d'),expr:'',hy:0,hp:0,hr:0,walkT:0,name:m.n.split(' ')[0],crew:m.n,post,t:5+R()*8,lt:10+R()*20,bac:0,lv:0,
+      arrive:post.role==='reg'?-70:post.role==='slack'?8+R()*8:-14+R()*8,leaveAt:post.role==='slack'?180:null,gone:false,did:{}};
+    md.g.position.set(post.x,post.sit?-.24:0,post.z);md.g.rotation.y=post.ry;scene.add(md.g);setExpr(p,'normal');if(post.role==='slack')p.phone.visible=true;md.g.visible=false;CREW_NOW.push(p);});
+  const studs=CREW_NOW.filter(p=>['hall','drinks','dish'].includes(p.post.role));if(studs.length>1&&R()<.15){const e=studs[Math.floor(R()*studs.length)];e.leaveAt=90;e.early=1;}
+  W.crewOut=out.map(m=>m.n);}
+function crewMorning(){const out=W.crewOut||[];out.forEach((n,i)=>{const c=CANCEL[n]||['今日休みます…',null];later(()=>{toast(`📱 ${n.split(' ')[1]}「${c[0]}」`);if(c[1])later(()=>toast(c[1]),2600);},2200+i*2600);});
+  const working=CREW_NOW.filter(p=>p.post.role!=='boss'&&p.post.role!=='slack');
+  later(()=>{if(!crewToday().length)return;if(!working.length)toast(CREW_NOW.some(p=>p.post.role==='slack')?'今日は大森と2人…実質ワンオペだ':'今日はワンオペ…');else toast(`今日のシフト: ${CREW_NOW.filter(p=>p.post.role!=='boss').map(p=>p.crew.split(' ')[1]).join('・')} とあなた`);},2400+out.length*2600);}
+const crewBy=r=>CREW_NOW.find(p=>p.post.role===r&&!p.gone&&p.g.visible);
+const crewIn=p=>!p.gone&&p.g.visible;
 function crewServe(s,c){const o=c.dOrder,g=newGlass(),st=o.strong;
   if(o.kind==='beer')g.comp.beer=POUR_MAX;else if(o.kind==='highball'){g.comp.whisky=st?3.2:2;g.comp.soda=POUR_MAX-g.comp.whisky;}else{g.comp.shochu=st?3.8:2.4;g.comp.lemon=1;g.comp.soda=POUR_MAX-1-g.comp.shochu;}
   const h0=hand,v0=handV;hand=g;serveDrink(s);hand=h0;handV=v0+1;}
+const washReturns=n=>{let k=0;while(returns.length&&k<n){const pl=returns.shift();pl.dirt=0;pl.food=null;pl.tops={};rack.push(pl);k++;}if(k){refreshReturns();refreshRack();}return k;};
+// who takes which opening / closing task (shown on the task list)
+const CREW_TASK={open:{'店の電気をつける':'reg','フライヤーの火をつける':'reg','卓上調味料を補充する':'hall','昨日の洗い物を片付ける':'dish'},close:{'レジ締め':'reg','卓上調味料を補充する':'hall','テーブルを片付ける':'hall','洗い物を片付ける':'dish','ゴミを出す':'drinks'}};
+function crewTaskOwner(label,open){const r=(open?CREW_TASK.open:CREW_TASK.close)[label];const p=r&&crewBy(r);return p?p.name:null;}
+function crewLeave(p,line){if(p.gone)return;p.gone=true;p.g.visible=false;if(line)sub(p.name,line,'quiet');}
 function crewStep(dt){if(!CREW_NOW.length)return;const mins=W.t/W.dur*180;
-  CREW_NOW.forEach(p=>{const r=p.post.role;p.t-=dt;p.lt-=dt;
-    // idle body language at the post
-    if(r==='slack'){armTo(p,1,'phone',dt,4);armTo(p,0,'belly',dt,3);headTo(p,0,-.35,0,dt,3);}
-    else if(r==='reg'){armTo(p,0,'counter',dt,3);armTo(p,1,'counter',dt,3);headTo(p,Math.sin(W.t*.3)*.3,.05,0,dt,2);}
-    else if(r==='dish'){armTo(p,0,'chop',dt,4);armTo(p,1,'chop',dt,4);headTo(p,0,-.3,0,dt,3);}
-    else{armTo(p,0,'hang',dt,3);armTo(p,1,'hang',dt,3);headTo(p,Math.sin(W.t*.4+p.t)*.35,.05,0,dt,2);}
+  CREW_NOW.forEach(p=>{const r=p.post.role;
+    // arrive / leave
+    if(!p.gone&&!p.g.visible&&r!=='boss'&&mins>=p.arrive){p.g.visible=true;if(r==='slack')say(p,'…あ、すんません、ちょい遅れました〜','quiet');else if(r==='reg')sub('三好','(三好さんが先に来て鍵を開けていた)','quiet');else say(p,pick(['おはようございまーす!','おはようございます〜','おはざいまーす']),'quiet');}
+    if(!p.gone&&p.leaveAt!=null&&mins>=p.leaveAt&&!MAKA.on){crewLeave(p,r==='slack'?'じゃ、時間なんで! おつかれっしたー':p.early?'すみません、テスト前なんで今日はここで上がります! おつかれさまです!':'おつかれさまでーす');}
+    if(!crewIn(p)&&r!=='boss')return;
+    p.t-=dt;p.lt-=dt;
+    if(!p.seat){
+      if(r==='slack'){armTo(p,1,'phone',dt,4);armTo(p,0,'belly',dt,3);headTo(p,0,-.35,0,dt,3);}
+      else if(r==='reg'){armTo(p,0,'counter',dt,3);armTo(p,1,'counter',dt,3);headTo(p,Math.sin(W.t*.3)*.3,.05,0,dt,2);}
+      else if(r==='dish'){armTo(p,0,'chop',dt,4);armTo(p,1,'chop',dt,4);headTo(p,0,-.3,0,dt,3);}
+      else{armTo(p,0,'hang',dt,3);armTo(p,1,'hang',dt,3);headTo(p,Math.sin(W.t*.4+p.t)*.35,.05,0,dt,2);}}
+    else{armTo(p,0,'table',dt,3);armTo(p,1,MAKA.on&&Math.sin(W.t*1.3+p.t)>.3?'mouth':'table',dt,3);headTo(p,Math.sin(W.t*.5+p.t)*.4,0,0,dt,2);}
     rigUpdate(p,dt);
+    // opening: everyone takes one job
+    if(W.commute&&!W.open&&!p.did.open&&p.t<=0){p.t=3;
+      if(r==='reg'){p.did.open=1;if(W.lightsOff)setShopLights(true,true);if(W.gasOff){W.gasOff=false;gasLamp.material.color.set(0xff8a2a);}sub('三好','電気とフライヤー、つけといたよ〜','quiet');}
+      else if(r==='hall'){p.did.open=1;trays.forEach(T=>{CONDS.forEach(c=>T.lv[c.id]=1);showTray(T);});say(p,'調味料、補充しときました!','quiet');}
+      else if(r==='dish'){p.did.open=1;washReturns(9);say(p,'昨日の洗い物、片付けといたよ','quiet');}
+      else if(r==='drinks'){p.did.open=1;say(p,'ドリンク場の準備OKです! 今日もガンガン回しましょう','quiet');}}
+    // closing: the same split
+    if(W.closed&&!p.did.close&&p.t<=0){p.t=3;
+      if(r==='reg'&&!p.regT){p.regT=W.t+40+(R()<.2?30:0);say(p,'レジ締めやっとくね','quiet');}
+      if(r==='reg'&&p.regT&&W.t>=p.regT&&customers.length===0){p.did.close=1;if(!W.regDone){W.regDone=true;sub('三好',W.t-p.regT>1?'…よし、レジ合った!(30分数え直した)':'レジ締め、OKです','quiet');}}
+      if(r==='hall'&&W.t>=(p.cT||(p.cT=W.t+25))){p.did.close=1;trays.forEach(T=>{CONDS.forEach(c=>T.lv[c.id]=1);showTray(T);});if(SG.clutter&&!sgAlive().length){scene.remove(SG.clutter);SG.clutter=null;}say(p,'テーブルと調味料、やっときましたー!','quiet');}
+      if(r==='dish'){washReturns(2);if(!returns.length&&customers.length===0&&W.t>=(p.cT||(p.cT=W.t+30))){p.did.close=1;say(p,'洗い物おわり! 皿戻しといたよ','quiet');}}
+      if(r==='drinks'&&W.t>=(p.cT||(p.cT=W.t+35))){p.did.close=1;if(!W.trashOut){W.trashOut=true;say(p,'ゴミ出してきましたー!','quiet');}}}
     if(!W.open||W.closed)return;
     if(r==='hall'){customers.forEach(c=>{if(c.state==='walkIn'&&!c.hina){c.hina=1;c.maxPat*=1.15;c.pat*=1.15;if(p.lt<0){p.lt=6;say(p,pickL('hall'),'quiet');setExpr(p,'happy');}}});}
     if(r==='reg'){customers.forEach(c=>{if(c.state!=='payWait')return;c.pwT=(c.pwT||0)+dt;if(c.pwT<7)return;c.pwT=-99;
@@ -4027,16 +4068,55 @@ function crewStep(dt){if(!CREW_NOW.length)return;const mins=W.t/W.dur*180;
       else{payNow(c,false);say(p,pickL('reg'),'quiet');}});}
     if(r==='drinks'&&p.t<=0){p.t=4;const s=seats.find(s=>{const c=s.c;return c&&SEATED.has(c.state)&&!c.cs&&c.dOrder&&c.dWait>25&&!(c.dGlass&&c.dGlass.left>.02)&&!c.wantWater;});
       if(s){const c=s.c,d=DRINKS[c.dOrder.kind].name;crewServe(s,c);say(p,pickL('drinks',{n:s.i+1,d}),'quiet');p.t=35;}}
-    if(r==='dish'&&p.t<=0){p.t=4;if(returns.length&&rack.length<6){const pl=returns.shift();pl.dirt=0;pl.food=null;pl.tops={};rack.push(pl);refreshReturns();refreshRack();p.t=20;if(p.lt<0){p.lt=40;say(p,pickL('dish'),'quiet');}}}
-    if(r==='boss'){const on=mins>=60&&mins<115;if(on!==p.g.visible){p.g.visible=on;if(on){say(p,'おつかれ〜。ちょっと様子見に来たよ','');p.lt=8;}else say(p,'じゃ、本部戻るわ! あとよろしく〜','quiet');}
-      if(on&&p.lt<0){p.lt=22+R()*15;const hn=crewBy('hall');say(p,hn?pickL('boss'):'今日も平和だね〜。あ、俺もう帰るから','quiet');if(hn)later(()=>{if(W.running)say(hn,pickL('hina'),'quiet');},2200);}}
+    if(r==='dish'&&p.t<=0){p.t=4;if(rack.length<6&&washReturns(1)){p.t=20;if(p.lt<0){p.lt=40;say(p,pickL('dish'),'quiet');}}}
+    if(r==='boss'){const on=mins>=60&&mins<115&&!p.gone;if(on!==p.g.visible){p.g.visible=on;if(on){say(p,'おつかれ〜。ちょっと様子見に来たよ','');p.lt=8;}else say(p,'じゃ、本部戻るわ! あとよろしく〜','quiet');}
+      if(on&&p.lt<0){p.lt=22+R()*15;const hn=crewBy('hall');if(hn)say(p,pickL('boss'),'quiet');else{say(p,'ふーん、今日はひなのちゃんいないのか…','quiet');p.gone=1;}if(hn)later(()=>{if(W.running)say(hn,pickL('hina'),'quiet');},2200);}}
     if(r==='slack'&&p.lt<0){p.lt=45+R()*30;if(!p.helping)sub('',pickL('slack'),'quiet');}
-    if(r==='slack'&&p.helping){p.helping-=dt;if(p.t<=0){p.t=6;if(returns.length&&rack.length<6){const pl=returns.shift();pl.dirt=0;pl.food=null;pl.tops={};rack.push(pl);refreshReturns();refreshRack();}}
-      if(p.helping<=0){p.helping=0;p.g.position.set(p.post.x,-.24,p.post.z);p.g.rotation.y=p.post.ry;p.phone.visible=true;say(p,'…ちょっと休憩いただきまーす','quiet');}}});}
+    if(r==='slack'&&p.helping){p.helping-=dt;if(p.t<=0){p.t=6;washReturns(1);}
+      if(p.helping<=0){p.helping=0;p.g.position.set(p.post.x,-.24,p.post.z);p.g.rotation.y=p.post.ry;p.phone.visible=true;say(p,'…ちょっと休憩いただきまーす','quiet');}}});
+  makanaiStep(dt);}
+// ---- まかない: after closing, the crew sit at the big table; join them to eat and chat, then they go home
+const MAKA_SEAT=()=>{const [tx,tz]=TTABLES[0];return[[tx-.28,tz-.58,0],[tx+.28,tz-.58,0],[tx-.28,tz+.58,Math.PI],[tx+.28,tz+.58,Math.PI],[tx+.82,tz,-Math.PI/2]];};
+function makanaiLines(){const pr=CREW_NOW.filter(crewIn).filter(p=>p.post.role!=='boss'),has=r=>pr.find(p=>p.post.role===r),nm=r=>has(r)&&has(r).name,L=[];
+  const cook=nm('dish')||nm('reg')||pr[0].name;L.push([cook,`はい、まかない! 今日は余った${pick(['唐揚げで唐揚げ丼','エビフライでエビフライ丼','とんかつでカツ丼'])}〜`]);
+  if(has('hall'))L.push([nm('hall'),'いただきまーす! …おいしい〜! 幸せ…']);
+  if(has('drinks'))L.push([nm('drinks'),`今日の売上 ${yen(W.money)}っすね。${W.money>=25000?'けっこう回しましたね':'平日だしこんなもんか'}`]);
+  if(W.vomit>0)L.push([(has('hall')||pr[0]).name,'トイレで吐いてたお客さん、大丈夫でしたかね…']);
+  if(W.fights>0)L.push([(has('drinks')||pr[0]).name,'てか今日のケンカ、マジでヤバかったっすね…']);
+  if(has('reg')){L.push([nm('reg'),'そういえば来週のおしぼり、また発注ミスってたわ…']);if(has('dish'))L.push([nm('dish'),'三好さん!!']);}
+  if(has('slack')){L.push([(has('dish')||has('hall')||pr[0]).name,'大森、まかないの時だけは元気だよね']);L.push([nm('slack'),'まかないのために来てるんで(キリッ)']);}
+  if(has('hall'))L.push([nm('hall'),'そういえば店長、今日もずっとこっち見てましたよね…']);
+  const CHAT={hall:['あなたさん、ワンオペの日ってどうしてるんですか? 尊敬します…','明日1限なんですよね…起きれるかな','このお店のまかない、ほんとに好きなんですよ〜'],
+    drinks:['このあと飲み行く人ー? …え、みんな明日早い? そっすか','今日ハイボール何杯作ったんだろ…腕パンパンっす','サークルの後輩、ここでバイトさせよっかな'],
+    dish:['揚げ物しすぎて手が油くさい〜','洗い物、今日の山はエベレスト級だったわ…','このあとコンビニでアイス買って帰ろ'],
+    reg:['いや〜今日もみんなのおかげで助かったよ。…俺なにもしてないけど','あ、俺のまかない、大盛りにしといてくれた?','来月から俺、社員として本気出すから'],
+    slack:['(スマホを見ながら)…このYouTuber、マジおもろいんすよ','え、もう終わり? 今日短くなかったすか?']};
+  pr.forEach(p=>{const c=CHAT[p.post.role];if(c)L.splice(1+Math.floor(R()*(L.length-1)),0,[p.name,pick(c)]);});
+  if(has('hall')&&has('dish'))L.push([nm('dish'),'てか白石ちゃん、今日も店長に絡まれてたでしょ。大丈夫?']);
+  L.push(['あなた','…おつかれさまです。いただきます']);L.push([pr[pr.length-1].name,'じゃ、そろそろ帰りますか! おつかれさまでしたー!']);return L;}
+function makanaiStep(dt){
+  const crewLeft=CREW_NOW.filter(crewIn).filter(p=>p.post.role!=='boss');
+  if(!MAKA.on&&!MAKA.done&&W.closed&&crewLeft.length&&customers.length===0&&regulars.length===0&&!sgAlive().length&&CREW_NOW.every(p=>!crewIn(p)||p.post.role==='boss'||p.post.role==='slack'||p.did.close)){
+    MAKA.on=true;MAKA.t=0;MAKA.wait=90;MAKA.joined=[];MAKA.li=0;MAKA.lines=null;const S=MAKA_SEAT();
+    crewLeft.forEach((p,i)=>{const s=S[i%S.length];p.seat=s;p.helping=0;p.phone.visible=false;p.g.position.set(s[0],-.45,s[1]);p.g.rotation.y=s[2];p.forceLP='chair';});
+    MAKA.bowls=crewLeft.map((p,i)=>{const s=S[i%S.length],b=new THREE.Mesh(new THREE.CylinderGeometry(.07,.05,.07,14),phong(0x2a1a14,60));b.position.set(s[0],.78,s[1]+(s[2]===0?.25:s[2]===Math.PI?-.25:0)+(s[2]<0?0:0));if(s[2]<0)b.position.x-=.25;scene.add(b);return b;});
+    sub((crewBy('dish')||crewBy('reg')||crewLeft[0]).name,'まかないできたよー! 食べよ食べよ','');later(()=>{if(W.running&&MAKA.on)toast('テーブルでまかない(使うで参加)');},1500);}
+  if(!MAKA.on)return;MAKA.t+=dt;
+  if(!MAKA.joined.length){MAKA.wait-=dt;if(MAKA.wait<=0||players.every((q,i)=>(i===cur?W:q.L).clockedOut))return endMakanai(false);return;}
+  if(!MAKA.lines){MAKA.lines=makanaiLines();MAKA.li=0;MAKA.lt=1;}
+  MAKA.lt-=dt;if(MAKA.lt<=0){const l=MAKA.lines[MAKA.li++];if(!l)return endMakanai(true);sub(l[0],l[1],'quiet');MAKA.lt=3.4;}}
+function endMakanai(ate){MAKA.on=false;MAKA.done=true;if(MAKA.bowls){MAKA.bowls.forEach(b=>scene.remove(b));MAKA.bowls=null;}
+  if(ate)MAKA.joined.forEach(i=>withPlayer(i,()=>{hlAdd('hunger',-70);hlAdd('thirst',-20);W.makaSeat=false;if(cur===me)toast('まかないを食べた。おなかいっぱい');}));
+  else sub('早川','先に帰るねー、おつかれ!','quiet');
+  CREW_NOW.forEach(p=>{if(p.post.role!=='boss')crewLeave(p,null);});if(ate)later(()=>{if(W.running)toast('みんな帰った。電気を消して退勤しよう');},1200);}
+S.makanai={prompt(){if(!MAKA.on)return'';return MAKA.joined.includes(cur)?'(まかない中)':'みんなと<b>まかないを食べる</b>';},
+  press(){if(!MAKA.on||MAKA.joined.includes(cur))return;MAKA.joined.push(cur);W.makaSeat=true;const [tx,tz]=TTABLES[0];player.x=tx-1.05;player.z=tz;yaw=-Math.PI/2;if(cur===me){view.yaw=-Math.PI/2;view.pitch=-.35;}sfx.clink(.6);}};
+{const [tx,tz]=TTABLES[0];hitBox(1.7,.5,1.3,tx,.75,tz,S.makanai).userData.prio=true;}
 // scold the slacker: he goes to the sink for a minute, then drifts back
 S.omori={prompt(){const p=crewBy('slack');if(!p||p.helping)return'';return'大森を<b>注意する</b>(YouTube見てる)';},
   press(){const p=crewBy('slack');if(!p||p.helping)return;p.helping=60;p.t=3;p.phone.visible=false;p.g.position.set(-2.3,0,.2);p.g.rotation.y=-Math.PI/2;say(p,pick(['あっ、すんません! すぐ入ります!','やべ…今行きます!','いや、ちょうど今戻ろうと思ってて…']),'');}};
 hitBox(.7,1.3,.7,8.4,.7,-8.3,S.omori);
+
 
 // soccer score resets once the court is empty
 const inFence=(x,z)=>x>FENCE.x0&&x<FENCE.x1&&z>FENCE.z0&&z<FENCE.z1;
@@ -4263,7 +4343,7 @@ function vSign(S2,x,y,z,txt,bg,fg,h=2.6){const m=new THREE.MeshBasicMaterial({ma
 function hSign(S2,x,y,z,ry,txt,bg,fg,w=3,sub){const p=new THREE.Mesh(new THREE.PlaneGeometry(w,w/4),new THREE.MeshBasicMaterial({map:oSignTex(txt,bg,fg,false,sub)}));p.position.set(x,y,z);p.rotation.y=ry;S2.add(p);return p;}
 
 function buildOut(){vis(()=>{
-  const S2=new THREE.Scene();OUT.scene=S2;OUTB.boxes=[[-7,10.8,-10.6,3.1,6.3]];OUTB.wq=[];OUTB.f=newBatch();OUTB.l=newBatch();OUTB.i=newBatch();OUTB.i.shade=true;
+  const S2=new THREE.Scene();OUT.scene=S2;OUTB.boxes=[[-7,10.8,-10.6,3.1,6.3]];OUTB.wq=[];OUTB.f=newBatch();OUTB.l=newBatch();OUTB.w=newBatch();OUTB.i=newBatch();OUTB.i.shade=true;OUT.nightL=[];
   const box=(w,h,d,m,x,y,z,pp=S2)=>BOXG(w,h,d,m,x,y,z,pp),cyl=(rt,rb,h,m,x,y,z,seg=16,pp=S2)=>CYLG(rt,rb,h,m,x,y,z,seg,pp);S2.background=new THREE.Color(0x0a0c16);S2.fog=new THREE.Fog(0x14121e,28,150);
   OUT.hemi=new THREE.HemisphereLight(0x8090c0,0x2a2018,.55);S2.add(OUT.hemi);const dl=new THREE.DirectionalLight(0xc0c8ff,.32);dl.position.set(-30,60,20);S2.add(dl);S2.add(dl.target);OUT.moon=dl;if(SHADOWS){dl.castShadow=true;dl.shadow.mapSize.set(2048,2048);const sc=dl.shadow.camera;sc.left=-32;sc.right=32;sc.top=32;sc.bottom=-32;sc.near=1;sc.far=140;dl.shadow.bias=-.0008;sc.updateProjectionMatrix();}
   OUT.skyDusk=skyTex(true);OUT.skyNight=skyTex(false);const skM=new THREE.MeshBasicMaterial({map:OUT.skyNight,side:THREE.BackSide});skM.fog=false;OUT.sky=new THREE.Mesh(new THREE.SphereGeometry(140,32,16),skM);OUT.sky.renderOrder=-1;S2.add(OUT.sky);
@@ -4288,7 +4368,7 @@ function buildOut(){vis(()=>{
   simpleCar(S2,2.7,-15.4,Math.PI,0xb8bcc0);ob(1.75,3.65,-17.7,-13.1,'car');
   const blk=ctex(128,64,(g,w,h)=>{g.fillStyle='#8a8880';g.fillRect(0,0,w,h);g.strokeStyle='#6a6862';g.lineWidth=2;for(let y=0;y<h;y+=16){g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke();for(let x=(y/16%2)*20;x<w;x+=40){g.beginPath();g.moveTo(x,y);g.lineTo(x,y+16);g.stroke();}}},[6,1]);
   B(.15,1.6,13.9,new THREE.MeshLambertMaterial({map:blk}),12.1,.8,-17.65);B(19.1,1.6,.15,new THREE.MeshLambertMaterial({map:blk}),2.5,.8,-24.6);
-  const lotL=new THREE.PointLight(0xe8f0ff,1.0,22,1.5);lotL.position.set(4,5.5,-19);S2.add(lotL);cyl(.08,.1,5.5,lam(0x777777),12,2.75,-19,8);B(1.6,.12,.3,new THREE.MeshBasicMaterial({color:0xf0f6ff}),11.3,5.4,-19);
+  const lotL=new THREE.PointLight(0xe8f0ff,1.0,22,1.5);lotL.position.set(4,5.5,-19);S2.add(lotL);OUT.nightL.push([lotL,1.0]);cyl(.08,.1,5.5,lam(0x777777),12,2.75,-19,8);B(1.6,.12,.3,lampMat(0xf0f6ff),11.3,5.4,-19);
   // ---- our izakaya (2F building) ----
   const wood=ctex(256,256,(g,w,h)=>{g.fillStyle='#3a2416';g.fillRect(0,0,w,h);for(let x=0;x<w;x+=16){g.fillStyle=`rgb(${52+R()*14|0},${32+R()*8|0},${20+R()*6|0})`;g.fillRect(x,0,14,h);g.fillStyle='rgba(0,0,0,.5)';g.fillRect(x+14,0,2,h);}},[4,1]);
   const wallM=new THREE.MeshLambertMaterial({map:wood}),plain=lam(0x2a2826),up=lam(0x3a3632);
@@ -4320,7 +4400,7 @@ function buildOut(){vis(()=>{
   let z=-62,i=0;while(z<64){const w=8+((i*7)%7);const h=6+((i*13)%5)*3;const t=WT[i%WT.length];building(S2,-34,-19.5,z,Math.min(64,z+w),h,'px',50+i,SH[(i+2)%5],t[0]);
     vSign(S2,-19.05,Math.min(h-1.4,4.4),z+w*.3,t[0],t[1],t[2],Math.min(3.4,h-1.6));hSign(S2,-19.35,3.25,z+w/2,Math.PI/2,t[0],t[1],t[2],Math.min(4,w-1));z+=w;i++;}
   // street lamps (glowing heads, no real lights), poles, wires, vending machines, guardrail
-  const poleM=lam(0x5a5a5a),glow=new THREE.MeshBasicMaterial({color:0xfff1d0});
+  const poleM=lam(0x5a5a5a),glow=lampMat(0xfff1d0);
   for(let z2=-56;z2<62;z2+=14){[[-9.25,1],[-17.25,-1]].forEach(([x,s])=>{if(s>0&&z2>-26&&z2<-9)return;cyl(.07,.09,5.2,poleM,x,2.6,z2,8);B(.8,.06,.06,poleM,x-s*.4,5.15,z2);B(.4,.1,.24,glow,x-s*.75,5.08,z2);ob(x-.15,x+.15,z2-.15,z2+.15,'pole');});}
   for(let z2=-50;z2<62;z2+=20){if(z2+7>-26&&z2+7<-9)continue;cyl(.14,.17,9,lam(0x8a8880),-9.35,4.5,z2+7,8);B(.08,.08,1.6,lam(0x8a8880),-9.35,8.2,z2+7);ob(-9.55,-9.15,z2+6.8,z2+7.2,'pole');}
   for(let z2=-50;z2<42;z2+=20)[[7.6,-.5],[8.2,.7],[8.2,-.7]].forEach(([y,dx])=>{const wv=B(.02,.02,20,lam(0x0a0a0a),-9.35+dx,y-.35,z2+17);});
@@ -4350,7 +4430,7 @@ function buildOut(){vis(()=>{
   oHit(1.0,2.1,.3,9.85,1.05,-10.8,{prompt(){if(CAR.inCar)return'';if(W.offDay)return'通用口(今日は休み。鍵がかかっている)';if(!W.clockedOut&&!CAR.parked)return'通用口(先に車を駐車場に停めよう)';return W.clockedOut?'通用口から<b>店に戻る</b>':'通用口から<b>店に入る</b>';},
     press(){if(CAR.inCar)return;if(W.offDay)return toast('今日は休み。店は閉まってる');if(!W.clockedOut&&!CAR.parked)return toast('先に車を裏の駐車場に停めよう');transit(goInside);}});
   OUTB.wq.forEach(f=>f());OUTB.wq=[];
-  OUTB.meshes=[flushBatch(OUTB.f,S2),flushBatch(OUTB.l,S2,true),flushBatch(OUTB.i,S2,true)];OUTB.f=OUTB.l=OUTB.i=null;
+  OUT.winMesh=flushBatch(OUTB.w,S2,true);if(OUT.winMesh)NIGHT.wins.push([OUT.winMesh.material,0xffffff]);OUTB.meshes=[flushBatch(OUTB.f,S2),flushBatch(OUTB.l,S2,true),flushBatch(OUTB.i,S2,true),OUT.winMesh];OUTB.f=OUTB.l=OUTB.w=OUTB.i=null;
   setShadows(S2);OUT.sky.castShadow=false;OUT.built=true;
 });}
 // every player gets a car + bike; both sets are always built so hitbox ids match on every client
@@ -4386,7 +4466,7 @@ function skyMode(){const c=gameClock(),hr=c.h+c.m/60;return hr<16.3?'day':W.t<-4
 function setSky(){if(!OUT.sky)return;const md=skyMode();OUT.skyMode=md;if(md==='day'&&!OUT.skyDay)OUT.skyDay=skyDayTex();const day=md==='day',dusk=md==='dusk';
   OUT.sky.material.map=day?OUT.skyDay:dusk?OUT.skyDusk:OUT.skyNight;OUT.sky.material.needsUpdate=true;
   OUT.hemi.intensity=day?1.05:dusk?.75:.5;OUT.hemi.color.set(day?0xcfe2ff:0x8090c0);OUT.hemi.groundColor.set(day?0x6a6252:0x2a2018);
-  OUT.moon.intensity=day?1.0:.32;OUT.moon.color.set(day?0xfff2dc:0xc0c8ff);
+  setNight(md);OUT.moon.intensity=day?1.0:.32;OUT.moon.color.set(day?0xfff2dc:0xc0c8ff);
   const fc=day?0xb8cce0:dusk?0x3a2c3a:0x14121e;OUT.scene.fog.color.set(fc);OUT.scene.background.set(day?0xb8cce0:dusk?0x3a2c3a:0x0a0c16);}
 function goOutside(){if(!OUT.built)buildOut();W.outside=true;player.x=9.85;player.z=-11.6;yaw=0;pitch=-.05;if(cur===me){view.yaw=0;view.pitch=-.05;setSky();$('#tickets').hidden=true;$('#tasks').hidden=!!W.clockedOut||!!W.open;if(murmur)murmur.gain.value=0;}sfx.door2(false);W.outMins=gameClock().mins;}
 function goInside(){W.outside=false;player.x=9.75;player.z=-9.75;yaw=Math.PI;pitch=-.05;sfx.door2(false);if(cur!==me)return;view.yaw=Math.PI;view.pitch=-.05;if(!W.open){$('#tasks').hidden=false;withPlayer(me,renderTasks);}else if(!W.closed)$('#tickets').hidden=false;}
@@ -4982,7 +5062,7 @@ function applyInput(q,inp,dt){
   if(W.ball&&(!onFootOut()||Math.hypot(W.ball.x-player.x,W.ball.z-player.z)>25)){W.ball=null;if(cur===me&&W.outside)toast('ボールをしまった');} // back in the bag when I drive off or walk away
   const ox=player.x,oz=player.z,bm=soccerMode();
   P.bac=Math.max(0,(P.bac||0)-dt*(q.moved?.25:.04));
-  const riding=W.outside&&W.ride!=null;let mx=inp.mx,mz=inp.mz;if(W.transit||riding||(q.sk&&q.sk.t>0)){mx=0;mz=0;}
+  const riding=W.outside&&W.ride!=null;let mx=inp.mx,mz=inp.mz;if(W.transit||riding||(q.sk&&q.sk.t>0)||W.makaSeat){mx=0;mz=0;}
   const inCarNow=W.outside&&CAR.inCar;
   if(inCarNow){carStep({mx,mz},dt);mx=0;mz=0;}
   else if(W.outside&&BIKE.riding){bikeStep({mx,mz},dt);mx=0;mz=0;}
@@ -5112,7 +5192,7 @@ function render(dt){
   const sc=W.store&&STORES[W.store].scene?STORES[W.store].scene:W.home&&HOME.scene?HOME.scene:(W.outside&&OUT.scene?OUT.scene:scene);if(camera.parent!==sc){sc.add(camera);camera.far=sc===scene?40:sc===OUT.scene?170:30;camera.updateProjectionMatrix();}
   drawScene(sc,dt);fpsWatch(dt);
 }
-if(window.__TEST__)window.__G={CREW_NOW,crewToday,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
+if(window.__TEST__)window.__G={setSky,NIGHT,buildOut,CREW_NOW,crewToday,MAKA,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
 camera.position.set(0,1.62,.2);
 {const _bm=buildModel;buildModel=function(t,s){const m=_bm(t,s);if(SHADOWS)m.g.traverse(o=>{if(o.isMesh)o.castShadow=true;});m.blob=blob(m.g,0,.02,.6,.48,.012);return m;};}
 setShadows(scene);if(HQ)loadPP();
