@@ -113,6 +113,16 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 #voice{right:calc(max(16px,env(safe-area-inset-right,0px)) + 92px);bottom:calc(env(safe-area-inset-bottom,0px) + 88px)}
 #sk1{right:calc(max(16px,env(safe-area-inset-right,0px)) + 104px);bottom:calc(env(safe-area-inset-bottom,0px) + 18px)}#sk2{right:calc(max(16px,env(safe-area-inset-right,0px)) + 92px);bottom:calc(env(safe-area-inset-bottom,0px) + 88px)}#sk3{right:calc(max(16px,env(safe-area-inset-right,0px)) + 19px);bottom:calc(env(safe-area-inset-bottom,0px) + 114px)}
 .atk.sk{background:rgba(24,96,52,.62);font-size:11px;line-height:1.15}.atk.sk.down{background:rgba(60,170,90,.9)}body.ball #actionBtn{bottom:calc(env(safe-area-inset-bottom,0px) + 182px)}#act.shoot{font-size:15px;letter-spacing:0}#act.charge{box-shadow:0 0 0 7px rgba(255,214,90,.55),0 6px 18px rgba(0,0,0,.35)}
+.de .btn{margin-top:10px}.de .btn:disabled{opacity:.45}.de-w{font-size:12px;margin:10px 0 0;opacity:.8;min-height:1em}
+#shiftUI{position:fixed;inset:0;z-index:60;background:rgba(8,10,16,.72);display:grid;place-items:center;padding:10px;pointer-events:auto}
+.sh-win{width:min(820px,100%);max-height:100%;display:grid;grid-template-rows:auto 1fr auto;background:#f4f6f9;border-radius:10px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.5);font-family:var(--f-body);color:#1c2430}
+.sh-bar{display:flex;align-items:center;gap:10px;background:#2f5fa8;color:#fff;padding:7px 10px}.sh-bar b{font-size:14px}.sh-bar span{font-size:11px;opacity:.85;flex:1}.sh-bar button{background:none;border:0;color:#fff;font-size:20px;line-height:1;padding:0 4px}
+.sh-body{overflow:auto;padding:8px 10px;display:grid;gap:10px}.sh-t{border-collapse:collapse;width:100%;font-size:11px;background:#fff}.sh-t th,.sh-t td{border:1px solid #dde2ea;padding:4px 3px;text-align:center;white-space:nowrap}
+.sh-t th small{display:block;font-size:9px;font-weight:500;opacity:.65}.sh-t tr th:first-child{text-align:left;padding-left:6px;min-width:96px}.sh-t th i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+.sh-t th.sat{color:#2f5fa8}.sh-t th.sun{color:#c8372c}.sh-t td{color:#9aa3ae}.sh-t td.on{color:#fff;background:var(--c,#2f5fa8);font-weight:800}
+.sh-t tr.me td.pick{cursor:pointer;color:#6a7480;background:#fff7e0}.sh-t tr.me td.pick.on{background:#e8453c;color:#fff}.sh-t tr.me th{background:#fff1ee}
+.sh-crew{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px}.sh-crew div{background:#fff;border-radius:8px;padding:6px 8px;font-size:10px;line-height:1.45}.sh-crew b{font-size:12px}.sh-crew small{margin-left:5px;opacity:.65}.sh-crew p{margin:2px 0 0}.sh-crew i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+.sh-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:#fff;border-top:1px solid #dde2ea;font-size:12px}.sh-foot button{background:#e8453c;color:#fff;border:0;border-radius:6px;padding:8px 14px;font-weight:800;font-size:13px}
 .btn.sub2{background:var(--noren);box-shadow:0 4px 0 #0a1028;margin-top:10px;font-size:16px;padding:11px}
 .btn.sm{font-size:15px;padding:9px 12px;width:auto;flex:none}
 .mp{margin-top:12px;background:var(--paper-2);padding:10px;border-radius:3px;display:grid;gap:8px}
@@ -310,6 +320,9 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
   </div>
 </div>
 
+<div class="ov" id="dayEnd" hidden><div class="card de"><div class="noren"><span>お</span><span>や</span><span>す</span><span>み</span></div><h1 id="deTitle">1日目 おつかれさま</h1><p class="rank" id="deSub"></p>
+  <button class="btn" id="deNext">翌日に進む</button><button class="btn sub2" id="deQuit">ここでやめる(リザルトへ)</button><p class="de-w" id="deWait"></p></div></div>
+<div id="shiftUI" hidden></div>
 <div class="ov" id="result" hidden>
   <div class="card">
     <div class="noren"><span>本</span><span>日</span><span>終</span><span>了</span></div>
@@ -2815,7 +2828,7 @@ const PL0={i:0,pos:player,P,hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,a
 function mkPl(i){return{i,pos:{x:0,z:.2},P:{hp:100,atk:null,atkT:0,cd:0,lastHurt:-99,hitDone:false},hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,actT:0,pid:0,moved:false};}
 let players=[PL0],me=0,cur=0;
 // each player has their own whereabouts, car, bike and apartment; swapped in and out like the hand
-const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil','ride','homeRide','clockInT','wage','store','ball'];
+const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil','ride','homeRide','clockInT','wage','store','ball','dayChoice'];
 const CKEYS=['x','z','h','v','st','engine','starting','side','gear','gearDir','doorOpen','inCar','dead','fall','warnT','brakeL','acc','rpm','atg','cam','parked','lastAcc','ck'];
 const BKEYS=['x','z','h','v','riding','arrived','warned','g','front','crank','rw','fw','lampM'];
 const HKEYS=['mode','nap','endHow','tvOn','lightOn','fridgeOpen','bathOpen'];
@@ -2911,18 +2924,19 @@ function reset(){
   Object.assign(CAR,{x:9.1,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}});{const o=OOBST.find(o=>o.k==='cop');if(o)o.r=[-11.85,-10.95,19.6,20.4];if(OUT.cop)OUT.cop.g.position.x=-11.4;}RETA.forEach(a=>scene.remove(a.mesh));RETA.length=0;
   $('#carHud').hidden=true;$('#fade').classList.remove('on');
   {const com=startMode==='commute';players.forEach((q,i)=>{const ap=aptOf(i),v=VEH[i];
-    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null,ride:null,homeRide:false,clockInT:0,wage:0,store:null,ball:null};
+    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null,ride:null,homeRide:false,clockInT:0,wage:0,store:null,ball:null,dayChoice:null};
     q.car={x:9.1-i*2.6,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,brakeL:0,acc:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}};
     q.bike=Object.assign({x:ap.bike[0],z:ap.bike[1],h:0,v:0,riding:false,arrived:false,warned:false},v?v.bikeM:{g:null,front:null,crank:null,rw:null,fw:null,lampM:null});
     q.hm={mode:'start',nap:0,endHow:null,tvOn:false,lightOn:true,fridgeOpen:false,bathOpen:false};q.carM=v?Object.assign({},v.carM):{};});
   if(OUT.built)showVehicles();}
   players.forEach((q,i)=>{q.P.bac=0;q.P.phone=false;q.pos.x=i?-.55:0;q.pos.z=i?.55:.2;Object.assign(q.P,{hp:100,atk:null,atkT:0,cd:0,lastHurt:-99,hitDone:false});q.hand=null;q.handV=(q.handV||0)+1;q.yaw=0;q.pitch=-.08;q.shoutCD=0;q.act=0;q.actT=0;q.pid=0;q.moved=false;});
   loadPl(cur);view.yaw=0;view.pitch=-.08;input.tap=false;input.atkQ=0;input.shQ=0;
-  W.commute=startMode==='commute';W.open=!W.commute;W.openAt=W.commute?null:0;W.clockedIn=!W.commute;W.dressed=!W.commute;W.toldDoor=false;W.noOpenEnd=false;
+  W.offDay=false;W.commute=startMode==='commute';W.open=!W.commute;W.openAt=W.commute?null:0;W.clockedIn=!W.commute;W.dressed=!W.commute;W.toldDoor=false;W.noOpenEnd=false;
   if(W.commute){W.t=-200;regulars.forEach(r=>scene.remove(r.g));regulars.length=0;W.gasOff=true;gasLamp.material.color.set(0x222222);norenMesh.visible=false;setShopLights(false,true);$('#tickets').hidden=true;}
 }
 function startGame(){
   initAudio();if(AC&&AC.state==='suspended')AC.resume();
+  Object.assign(DAY,{n:1,choosing:false,pending:null,shift:players.map(()=>null),base:3});SOCCER.n=SOCCER.s=0;$('#dayEnd').hidden=true;$('#shiftUI').hidden=true;
   reset();W.running=true;if(W.commute){W.t=-230;players.forEach((q,i)=>withPlayer(i,startAtHome));}
   $('#start').hidden=true;$('#result').hidden=true;$('#hud').hidden=false;$('#cross').hidden=false;$('#hand').hidden=false;actBtn.hidden=!isTouch;$('#punch').hidden=!isTouch;$('#actionBtn').hidden=!isTouch;$('#voice').hidden=!isTouch;
   if(!isTouch){try{const p=canvas.requestPointerLock();if(p&&p.catch)p.catch(()=>{});}catch(_){}}
@@ -2931,7 +2945,7 @@ function startGame(){
 function endGame(o={}){
   if(!W.running)return;if(o.who==null)o.who=cur;if(MP.on&&cur!==me)return withPlayer(me,()=>endGame(o));
   if(o.allHome)o.home=HOME.endHow||'drive';
-  W.running=false;actUp();if(OUT.engGain)OUT.engGain.gain.value=0;$('#carHud').hidden=true;$('#phone').hidden=true;phoneShown=false;openMenu(false);$('#drunkV').style.opacity=0;$('#punch').hidden=true;$('#actionBtn').hidden=true;$('#voice').hidden=true;$('#hurt').style.opacity=0;
+  W.running=false;actUp();DAY.choosing=false;$('#dayEnd').hidden=true;$('#shiftUI').hidden=true;if(OUT.engGain)OUT.engGain.gain.value=0;$('#carHud').hidden=true;$('#phone').hidden=true;phoneShown=false;openMenu(false);$('#drunkV').style.opacity=0;$('#punch').hidden=true;$('#actionBtn').hidden=true;$('#voice').hidden=true;$('#hurt').style.opacity=0;
   if(document.exitPointerLock&&locked())document.exitPointerLock();
   if(fryGain)fryGain.gain.value=0;if(waterGain)waterGain.gain.value=0;if(murmur)murmur.gain.value=0;
   $('#hud').hidden=true;$('#cross').hidden=true;$('#hand').hidden=true;actBtn.hidden=true;$('#prompt').textContent='';joyEl.hidden=true;subsEl.innerHTML='';
@@ -2940,6 +2954,7 @@ function endGame(o={}){
   $('#rHappy').textContent=W.happy+W.mild;$('#rConf').textContent=W.conf+W.giveup;$('#rRage').textContent=W.rage;
   const bad=W.rage+W.conf+W.giveup;let title,rank;const mate=MP.on&&o.who!=null&&o.who!==me;
   if(o.abort){title='営業中断';rank=o.abort;}
+  else if(o.offday){title='のんびりした休日';rank=`${DAY.n}日目(${dayLabel(DAY.n)})でおしまい。口座残高 ${yen(BANK.bal)}`;}
   else if(o.arrest){title=mate?'相方が現行犯逮捕':'現行犯逮捕';rank=`${mate?'相方が':''}${o.arrest}の疑いで連行された。店はしばらく営業停止`;}
   else if(o.ko){title=mate?'相方がノックアウト':'ノックアウト';rank=`${mate?'相方が':''}${o.by}に伸された。気づいたら朝だった`;}
   else if(o.crash){title=o.crash[0];rank=o.crash[1];if(o.car&&mate){title='相方が'+(title||'事故');rank='相方が'+rank;}}
@@ -3145,6 +3160,7 @@ function staffSeen(kind){
   if(kind!=='phone')W.log.push({name:p.name,line:kind==='drink'?'(店員が仕事中に飲んでいるのを見た)':'(店員のつまみ食いを見た)'});
 }
 function doAction(code){
+  if(code>=1000){submitShift(code-1000);return;}
   if(code===1){P.phone=!P.phone;if(cur===me)sfx.clink(1.6);return;}
   if(code===2){
     if(!isGlass(hand)||gSum(hand)<.05)return toast('飲めるものを持っていない');
@@ -3268,7 +3284,8 @@ function lineThreads(){const m=gameClock().mins,me0=players[me].P,th=[];
   if(m>=88&&W.calls)boss.push([88,'警察から店に電話あったんだけど!?']);
   if(W.closed)boss.push([181,'おつかれ! 締めよろしく。ガスの元栓とレジ締めだけは本当に頼む']);
   if(W.clockedOut)boss.push([Math.max(182,W.outMins||182),(me0.bac||0)>=3?'おつかれ〜。…まさか飲んでないよね? 車でしょ?':'おつかれさま! 気をつけて帰ってね']);
-  th.push({id:'boss',name:'店長',msgs:boss.map(([t,x])=>({t:at(t),x}))});
+  {const ct=crewThread(m,at);if(ct)th.push(ct);}
+  if(!W.offDay)th.push({id:'boss',name:'店長',msgs:boss.map(([t,x])=>({t:at(t),x}))});
   const mom=[];if(m>=60)mom.push([60,'今日ご飯いるの?']);if(m>=125)mom.push([125,'もう寝るから、お風呂のスイッチ消しといてね']);
   if(mom.length)th.push({id:'mom',name:'母',msgs:mom.map(([t,x])=>({t:at(t),x}))});
   const fr=[];if(m>=95)fr.push([95,'バイト何時まで?']);if(m>=100)fr.push([100,'終わったら飲み行かん? 駅前の鳥貴族']);if(m>=160)fr.push([160,'あ、お前車か。じゃあまた今度な']);
@@ -3327,7 +3344,7 @@ function renderPhone(){const el=$('#phone');if(!phoneShown)return;const ck=gameC
   else if(phoneTab==='map'){body=`<div class="ph-top"><b>マップ</b><button class="ph-zoom" data-act="zoom">${mapZoom?'全体を見る':'現在地へ'}</button></div><div class="ph-map"><canvas id="phMap" width="440" height="640"></canvas></div>`;}
   else if(phoneTab==='qr'){const n=W.outside?null:nearCust();body=`<div class="ph-top"><b>友だち追加</b></div><div class="ph-list ph-qr"><div class="qrbox"></div><p>近くの人</p>${n?`<b class="qn">${cName(n)}</b><button class="qbtn" data-act="ask">LINEを聞く</button>`:'<p class="qn0">近くにお客がいない</p>'}<small>※仕事中です</small></div>`;}
   else if(phoneTab==='home'){const un=th.reduce((s,t)=>s+Math.max(0,t.unread),0);
-    body=`<div class="ph-home"><div class="ph-clock">${ck.txt}</div><div class="ph-date">10月27日(火)</div><div class="ph-apps">${PH_APPS.map(a=>`<button class="ph-app" data-tab="${a.id}"><span class="ic" style="background:${a.bg}">${a.svg}${a.id==='line'&&un>0?`<i>${un}</i>`:''}</span><small>${a.name}</small></button>`).join('')}</div></div>`;}
+    body=`<div class="ph-home"><div class="ph-clock">${ck.txt}</div><div class="ph-date">${dayLabel(DAY.n)}</div><div class="ph-apps">${PH_APPS.map(a=>`<button class="ph-app" data-tab="${a.id}"><span class="ic" style="background:${a.bg}">${a.svg}${a.id==='line'&&un>0?`<i>${un}</i>`:''}</span><small>${a.name}</small></button>`).join('')}</div></div>`;}
   else if(phoneTab==='health'){body=healthView();}
   else if(phoneTab==='bank'){body=`<div class="ph-top"><b>みなと銀行</b></div><div class="ph-list ph-bank"><div class="bk-card"><small>普通預金 残高</small><b>${yen(BANK.bal)}</b><span>みなと町支店 普通 1234567</span></div><div class="bk-h">入出金明細</div>${BANK.hist.map(h=>`<div class="bk-row"><span>${h.d}<small>${h.when}</small></span><b class="${h.amt>=0?'in':'out'}">${h.amt>=0?'+':'−'}${yen(Math.abs(h.amt))}</b></div>`).join('')}</div>`;}
   else{body=`<div class="ph-top"><b>タイムライン</b></div><div class="ph-list">${snsPosts().map(p=>`<div class="post"><span class="av g">${p.n[0]}</span><div><b>${p.n}</b> <small>${p.h}・${p.ago}</small><p>${p.x}</p></div></div>`).join('')}</div>`;}
@@ -3904,6 +3921,73 @@ function updateSelf(dt,cp){const sb=selfBody(),sc=camera.parent;if(!sc)return;if
   sb.kickE=SELF.kickT>0?Math.sin(Math.min(1,1-SELF.kickT/.35)*Math.PI):null;SELF.kickT=Math.max(0,SELF.kickT-dt);sb.kickLeg=0;
   if(SELF.dt>0){const D=.62,u=1-SELF.dt/D;sb.kickLeg=u<.5?0:1;sb.kickE=Math.sin((u<.5?u*2:(u-.5)*2)*Math.PI)*.55;SELF.dt=Math.max(0,SELF.dt-dt);}
   vis(()=>rigUpdate(sb,dt));}
+/* ================= days: next day / quit after sleeping, days off, the shift PC, the crew ================= */
+// shared (synced) day state. A week of shifts is handed in on day 2 (and every 8 days after), covering the 7 days that follow.
+const DAY={n:1,choosing:false,pending:null,shift:[null,null],base:3};
+const needShiftDay=n=>n>=2&&(n-2)%8===0;
+function dayDate(n){const d=new Date(2026,9,26+n);return{m:d.getMonth()+1,d:d.getDate(),w:'日月火水木金土'[d.getDay()]};}
+const dayLabel=n=>{const t=dayDate(n);return`${t.m}月${t.d}日(${t.w})`;};
+const CREW=[
+  {n:'権田 剛志',r:'店長・45歳',d:'バイトの女子大生にだけやたら優しい。シフト表の「白石」の欄にだけハートが付いている',c:'#9a3a2a',w:[1,1,1,1,1,1,0]},
+  {n:'三好 恭平',r:'社員・32歳・独身',d:'発注ミスと伝票ミスの常習犯。悪い人ではない。休みの日は一人でパチンコ',c:'#5a6a7a',w:[1,1,0,1,1,1,1]},
+  {n:'桐谷 蓮',r:'大学3年・飲みサー幹事長',d:'仕事が異常に速い。ドリンク場を一人で回し、飲み会の段取りも完璧',c:'#2a5a9a',w:[0,1,1,0,1,1,0]},
+  {n:'白石 ひなの',r:'大学1年・新人',d:'店のアイドル。常連のおっちゃんはだいたいひなの目当て',c:'#d8558a',w:[1,0,1,0,0,1,1]},
+  {n:'早川 美咲',r:'大学4年・古株',d:'内定が出てからシフト入りまくり。毒舌の姉御で、三好さんに一番厳しい',c:'#7a4a9a',w:[1,1,0,1,0,0,1]},
+  {n:'大森 拓海',r:'大学2年・軽音サークル',d:'ギターを背負って出勤。遅刻とシフト交代のお願いの常習犯。まかないを一番食べる',c:'#3a8a5a',w:[0,0,1,1,0,1,0]}];
+// whoever has today in their submitted week works; in 2P one scheduled player means both are called in
+function isWorkDay(n){if(n<=1)return true;if(needShiftDay(n))return false;const k=n-DAY.base;if(k<0||k>6)return false;
+  const mine=i=>DAY.shift[i]!=null&&((DAY.shift[i]>>k)&1);return MP.on?players.some((q,i)=>mine(i)):mine(me);}
+function allSleptCheck(){if(players.every((q,i)=>(i===cur?W:q.L).slept)&&!DAY.choosing){DAY.choosing=true;players.forEach((q,i)=>{(i===cur?W:q.L).dayChoice=null;});}}
+function dayChoice(c){if(!DAY.choosing||W.dayChoice)return;W.dayChoice=c;const cs=players.map((q,i)=>(i===cur?W:q.L).dayChoice);
+  if(cs.includes('quit')){DAY.choosing=false;DAY.pending='quit';}else if(cs.every(x=>x==='next')){DAY.choosing=false;DAY.pending='next';}}
+function nextDay(){DAY.n++;const work=isWorkDay(DAY.n);startMode='commute';reset();W.running=true;
+  if(work){W.t=-230;players.forEach((q,i)=>withPlayer(i,()=>{startAtHome();if(MP.on&&DAY.n>2&&!(DAY.shift[i]!=null&&((DAY.shift[i]>>(DAY.n-DAY.base))&1)))laterP(()=>toast('人手が足りなくて呼び出された…今日も出勤'),1600);}));}
+  else{W.offDay=true;W.commute=false;W.open=false;W.t=-480/180*W.dur; // 10:00
+    if(needShiftDay(DAY.n)){DAY.shift=players.map(()=>null);DAY.base=DAY.n+1;}
+    players.forEach((q,i)=>withPlayer(i,startOffHome));}
+  players.forEach((q,i)=>{const h=health(q.P);Object.assign(h,{sleepy:12,hunger:Math.min(100,h.hunger+25),thirst:Math.min(100,h.thirst+20),pee:Math.min(100,h.pee+35),poo:Math.min(100,h.poo+25),odor:Math.min(100,h.odor+15),steps:0,warn:{}});});
+  if(MP.on)MP.dayN=DAY.n;}
+function startOffHome(){if(!HOME.built)buildHome();HOME.mode='off';HOME.nap=0;HOME.endHow='walk';W.home=true;W.outside=false;W.clockedOut=true;W.clockedIn=false;W.dressed=true;
+  player.x=HX+.4;player.z=-1.0;yaw=Math.PI;pitch=-.1;HOME.tvOn=false;HOME.lightOn=true;
+  if(cur===me){view.yaw=Math.PI;view.pitch=-.1;$('#tickets').hidden=true;$('#tasks').hidden=true;}
+  const sub0=needShiftDay(DAY.n);laterP(()=>{toast(`${dayLabel(DAY.n)} 10:00 今日はオフ`);sub('あなた',sub0?'…そうだ、今日はシフト提出の日だ。パソコンで出さないと':'…今日は休み。どこ行こうかな','quiet');},500);}
+function shiftPending(i=cur){return W.offDay&&needShiftDay(DAY.n)&&DAY.shift[i]==null;}
+function leaveOff(){if(shiftPending())return toast('シフトを出すまで出かけられない(机のパソコン)');W.home=false;startCommute();W.clockedOut=true;laterP(()=>toast('今日はオフ。帰ったらベッドで寝て一日を終えよう'),900);}
+// the shift screen (local UI). Submitting sends one action code that carries the 7 chosen days.
+let shiftSel=0;
+function openShiftUI(){const el=$('#shiftUI'),done=DAY.shift[me]!=null,b=DAY.base;if(done)shiftSel=DAY.shift[me];
+  const days=[...Array(7)].map((_,k)=>dayDate(b+k)),cell=(on,c)=>`<td class="${on?'on':''}"${c?` style="--c:${c}"`:''}>${on?'17-24':'休'}</td>`;
+  const mate=MP.on?players.map((q,i)=>i).filter(i=>i!==me):[];
+  el.innerHTML=`<div class="sh-win"><div class="sh-bar"><b>シフト調整くん</b><span>居酒屋 呑兵衛 / ${days[0].m}/${days[0].d}〜${days[6].m}/${days[6].d}</span><button data-sh="close">×</button></div>
+    <div class="sh-body"><table class="sh-t"><tr><th></th>${days.map(t=>`<th class="${t.w==='土'?'sat':t.w==='日'?'sun':''}">${t.m}/${t.d}<small>${t.w}</small></th>`).join('')}</tr>
+    ${CREW.map(m=>`<tr><th><i style="background:${m.c}"></i>${m.n}<small>${m.r}</small></th>${m.w.map(v=>cell(v,m.c)).join('')}</tr>`).join('')}
+    ${mate.map(i=>`<tr><th><i style="background:#888"></i>相方<small>${aptOf(i).room}号室</small></th>${days.map((_,k)=>DAY.shift[i]==null?'<td>未提出</td>':cell((DAY.shift[i]>>k)&1,'#888')).join('')}</tr>`).join('')}
+    <tr class="me"><th><i style="background:#e8453c"></i>あなた<small>${done?'提出済み':'タップで選択'}</small></th>${days.map((_,k)=>`<td class="pick${(shiftSel>>k)&1?' on':''}" data-k="${k}">${(shiftSel>>k)&1?'17-24':'休'}</td>`).join('')}</tr></table>
+    <div class="sh-crew">${CREW.map(m=>`<div><i style="background:${m.c}"></i><b>${m.n}</b><small>${m.r}</small><p>${m.d}</p></div>`).join('')}</div></div>
+    <div class="sh-foot"><span>${done?'提出済み(変更はできません)':`週2日以上 ・ 選択中 ${[...Array(7)].filter((_,k)=>(shiftSel>>k)&1).length}日`}</span>${done?'':'<button data-sh="send">シフトを提出する</button>'}</div></div>`;
+  el.hidden=false;if(document.exitPointerLock&&locked())document.exitPointerLock();}
+$('#shiftUI').addEventListener('click',e=>{const t=e.target.closest('[data-k],[data-sh]');if(!t)return;
+  if(t.dataset.sh==='close'){$('#shiftUI').hidden=true;return;}
+  if(t.dataset.sh==='send'){const n=[...Array(7)].filter((_,k)=>(shiftSel>>k)&1).length;if(n<2)return toast('週2日以上は入ってね(店長より)');input.acQ=1000+shiftSel;$('#shiftUI').hidden=true;return;}
+  if(DAY.shift[me]==null){shiftSel^=1<<(+t.dataset.k);openShiftUI();}});
+function submitShift(bits){if(DAY.shift[cur]!=null)return;DAY.shift[cur]=bits&127;if(cur===me){shiftSel=bits;toast('シフトを提出した。出かけられるようになった');later(()=>sub('店長(LINE)','シフトありがと〜! 来週もよろしくね👍','quiet'),1500);}}
+// day-end card: next day or quit (both players must pick "next" in 2P)
+function dayEndView(){const el=$('#dayEnd'),on=W.running&&DAY.choosing;if(el.hidden===!on&&!on)return;el.hidden=!on;if(!on)return;
+  const mine=W.dayChoice,mate=MP.on?players.map((q,i)=>i===me?null:(i===cur?W:q.L).dayChoice).filter((x,i)=>i!==me):[];
+  const key=`${DAY.n}|${mine}|${mate.join()}`;if(el.dataset.k===key)return;el.dataset.k=key;
+  $('#deTitle').textContent=`${DAY.n}日目 おつかれさま`;$('#deSub').textContent=isWorkDay(DAY.n+1)?`明日 ${dayLabel(DAY.n+1)} は出勤日`:`明日 ${dayLabel(DAY.n+1)} はオフ${needShiftDay(DAY.n+1)?'(シフト提出の日)':''}`;
+  $('#deNext').disabled=!!mine;$('#deQuit').disabled=!!mine;$('#deWait').textContent=mine?(MP.on?(mate.some(x=>!x)?'相方の選択を待っています…':''):''):'';
+  if(document.exitPointerLock&&locked())document.exitPointerLock();}
+$('#deNext').addEventListener('click',()=>{if(!W.dayChoice)input.acQ=20;});$('#deQuit').addEventListener('click',()=>{if(!W.dayChoice)input.acQ=21;});
+// soccer score resets once the court is empty
+const inFence=(x,z)=>x>FENCE.x0&&x<FENCE.x1&&z>FENCE.z0&&z<FENCE.z1;
+function courtCheck(){const any=players.some((p,i)=>locOf(i)==='out'&&inFence(p.pos.x,p.pos.z));
+  if(SOCCER.inside&&!any&&(SOCCER.n||SOCCER.s)){SOCCER.n=0;SOCCER.s=0;if(locOf(me)==='out')toast('コートを出たのでスコアをリセット(0 - 0)');}SOCCER.inside=any;}
+// crew group chat on the phone (from day 2)
+function crewThread(m,at){if(DAY.n<2)return null;const L=[[-476,'権田(店長)','新人くん、グループ追加しといたよ〜! みんなよろしくね👍'],[-475,'権田(店長)','【シフト提出】来週分、今日中に出してね〜!'],[-462,'三好','すみません、来週月曜の発注、レモン30kgで頼んでました…'],[-460,'早川','三好さんまた!? レモンサワー祭りやるしかないじゃん'],
+  [-456,'桐谷','レモン消費プラン作りました。サワー半額+唐揚げレモン増し、原価的にもいけます'],[-452,'白石','すご〜い蓮さん!! ひなの、レモンしぼる係やります🍋'],[-449,'権田(店長)','ひなのちゃん今日も可愛いね😊 シフト終わりにごはんでもどう?(笑)'],[-431,'大森','おはようございます(今起きた) 明日のシフト誰か代わってくれませんか…ライブ入っちゃって'],
+  [-428,'早川','拓海またそれ? あと店長、ひなのちゃんに個チャしないでくださいね'],[-427,'権田(店長)','し、してないよ!?']];
+  const show=W.offDay&&DAY.n===2?L.filter(x=>m>=x[0]):L;return{id:'crew',name:'呑兵衛バイト(7)',msgs:show.map(([t,who,x])=>({t:at(t),x:`<b>${who}</b> ${x}`}))};}
 
 /* ================= outside: downtown street, back lot, my car (solo only) ================= */
 // Same coordinates as the inside: the shop occupies x -7..10.8, z -10.6..3.1.
@@ -4342,10 +4426,11 @@ function drawMeter(){const g=OUT.meterCtx;if(!g)return;const kmh=Math.round(Math
   const gg=OUT.gTex.image.getContext&&OUT.gTex.image.getContext('2d');if(gg){gg.fillStyle='#0a0a0a';gg.fillRect(0,0,128,64);gg.font='bold 28px sans-serif';GEARS.forEach((x,i)=>{gg.fillStyle=x===CAR.gear?(CAR.engine?'#ffb040':'#aa7030'):'#3a3a3a';gg.fillText(x,10+i*30,44);});OUT.gTex.needsUpdate=true;}}
 let carHudV='',guideV='';
 function guideText(){
-  if(W.slept)return'おやすみなさい… <b>相方の帰宅</b>を待っています';
+  if(W.slept)return MP.on&&!DAY.choosing?'おやすみなさい… <b>相方の帰宅</b>を待っています':'おやすみなさい…';
   if(soccerMode())return'⚽ 触れてドリブル / <b>使う</b>を長押し→離してシュート'+(isTouch?'':'(F:ダブルタッチ G:タックル V:ループ)');
   if(W.store)return hand&&hand.type==='goods'&&!hand.paid?'<b>レジ</b>でお会計(口座から引き落とし)':hand&&hand.type==='goods'?'アクションから<b>食べる・飲む</b>':`商品を手に取ってレジへ(残高 ${yen(BANK.bal)})`;
   if(W.napUntil!=null)return`zzz… 二度寝中(${clockFmt(W.napUntil)}まで)`;
+  if(W.offDay){if(W.home)return shiftPending()?'今日はシフト提出の日。<b>机のパソコン</b>でシフトを出そう':HOME.mode==='end'?'ベッドで<b>寝て</b>一日を終えよう':'今日はオフ。<b>玄関</b>から出かけよう';return'今日はオフ。街で遊ぼう(帰ったらベッドで寝て一日を終える)';}
   if(W.clockedOut&&W.outside){if(Math.hypot(player.x-aptOf(cur).door[0],player.z-aptOf(cur).door[1])<14&&!CAR.inCar)return`<b>${aptOf(cur).room}号室のドア</b>から部屋に帰る`;if(CAR.inCar&&CAR.z>84)return'大通りを<b>東</b>へ。アパートの駐車場に止めて部屋へ';return CAR.inCar?'繁華街の通りを<b>北</b>へ → 大通りを<b>東</b>へ(マップ参照)':'車に乗ってアパートへ帰ろう';}
   if(W.home)return HOME.mode==='start'?'玄関のドアから<b>出かける</b>(冷蔵庫・テレビ・ベッドも使える)':'ベッドで<b>寝て</b>一日を終えよう';
   if(W.clockedOut||!W.commute||W.open)return'';
@@ -4540,14 +4625,15 @@ function buildHome(){vis(()=>{
     const bl=new THREE.PointLight(0xfff4e8,.5,3,1.4);bl.position.set(1.0,2.2,1.2);S3.add(bl);}
   B(.6,.012,.4,lam(0x8a6a4a),-.8,.081,1.55); // doormat
   // ---- hitboxes
-  hHit(.9,2.0,.3,-.8,1.0,2.05,{prompt(){if(HOME.mode==='start')return'玄関から<b>出かける</b>(出勤)';return'玄関(今日はもう出かけない)';},
-    press(){if(HOME.mode==='start'){if(W.dressedHome===false){}transit(leaveHome);}else toast('もう寝よう');}});
+  hHit(.9,2.0,.3,-.8,1.0,2.05,{prompt(){if(HOME.mode==='off')return shiftPending()?'玄関(シフトを出すまで出かけられない)':'玄関から<b>出かける</b>(今日はオフ)';if(HOME.mode==='start')return'玄関から<b>出かける</b>(出勤)';return'玄関(今日はもう出かけない)';},
+    press(){if(HOME.mode==='off'){if(shiftPending())return toast('シフトを出すまで出かけられない(机のパソコン)');transit(leaveOff);return;}if(HOME.mode==='start'){if(W.dressedHome===false){}transit(leaveHome);}else toast('もう寝よう');}});
   hHit(1.1,.6,2.1,1.27,.35,-3.3,{carry(){if(HOME.mode!=='end')return;const c=CARRY.c;dropCarry();CARRY.bed=c;HOME.scene.add(c.g);c.g.rotation.order='YXZ';c.g.rotation.set(-1.45,0,0);c.g.position.set(HX+1.27,.62,-2.45);c.body.rotation.x=0;sfx.thud();sub('あなた','…今日はここで寝てください。オレは床で寝るか…','quiet');},
     carryPrompt(){return HOME.mode==='end'?`${CARRY.c.name}をベッドに<b>寝かせる</b>`:'';},
-    prompt(){if(CARRY.bed&&HOME.mode==='end')return`ベッドは${CARRY.bed.name}が使ってる。<b>床で寝る</b>(一日を終える)`;return HOME.mode==='start'?'ベッド(<b>もう少し寝る</b>…10分)':'ベッドで<b>寝る</b>(一日を終える)';},
+    prompt(){if(CARRY.bed&&HOME.mode==='end')return`ベッドは${CARRY.bed.name}が使ってる。<b>床で寝る</b>(一日を終える)`;if(HOME.mode==='off'&&shiftPending())return'ベッド(先にパソコンでシフトを出そう)';return HOME.mode==='start'?'ベッド(<b>もう少し寝る</b>…10分)':'ベッドで<b>寝る</b>(一日を終える)';},
     press(){if(HOME.mode==='start'){if(MP.on){if(W.napUntil!=null)return;W.napUntil=W.t+W.dur/18;HOME.nap++;sfx.clink(.2);toast('…あと10分だけ');return;}W.t+=W.dur/18;HOME.nap++;sfx.clink(.2);toast(`二度寝した… ${clockFmt(W.t)}`);if(HOME.nap>=3)sub('あなた','やばい、さすがに起きないと…','quiet');return;}
-      if(MP.on){transit(()=>{W.slept=true;if(players.every((q,i)=>(i===cur?W:q.L).slept))endGame({clockout:true,allHome:true});});return;}
-      transit(()=>endGame({clockout:true,home:HOME.endHow||'drive'}));}});
+      if(HOME.mode==='off'&&shiftPending())return toast('先にパソコンでシフトを出そう');
+      transit(()=>{W.slept=true;allSleptCheck();});}});
+  hHit(.42,.32,.36,-.1,.5,-2.06,{prompt(){if(DAY.n<2)return'ノートパソコン(今は使わない)';return shiftPending()?'パソコンで<b>シフトを提出する</b>':'パソコンで<b>シフトを見る</b>';},press(){if(DAY.n>=2&&cur===me)openShiftUI();}});
   hHit(.2,.7,1.1,-1.55,.72,-2.5,{prompt(){return HOME.tvOn?'テレビを<b>消す</b>':'テレビを<b>つける</b>';},press(){HOME.tvOn=!HOME.tvOn;sfx.clink(.4);}});
   hHit(.7,1.5,.7,-1.5,.75,1.43,{prompt(){return'冷蔵庫から<b>缶ビールを飲む</b>';},
     press(){HOME.fridgeOpen=true;laterP(()=>{HOME.fridgeOpen=false;},1500);P.bac=(P.bac||0)+4.5;hlAdd('thirst',-14);hlAdd('pee',12);sfx.pour('beer');toast(HOME.mode==='start'?'プシュッ。…出勤前だけど、まあ1本くらい':'プシュッ。今日もおつかれ…');
@@ -4825,6 +4911,7 @@ function sampleInput(){
 }
 function applyInput(q,inp,dt){
   yaw=inp.yaw;pitch=inp.pitch;if(W.napUntil!=null&&W.t>=W.napUntil){W.napUntil=null;toast(`二度寝した… ${clockFmt(W.t)}`);if(HOME.nap>=3)sub('あなた','やばい、さすがに起きないと…','quiet');}
+  if(inp.ac===20||inp.ac===21)dayChoice(inp.ac===20?'next':'quit');
   if(W.slept||W.napUntil!=null){q.moved=false;return;}
   if(W.ball&&(!onFootOut()||Math.hypot(W.ball.x-player.x,W.ball.z-player.z)>25)){W.ball=null;if(cur===me&&W.outside)toast('ボールをしまった');} // back in the bag when I drive off or walk away
   const ox=player.x,oz=player.z,bm=soccerMode();
@@ -4867,10 +4954,12 @@ function applyInput(q,inp,dt){
 function simStep(dt,inps){
   W.t+=dt;runLater();if(!W.running)return;
   for(let i=0;i<players.length;i++){withPlayer(i,()=>applyInput(players[i],inps[i]||IDLE(),dt));if(!W.running)return;}
-  updateBalls(dt);
+  updateBalls(dt);courtCheck();
+  if(DAY.pending){const pd=DAY.pending;DAY.pending=null;withPlayer(0,()=>{if(pd==='next')nextDay();else endGame(W.offDay?{offday:true}:{clockout:true,allHome:true});});if(!W.running)return;}
   withPlayer(0,()=>simWorld(dt));
 }
 function simWorld(dt){
+  if(W.offDay){persons().forEach(p=>rigUpdate(p,dt));return;} // no shift today: the shop stays shut
   // fryers
   let vig=0,smoky=0;
   fryers.forEach(f=>{
@@ -4920,7 +5009,7 @@ function viewUpdate(dt){
   const q=players[me];if(q&&q.moved)bob+=dt*8.5;
   if(W.outside&&((CAR.inCar&&!CAR.cam)||W.ride!=null))view.yaw=clamp(view.yaw,-2.4,2.4);
   const cp=camPose();camera.position.set(cp[0],cp[1],cp[2]);camera.rotation.set(cp[4]!=null?cp[4]:view.pitch,cp[3],0);camera.updateMatrixWorld&&camera.updateMatrixWorld();
-  vis(()=>{updateSelf(dt,cp);drawBalls(dt);});
+  vis(()=>{updateSelf(dt,cp);drawBalls(dt);});dayEndView();
   ray.setFromCamera(center,camera);
   const hs=(W.outside&&CAR.inCar&&CAR.cam)?[]:ray.intersectObjects(W.store?STORES[W.store].hits:W.home?HOME.hits:(W.outside?OUT.hits:hits),false).filter(x=>!x.object.userData.tapOnly);let hit=hs[0];if(hit){const pr=hs.find(x=>x.object.userData.prio&&x.distance<hit.distance+1.2);if(pr)hit=pr;}if(blocked(hit))hit=null;aim=hit?hit.object.userData.st:null;aimId=hit?hit.object.userData.hid|0:0;if(hit&&hit.object.userData.veh!=null&&hit.object.userData.veh!==me)aim=MATE_VEH;
   $('#cross').classList.toggle('on',!!aim);
@@ -4956,7 +5045,7 @@ function render(dt){
   const sc=W.store&&STORES[W.store].scene?STORES[W.store].scene:W.home&&HOME.scene?HOME.scene:(W.outside&&OUT.scene?OUT.scene:scene);if(camera.parent!==sc){sc.add(camera);camera.far=sc===scene?40:sc===OUT.scene?170:30;camera.updateProjectionMatrix();}
   drawScene(sc,dt);fpsWatch(dt);
 }
-if(window.__TEST__)window.__G={OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
+if(window.__TEST__)window.__G={DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
 camera.position.set(0,1.62,.2);
 {const _bm=buildModel;buildModel=function(t,s){const m=_bm(t,s);if(SHADOWS)m.g.traverse(o=>{if(o.isMesh)o.castShadow=true;});m.blob=blob(m.g,0,.02,.6,.48,.012);return m;};}
 setShadows(scene);if(HQ)loadPP();
