@@ -114,6 +114,17 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 #sk1{right:calc(max(16px,env(safe-area-inset-right,0px)) + 104px);bottom:calc(env(safe-area-inset-bottom,0px) + 18px)}#sk2{right:calc(max(16px,env(safe-area-inset-right,0px)) + 92px);bottom:calc(env(safe-area-inset-bottom,0px) + 88px)}#sk3{right:calc(max(16px,env(safe-area-inset-right,0px)) + 19px);bottom:calc(env(safe-area-inset-bottom,0px) + 114px)}
 .atk.sk{background:rgba(24,96,52,.62);font-size:11px;line-height:1.15}.atk.sk.down{background:rgba(60,170,90,.9)}body.ball #actionBtn{bottom:calc(env(safe-area-inset-bottom,0px) + 182px)}#act.shoot{font-size:15px;letter-spacing:0}#act.charge{box-shadow:0 0 0 7px rgba(255,214,90,.55),0 6px 18px rgba(0,0,0,.35)}
 .de .btn{margin-top:10px}.de .btn:disabled{opacity:.45}.de-w{font-size:12px;margin:10px 0 0;opacity:.8;min-height:1em}
+#lookUI,#gymUI{position:fixed;inset:0;z-index:60;background:rgba(8,10,16,.35);display:grid;align-items:end;justify-items:center;padding:10px;pointer-events:auto}
+#lookUI[hidden],#gymUI[hidden],#gymHud[hidden]{display:none}
+#lookUI{background:rgba(8,10,16,.12)}@media (min-width:700px){#lookUI{justify-items:end;align-items:center}#lookUI .lk-win{width:min(400px,100%);max-height:94vh}}
+.lk-win{width:min(560px,100%);max-height:72vh;display:grid;grid-template-rows:auto 1fr auto;background:rgba(250,248,244,.97);border-radius:12px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.45);font-family:var(--f-body);color:#1c1c20}
+.lk-bar{display:flex;align-items:center;gap:10px;background:#1c1c20;color:#f4efe6;padding:8px 12px}.lk-bar b{flex:1;font-size:14px;letter-spacing:.06em}.lk-bar button{background:none;border:0;color:#fff;font-size:20px;line-height:1;padding:0 4px}
+.lk-body{overflow:auto;padding:8px 12px}.lk-h{font-size:11px;font-weight:800;opacity:.7;margin:8px 0 4px}.lk-row{display:flex;flex-wrap:wrap;gap:6px}
+.lk-b{border:1px solid #d6d0c6;background:#fff;border-radius:999px;padding:6px 11px;font-size:12px;display:inline-flex;align-items:center;gap:6px;color:#1c1c20}.lk-b i{width:13px;height:13px;border-radius:50%;border:1px solid rgba(0,0,0,.25)}
+.lk-b.on{background:#1c1c20;color:#fff;border-color:#1c1c20}
+.lk-foot{display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid #e4ded4}.lk-foot span{flex:1;font-size:11px;opacity:.75}.lk-foot button{border:0;border-radius:8px;background:#c8372c;color:#fff;font-weight:800;padding:8px 14px;font-size:13px}
+.lk-foot button[data-x=stop]{background:#5a5a60}
+#gymHud{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(16,20,24,.82);color:#f4c020;font-weight:800;font-size:13px;padding:6px 14px;border-radius:999px;pointer-events:none;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
 #shiftUI{position:fixed;inset:0;z-index:60;background:rgba(8,10,16,.72);display:grid;place-items:center;padding:10px;pointer-events:auto}
 .sh-win{width:min(820px,100%);max-height:100%;display:grid;grid-template-rows:auto 1fr auto;background:#f4f6f9;border-radius:10px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.5);font-family:var(--f-body);color:#1c2430}
 .sh-bar{display:flex;align-items:center;gap:10px;background:#2f5fa8;color:#fff;padding:7px 10px}.sh-bar b{font-size:14px}.sh-bar span{font-size:11px;opacity:.85;flex:1}.sh-bar button{background:none;border:0;color:#fff;font-size:20px;line-height:1;padding:0 4px}
@@ -325,6 +336,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 <div class="ov" id="sleepAsk" hidden><div class="card de"><div class="noren"><span>お</span><span>や</span><span>す</span><span>み</span></div><h1>寝て翌日に進む?</h1><p class="rank" id="saSub"></p>
   <button class="btn" id="saYes">寝る(翌日へ)</button><button class="btn sub2" id="saNo">まだ起きてる</button></div></div>
 <div id="shiftUI" hidden></div>
+<div id="lookUI" class="lkUI" hidden></div><div id="gymUI" class="lkUI" hidden></div><div id="gymHud" hidden></div>
 <div class="ov" id="result" hidden>
   <div class="card">
     <div class="noren"><span>本</span><span>日</span><span>終</span><span>了</span></div>
@@ -3152,6 +3164,7 @@ function noteLeftovers(){if(!DAY.notes)DAY.notes=[];
 CARRYDAY.ret=Math.min(PLATES,returns.length+seats.filter(s=>s.plate).length+PASS.filter(x=>x.pl).length+SLOTS.reduce((a,s)=>a+(s.clutter?(s.plates||1):0),0)+(SG.clutter?Math.max(1,SG.plates||0):0)+(isPlate(shelf)&&shelf.dirt>.02?1:0));
   CARRYDAY.lv=trays.map(T=>({...T.lv}));}
 function reset(){
+  gymStop(true);
   customers.slice().forEach(removeCustomer);customers=[];clearCrew();
   cops.forEach(p=>scene.remove(p.g));cops.length=0;messes.slice().forEach(removeMess);spawnRegulars();toiletUser=null;doors.forEach(d=>{d.open=false;d.npcT=0;});
   seats.forEach(s=>{s.c=null;if(s.plate)scene.remove(s.plate.mesh);s.plate=null;s.leaving=null;s.guest=null;s.ver++;setSlip(s);});
@@ -3184,6 +3197,7 @@ function startGame(){
   initAudio();if(AC&&AC.state==='suspended')AC.resume();
   Object.assign(DAY,{n:1,choosing:false,pending:null,shift:players.map(()=>null),base:3,notes:[]});SOCCER.n=SOCCER.s=0;$('#dayEnd').hidden=true;$('#shiftUI').hidden=true;
   reset();W.running=true;if(W.commute){W.t=-230;players.forEach((q,i)=>withPlayer(i,startAtHome));}
+  players.forEach(q=>{delete q.look;});setTimeout(()=>{if(W.running)input.acQ=lookCode(OWN.look||defLook(me));},400);
   $('#start').hidden=true;$('#result').hidden=true;$('#hud').hidden=false;$('#cross').hidden=false;$('#hand').hidden=false;actBtn.hidden=!isTouch;$('#punch').hidden=!isTouch;$('#actionBtn').hidden=!isTouch;$('#voice').hidden=!isTouch;
   if(!isTouch){try{const p=canvas.requestPointerLock();if(p&&p.catch)p.catch(()=>{});}catch(_){}}
   canvas.focus();
@@ -3409,7 +3423,9 @@ function staffSeen(kind){
 }
 function doAction(code){
   if(code>=40&&code<=45){guestOrder(GUEST_MENU[code-40][0]);return;}if(code===47){guestPay();return;}
-  if(code>=1000){submitShift(code-1000);return;}
+  if(code>=200000){applyLook(cur,lookDec(code));return;}
+  if(code>=3000&&code<4000){if(code===3999)gymStop();else if(W.store==='gym')gymStart(code);return;}
+  if(code>=1000&&code<1200){submitShift(code-1000);return;}
   if(code===1){P.phone=!P.phone;if(cur===me)sfx.clink(1.6);return;}
   if(code===2){
     if(!isGlass(hand)||gSum(hand)<.05)return toast('飲めるものを持っていない');
@@ -3490,6 +3506,7 @@ function actionItems(){const q=players[me],h=me===cur?hand:q.hand,ph=q.P.phone,i
   if(h&&h.type==='goods'&&!GOODS[h.g].toy)it.push({code:5,icon:isDrinkGood(h.g)?'drink':'bite',t:`${GOODS[h.g].n}を${isDrinkGood(h.g)?'飲む':'食べる'}`,s:h.paid?goodsEffect(h.g):'まだお会計していない',ok:!!h.paid});
   if(h&&h.type==='shopbag')[...new Set(h.items)].slice(0,5).forEach(k=>it.push({code:100+GKEYS.indexOf(k),icon:isDrinkGood(k)?'drink':'bite',t:`${GOODS[k].n}を${isDrinkGood(k)?'飲む':'食べる'}`,s:`レジ袋から(${h.items.filter(x=>x===k).length}個) ${goodsEffect(k)}`,ok:true}));
   {const L=me===cur?W:q.L;if(inShop&&L.guest&&L.gSeat!=null){GUEST_MENU.forEach(([k],j)=>it.push({code:40+j,icon:DRINKS[k]?'drink':'bite',t:`${gName(k)}を注文する`,s:`${yen(gPrice(k))}(社割で2割引)`,ok:true}));it.push({code:47,icon:'phone',t:'お会計する',s:L.gBill?`いまの合計 ${yen(Math.round(L.gBill*.8/10)*10)}`:'まだ何も頼んでない',ok:!!L.gBill});}}
+  if(locOf(me)==='store:gym'&&GYM.mode&&gymMember(me))it.push({code:3999,icon:'ball',t:'試合をやめる',s:`${SPORTS[GYM.mode].n}を終わりにする`,ok:true});
   if(inShop)it.push({code:3,icon:'bite',t:(me===cur?W:q.L).guest?'料理を食べる':'つまみ食いする',s:isPlate(h)&&h.food?`${ITEMS[h.food.item].name} 残り${foodLeft(h.food)}個`:'料理の乗った皿を持っていない',ok:!!(isPlate(h)&&h.food)});
   return it;}
 const goodsEffect=k=>GOODS[k].bac>0?'お酒(酔う)':GOODS[k].bac<0?'酔いが少し醒める':'体力が回復する';
@@ -3787,15 +3804,15 @@ function yarisStatic(S2,x,z,ry,color,kind){const g=new THREE.Group();g.position.
   if(kind==='police'){[-1,1].forEach(s=>box(.02,.4,2.1,lam(0xf4f4f4),s*.865,.62,.1,g));}
   return g;}
 
-/* ================= the town: compact map (apartment, downtown, station, park, shrine...) ================= */
+/* ================= the town: compact map (apartment, downtown, gym, park, salon / select shop...) ================= */
 // roads (asphalt rects, no sidewalks) — [x0,x1,z0,z1,dir]  dir: 'ns' or 'ew'
 const ROADS=[[-17,-9.5,-62,93.5,'ns'],[-36,76,86,93.5,'ew']];
 const SW=2.5;
 const DRIVE=[];ROADS.forEach(r=>DRIVE.push(r[4]==='ns'?[r[0]-SW,r[1]+SW,r[2],r[3]]:[r[0],r[1],r[2]-SW,r[3]+SW]));
 DRIVE.push([-7.0,12.0,-24.5,-10.75]);   // shop lot
-const LOTS=[[44,75.5,96,106.2,'アパート駐車場'],[-7,8,96,111,'コンビニ駐車場'],[40,73.5,76.5,83.5,'駅前ロータリー']];
+const LOTS=[[44,75.5,96,106.2,'アパート駐車場'],[-7,8,96,111,'コンビニ駐車場'],[40,73.5,76.5,83.5,'体育館駐車場']];
 LOTS.forEach(l=>DRIVE.push(l.slice(0,4)));
-const WALKX=[[45,72.5,106.2,107.9],[10,27.5,96,120],[-31,-23,96,111],[20,34,83.5,86]]; // porch, park, shrine path, supermarket front
+const WALKX=[[45,72.5,106.2,107.9],[10,27.5,96,120],[20,34,83.5,86]]; // porch, park, supermarket front
 const MAPB=[],MAPG=[],MAPP=[];
 const AOX=-52; // apartment block offset from its original spot
 const APT={door:[107.7+AOX,108],car:[113+AOX,101.2],h:Math.PI,lot:[96+AOX,128+AOX,96,106.2]};
@@ -3874,29 +3891,38 @@ function buildTown(S2,B,PL,ob,box,cyl){
   mass(6,22,10,60,11,72);mass(6,27.5,-60,-26,9,70);mass(24,27.5,-24.5,62,7,71);mass(27.5,41,-24,60,7,77);mass(27.5,41,62,64.5,5,78);mass(6,22,3.4,9.6,6,74);mass(22,27.5,-26,-24.5,5,75);
   // backs of the downtown rows along the west road: low buildings, signs, AC units
   for(let z=-58;z<80;z+=16){box(.5,.6,.8,lam(0xd8d6ce),-34.3,.3,z,S2);box(.4,1.6,.6,lam(0x5a8ac0),-34.25,.8,z+5,S2);ob(-34.6,-34,z-.4,z+.4,'ac');ob(-34.5,-34,z+4.7,z+5.3,'vm');}
-  // ---- station (south of the avenue, facing the rotary)
-  {bldBox(S2,42,64,64,76,9,0,true,'pz');storefront(S2,'pz',53,76,21.7,'みなと町駅');
-    hSign(S2,53,7.6,76.05,0,'みなと町駅','#1a4fa0','#fff',8);B(22,.3,4,lam(0x9aa0a6),53,6.5,77.6);for(let i=0;i<5;i++){const x=44+i*4.5;cyl(.15,.15,6.5,lam(0x9aa0a6),x,3.25,79.3,8);ob(x-.2,x+.2,79.1,79.5,'pole');}
-    for(let i=0;i<4;i++)B(1.6,1.8,.5,lam(0x2a5aa0),46+i*2,.9,76.3);ob(45,53,76,76.6,'kiosk');
-    // elevated tracks behind the station + a parked train
-    B(31,.9,5,lam(0x8a8880),57,7.2,61.5);for(let x=44;x<74;x+=6)B(.9,6.8,.9,lam(0x8a8880),x,3.4,61.5);
-    {const tr=lam(0xe8eaec),bl=new THREE.MeshBasicMaterial({color:0x1a4fa0});B(24,2.8,2.8,tr,55,9.1,61.5);B(24.05,.3,2.82,bl,55,8.4,61.5);for(let i=0;i<10;i++)B(1.2,.9,2.84,nightMat(0xfff4d8),45+i*2.2,9.5,61.5);}
-    simpleCar(S2,48,81.2,Math.PI/2,0x1c3a7a,true);simpleCar(S2,54,81.2,Math.PI/2,0xf2f2f2,true);ob(45.8,50.2,80.3,82.1,'car');ob(51.8,56.2,80.3,82.1,'car');
-    B(6,.12,1.6,lam(0x8a8880),64,.06,79);hSign(S2,64,2.6,79.85,0,'タクシーのりば','#222','#ffd84a',2.4);ob(61,67,78.2,79.8,'island');
-    // bus stop + bike parking
-    B(.1,2.4,.1,lam(0x777777),70,1.2,80);B(1.4,.5,.06,new THREE.MeshBasicMaterial({color:0xf4f4f4}),70,2.3,80);ob(69.8,70.2,79.8,80.2,'pole');
-    MAPB.push([42,64,64,76,'#9ab0d8']);label(53,70,'みなと町駅','#1a4fa0');PL(33.5,7,lam(0x5e5c58),56.75,.006,80,-Math.PI/2);}
+  // ---- みなと市民体育館 (the old station block, facing the parking lot)
+  {bldBox(S2,42,64,64,76,7.5,0,false,null,true);
+    {const rf=new THREE.Mesh(new THREE.CylinderGeometry(6.4,6.4,22.4,28,1,false,0,Math.PI),lam(0x5a7a92));rf.rotation.z=Math.PI/2;rf.scale.x=.32;rf.position.set(53,7.5,70);S2.add(rf);}
+    const fr=phong(0xb8bcc0,90,0x888888),glass=new THREE.MeshPhongMaterial({color:0x6a8aa0,shininess:120,specular:0xffffff,transparent:true,opacity:.75}),glow=nightMat(0xfff4d8);
+    PL(9,2.6,glow,53,1.35,76.02);PL(9,2.6,glass,53,1.35,76.06);for(let x=48.5;x<=57.6;x+=1.5)B(.08,2.7,.1,fr,x,1.35,76.08);B(9.2,.1,.12,fr,53,2.7,76.08);
+    B(10,.25,2.6,lam(0xe8e8e4),53,3.1,77.2);[48.4,57.6].forEach(x=>{cyl(.1,.1,3.0,fr,x,1.5,78.3,8);ob(x-.15,x+.15,78.15,78.45,'pole');});
+    B(20,.7,.05,glow,53,6.4,76.03);for(let x=43.5;x<63;x+=2.5)B(.1,.8,.08,fr,x,6.4,76.06);
+    hSign(S2,53,4.55,76.08,0,'市民体育館','#1f5f3a','#fff',6.6,'MINATO CITY GYMNASIUM');
+    B(2.2,1.4,.3,lam(0x2a5a3a),45.5,.7,77.2);B(2.1,1.2,.05,new THREE.MeshBasicMaterial({color:0xf4f4ee}),45.5,.72,77.36);ob(44.3,46.7,77,77.4,'board');
+    for(let i=0;i<6;i++)B(.06,.5,.06,fr,60+i*.7,.25,77.6);B(4.2,.06,.06,fr,61.75,.5,77.6);ob(59.8,63.8,77.4,77.8,'bikes');
+    oHit(2.4,2.6,.6,53,1.3,76.3,{prompt(){return storeOpen('gym')?'体育館に<b>入る</b>(9:00〜22:00 ・ 個人開放)':'本日は閉館しました(9:00〜22:00)';},press(){if(!storeOpen('gym'))return toast('閉まっている(9:00〜22:00)');transit(()=>enterStore('gym'));}});
+    MAPB.push([42,64,64,76,'#b8d8c0']);label(53,70,'市民体育館','#1f5f3a');PL(33.5,7,lam(0x5e5c58),56.75,.006,80,-Math.PI/2);}
   // ---- supermarket on the avenue, between the karaoke and the station (open 9:00–20:00)
   {bldBox(S2,14,40,64,83.5,8,1,false,'pz',true);storefront(S2,'pz',27,83.5,25.7,'スーパーまるやす');hSign(S2,27,6.6,83.56,0,'スーパーまるやす','#e65100','#fff',12);
     MAPB.push([14,40,64,83.5,'#f2c48a']);label(27,72,'スーパー','#e65100');
     for(let i=0;i<6;i++){const cx=16+i*.62;B(.55,.9,.85,lam(0x9aa4ac),cx,.45,84.6);}ob(15.6,19.6,84.1,85.1,'cart'); // carts
     oHit(2.4,2.4,.6,37.3,1.2,84.1,{prompt(){return storeOpen('super')?'スーパーに<b>入る</b>(9:00〜20:00)':'本日の営業は終了しました(9:00〜20:00)';},press(){if(!storeOpen('super'))return toast('閉まっている(9:00〜20:00)');transit(()=>enterStore('super'));}});}
-  // ---- shrine (north-west block)
-  {const red=lam(0xc8361c);const tz=97.5,cx=-27;[cx-2.5,cx+2.5].forEach(x=>{cyl(.28,.32,5,red,x,2.5,tz,10);ob(x-.35,x+.35,tz-.35,tz+.35,'torii');});B(7.4,.4,.6,lam(0x222222),cx,5.15,tz);B(6.6,.3,.5,red,cx,4.3,tz);
-    B(8,4,6,lam(0x6a3a22),cx,2.2,115);B(10,.3,8,lam(0x2a2a2a),cx,4.4,115);const rf2=B(10.4,.2,4.4,lam(0x2a2a2a),cx,4.9,113.1);rf2.rotation.x=.4;B(3,.6,1,lam(0x3a2a1a),cx,.3,111.5);ob(cx-4,cx+4,112,118,'shrine');
-    [[cx-3,102],[cx+3,102],[cx-3,107],[cx+3,107]].forEach(([x,z])=>{cyl(.25,.3,.6,lam(0x8a8880),x,.3,z,8);B(.6,.5,.6,lam(0x8a8880),x,.85,z);B(.8,.15,.8,lam(0x7a7870),x,1.15,z);ob(x-.45,x+.45,z-.45,z+.45,'lantern');});
-    PL(4,15,lam(0x8a8478),cx,.01,104,-Math.PI/2);[[-32.5,100],[-32.5,108],[-32.5,116],[-21.5,100],[-21.5,108],[-21.5,117],[-31,119.5],[-23,119.5]].forEach(([x,z])=>{tree(x,z,1.2);});
-    B(14.5,1.2,.2,lam(0x8a8478),cx,.6,119.8);MAPG.push([-34,-19.5,96,120.5]);label(cx,110,'みなと神社','#c8361c');}
+  // ---- the old shrine block: a hair salon and a select shop, side by side (open 10–20 / 11–21)
+  {const fr=phong(0x222224,90,0x888888),gold=phong(0xc8a860,120,0xffffff),glass=new THREE.MeshPhongMaterial({color:0x8aa0aa,shininess:140,specular:0xffffff,transparent:true,opacity:.55});
+    const shop=(x0,x1,col,wallTop,glowC,name,sign,sub,bg,fg,door,k,hrs)=>{bldBox(S2,x0,x1,96.6,106,6.2,2,false,null,true);const cx=(x0+x1)/2,w=x1-x0;
+      B(w,3.2,.1,lam(col),cx,1.6,96.55);B(w,3.0,.1,lam(wallTop),cx,4.7,96.55);
+      PL(w-1.2,2.2,nightMat(glowC),cx,1.3,96.48,0,Math.PI);PL(w-1.2,2.2,glass,cx,1.3,96.44,0,Math.PI);B(w-1.1,.08,.1,fr,cx,2.42,96.44);B(w-1.1,.08,.1,fr,cx,.2,96.44);
+      [x0+.55,door-.75,door+.75,x1-.55].forEach(x=>B(.08,2.3,.1,fr,x,1.25,96.44));
+      hSign(S2,cx,3.55,96.48,Math.PI,sign,bg,fg,Math.min(5.2,w-1),sub);
+      [x0+.4,x1-.4].forEach(x=>{B(.5,.5,.5,lam(0x2a2a2c),x,.25,96.1);const l=new THREE.Mesh(new THREE.IcosahedronGeometry(.32,0),lam(0x3a6a30));l.position.set(x,.75,96.1);S2.add(l);ob(x-.3,x+.3,95.8,96.4,'planter');});
+      oHit(1.4,2.4,.6,door,1.2,96.3,{prompt(){return storeOpen(k)?`${name}に<b>入る</b>(${hrs})`:`本日の営業は終了しました(${hrs})`;},press(){if(!storeOpen(k))return toast(`閉まっている(${hrs})`);transit(()=>enterStore(k));}});};
+    shop(-33.8,-27.4,0xf4efe6,0xe8e2d8,0xffe6c8,'HAIR SALON Lumière','Lumière','HAIR SALON ・ 美容院','#f4efe6','#5a3a24',-30.6,'salon','10:00〜20:00');
+    shop(-26.8,-19.8,0x141416,0x2a2a2e,0xfff0d8,'SELECT SHOP NOIR','NOIR','SELECT SHOP ・ 服屋','#111113','#f4efe6',-23.3,'boutique','11:00〜21:00');
+    // a striped awning over the select shop window, trees behind
+    for(let i=0;i<7;i++){const a=B(.86,.05,1.1,lam(i%2?0xf4efe6:0x111113),-26.3+i*.95+.4,2.75,96.0);a.rotation.x=-.25;}
+    [[-32.5,109],[-27,110],[-21.5,109],[-31,116],[-23,117]].forEach(([x,z])=>tree(x,z,1.1));B(14.5,1.2,.2,lam(0x8a8478),-26.75,.6,119.8);
+    MAPB.push([-33.8,-27.4,96.6,106,'#e8d8c8'],[-26.8,-19.8,96.6,106,'#3a3a3e']);label(-30.6,101,'美容院','#8a5a3a');label(-23.3,101,'服屋','#111');}
   // ---- convenience store + pocket park (north-middle block)
   {bldBox(S2,-6,8,111,120,4.2,4,false,'nz');storefront(S2,'nz',1,111,13.7,'DAILY MART');hSign(S2,1,3.6,110.84,Math.PI,'DAILY MART','#1a8a3a','#fff',8);
     MAPB.push([-6,8,111,120,'#a8d8b0']);label(1,115,'コンビニ','#1a8a3a');
@@ -4156,8 +4182,10 @@ Object.assign(sfx,{kickBall(p=.5){burst(.07,420+p*300,.22+p*.2,'lowpass');tone(1
 /* ================= first-person body: my own torso, arms and legs under the camera (head hidden) ================= */
 const SELF={m:null,k:-1,kickT:0};
 // clothes: the uniform once I've changed at the locker, otherwise my own hoodie and jeans (2P: a grey hoodie)
-function outfitType(i){const base=STAFF_TYPES[i]||STAFF_TYPE;if(LW(i).dressed)return base;const t={...base,top:i?0x55555c:0x17171b,pants:0x3d5f8f,hood:1,shoe:0xeeeeee};delete t.workcap;return t;}
-const outfitKey=i=>(LW(i).dressed?'u':'c')+i;
+const lookNow=i=>(i===me&&PREVIEW)||lookOf(i);
+function outfitType(i){const base=STAFF_TYPES[i]||STAFF_TYPE,L=lookNow(i),hair={hs:HAIRS[L.h][0],hair:HCOLS[L.c][0]};if(LW(i).dressed)return{...base,...hair};
+  const t={...base,...hair,hood:0,zip:0,stripes:0,cardigan:0,suit:0,tie:0,shirt:0,...TOPS_W[L.t].t,pants:BOTS_W[L.b].c,shoe:0xeeeeee};delete t.workcap;return t;}
+const outfitKey=i=>{const L=lookNow(i);return(LW(i).dressed?'u':'c')+i+'-'+L.h+'.'+L.c+'.'+L.t+'.'+L.b;};
 function selfBody(){const ok=outfitKey(me);if(SELF.m&&SELF.k===ok)return SELF.m;if(SELF.m&&SELF.m.g.parent)SELF.m.g.parent.remove(SELF.m.g);
   const ty=outfitType(me),m=vis(()=>buildModel(ty,'#e2b08a'));m.rig.headJ.visible=false;m.rig.neck.children.forEach(o=>{if(o!==m.rig.headJ)o.visible=false;});
   {const cap=new THREE.Mesh(new THREE.SphereGeometry(.075,16,8,0,Math.PI*2,0,Math.PI/2),clothMat(ty.top));cap.scale.set(1,.35,.75);cap.position.y=.262;m.rig.chest.add(cap);} // close the neck opening (the neck itself is hidden)
@@ -5095,6 +5123,8 @@ let carHudV='',guideV='';
 function guideText(){
   if(W.slept)return MP.on&&!DAY.choosing?'おやすみなさい… <b>相方の帰宅</b>を待っています':'おやすみなさい…';
   if(soccerMode())return'⚽ 触れてドリブル / <b>使う</b>を長押し→離してシュート'+(isTouch?'':'(F:ダブルタッチ G:タックル V:ループ)');
+  if(W.store==='salon')return`鏡の前の椅子で<b>カット・カラー</b>(残高 ${yen(BANK.bal)})`;if(W.store==='boutique')return`服を選んで<b>買う・着替える</b>(残高 ${yen(BANK.bal)})`;
+  if(W.store==='gym')return GYM.mode?'':'受付で<b>コートを使う</b>(バスケ・バレー・ドッジ)';
   if(W.store)return hand&&hand.type==='goods'&&!hand.paid?'<b>レジ</b>でお会計(口座から引き落とし)':hand&&hand.type==='goods'?'アクションから<b>食べる・飲む</b>':`商品を手に取ってレジへ(残高 ${yen(BANK.bal)})`;
   if(W.napUntil!=null)return`zzz… ${HOME.mode==='start'?'二度寝':'昼寝'}中(${clockFmt(W.napUntil)}まで)${MP.on?' 相方も寝たら時間が進む':''}`;
   if(W.offDay){if(W.home)return shiftPending()?'今日はシフト提出の日。<b>机のパソコン</b>でシフトを出そう':W.t>=W.dur?'ベッドで<b>寝て</b>一日を終えよう':'今日はオフ。<b>玄関</b>から出かけよう(ベッドで昼寝もできる)';return'今日はオフ。街で遊ぼう(帰ったらベッドで寝て一日を終える)';}
@@ -5297,6 +5327,7 @@ function buildHome(){vis(()=>{
     mr.userData.pre=()=>{if(HOME.twin)HOME.twin.g.visible=true;if(SELF.m)SELF.m.g.userData.wasVis=SELF.m.g.visible,SELF.m.g.visible=false;};
     mr.userData.post=()=>{if(HOME.twin)HOME.twin.g.visible=false;if(SELF.m)SELF.m.g.visible=SELF.m.g.userData.wasVis;};}
   // ---- hitboxes
+  hHit(.25,2.0,1.0,-1.62,1.0,-3.85,{prompt(){return'クローゼットで<b>着替える</b>(私服)';},press(){if(cur===me)openLookUI('closet');}});
   hHit(.9,2.0,.3,-.8,1.0,2.05,{prompt(){if(shiftPending())return'玄関(シフトを出すまで出かけられない)';if(HOME.mode==='off')return'玄関から<b>出かける</b>(今日はオフ)';if(HOME.mode==='start')return'玄関から<b>出かける</b>(出勤)';return'玄関から<b>出かける</b>';},
     press(){if(shiftPending())return toast('シフトを出すまで出かけられない(机のパソコン)');if(HOME.mode==='off'){HOME.mode='back';transit(leaveOff);return;}if(HOME.mode==='start'){HOME.mode='back';transit(leaveHome);return;}transit(exitHome);}});
   hHit(1.1,.6,2.1,1.27,.35,-3.3,{carry(){if(HOME.mode!=='end')return;const c=CARRY.c;dropCarry();CARRY.bed=c;HOME.scene.add(c.g);c.g.rotation.order='YXZ';c.g.rotation.set(-1.45,0,0);c.g.position.set(HX+1.27,.62,-2.45);c.body.rotation.x=0;sfx.thud();sub('あなた','…今日はここで寝てください。オレは床で寝るか…','quiet');},
@@ -5418,17 +5449,322 @@ function basketMesh(h){const g=new THREE.Group();
   h.items.slice(0,6).forEach((k,i)=>{const m=goodsMesh(k);m.scale.setScalar(.7);m.position.set(-.1+(i%3)*.1,.07,(i<3?-.05:.06));if(h.type!=='basket'){m.visible=false;}g.add(m);});
   g.scale.setScalar(.7);return g;}
 const STAFF_K={name:'店員',top:0x2f7a4a,pants:0x2a2a30,hair:0x2a1a12,hs:'short',shoe:0x1a1a1a,build:[1,1,1]},STAFF_S={name:'店員',top:0xe8e4da,pants:0x2a2a30,hair:0x3a2416,hs:'bun',fem:1,shoe:0x1a1a1a,build:[.95,1,.95],cardigan:0xe65100};
+/* ================= looks: hair (salon) and clothes (boutique). Saved on this device; shared with the partner through one input code ================= */
+const HAIRS=[['short','ショート'],['side','サイドパート'],['messy','無造作マッシュ'],['slick','オールバック'],['buzz','坊主'],['long','ロング'],['bun','お団子'],['pony','ポニーテール'],['bangs','前髪ぱっつん']];
+const HCOLS=[[0x1a1410,'黒'],[0x3a2416,'ダークブラウン'],[0x6a4024,'ブラウン'],[0xb08850,'ミルクティー'],[0xd9b35a,'金髪'],[0x8a8a86,'アッシュグレー'],[0x8a2a1a,'レッド'],[0x2a3a7a,'ネイビー'],[0xd87aa0,'ピンク'],[0xe8e8e2,'ホワイト']];
+const TOPS_W=[{n:'黒パーカー',p:0,t:{top:0x17171b,hood:1}},{n:'グレーパーカー',p:4980,t:{top:0x55555c,hood:1}},{n:'白Tシャツ',p:1980,t:{top:0xf2f2ee}},{n:'ボーダーT',p:2980,t:{top:0xf0f0ea,stripes:0x1a2a5a}},
+  {n:'デニムジャケット',p:7980,t:{top:0x4a6a9a,zip:1}},{n:'レザージャケット',p:12800,t:{top:0x1a1614,zip:1}},{n:'赤スウェット',p:3980,t:{top:0xb03030}},{n:'ベージュカーディガン',p:5980,t:{top:0xf2ece0,cardigan:0xb8a07a}},
+  {n:'ネイビーシャツ',p:4980,t:{top:0x2a3450}},{n:'セットアップ(ジャケット)',p:15800,t:{top:0x26324c,suit:1,tie:0xa8282a,shirt:0xf2f2f0}}];
+const BOTS_W=[{n:'ブルーデニム',p:0,c:0x3d5f8f},{n:'ブラックデニム',p:5980,c:0x1a1a1e},{n:'チノパン',p:3980,c:0xb8a07a},{n:'グレースラックス',p:4980,c:0x5a5a60},{n:'オリーブカーゴ',p:4980,c:0x5a6a3a},{n:'白パンツ',p:3980,c:0xe8e4dc},{n:'セットアップ(パンツ)',p:9800,c:0x26324c}];
+const CUT_P=3500,COLOR_P=5500;
+const defLook=i=>({h:i?2:0,c:i?1:0,t:i?1:0,b:0});
+const lookOf=i=>(players[i]&&players[i].look)||defLook(i);
+let PREVIEW=null; // what I'm trying on at the salon (only on my own screen, until I pay)
+const lookCode=L=>200000+L.h+L.c*10+L.t*100+L.b*10000;
+const lookDec=n=>{n-=200000;return{h:n%10,c:Math.floor(n/10)%10,t:Math.floor(n/100)%100,b:Math.floor(n/10000)%10};};
+function applyLook(i,L){if(!players[i])return;players[i].look={h:clamp(L.h,0,HAIRS.length-1),c:clamp(L.c,0,HCOLS.length-1),t:clamp(L.t,0,TOPS_W.length-1),b:clamp(L.b,0,BOTS_W.length-1)};
+  if(i===me){OWN.look=players[i].look;saveOwn();}}
+function sendLook(L){input.acQ=lookCode(L);}
+if(!OWN.clothes)OWN.clothes={t:[0],b:[0]};
+const owns=(k,i)=>OWN.clothes[k].includes(i);
+// a shop counter / garment rack press: buy if new (paid here, on this device) and put it on
+function wearItem(k,idx){const L={...lookOf(cur)};if(k==='t')L.t=idx;else L.b=idx;
+  if(cur===me){const it=(k==='t'?TOPS_W:BOTS_W)[idx];if(!owns(k,idx)){BANK.add(-it.p,`ブティック NOIR ${it.n}`);OWN.clothes[k].push(idx);saveOwn();toast(`${it.n}を買った(${yen(it.p)})。そのまま着ていこう`);}else toast(`${it.n}に着替えた`);}
+  applyLook(cur,L);sfx.clink(1.2);}
+// ---- salon / wardrobe pickers (my screen only; the result goes out as one input code)
+function openLookUI(kind){const el=$('#lookUI'),cur0=lookOf(me);PREVIEW={...cur0};
+  const draw=()=>{const P=PREVIEW,cost=kind==='salon'?(P.h!==cur0.h?CUT_P:0)+(P.c!==cur0.c?COLOR_P:0):0;
+    const row=(title,items,key)=>`<div class="lk-h">${title}</div><div class="lk-row">${items.map(it=>`<button class="lk-b${P[key]===it.i?' on':''}" data-k="${key}" data-i="${it.i}">${it.c!=null?`<i style="background:${hexCss(it.c)}"></i>`:''}${it.n}</button>`).join('')}</div>`;
+    el.innerHTML=`<div class="lk-win"><div class="lk-bar"><b>${kind==='salon'?'HAIR SALON Lumière':'クローゼット'}</b><button data-x="close">×</button></div><div class="lk-body">`+
+      (kind==='salon'?row('髪型(カット '+yen(CUT_P)+')',HAIRS.map((h,i)=>({i,n:h[1]})),'h')+row('髪色(カラー '+yen(COLOR_P)+')',HCOLS.map((h,i)=>({i,n:h[1],c:h[0]})),'c')
+        :row('トップス',TOPS_W.map((t,i)=>({i,n:t.n,c:t.t.top})).filter(x=>owns('t',x.i)),'t')+row('ボトムス',BOTS_W.map((t,i)=>({i,n:t.n,c:t.c})).filter(x=>owns('b',x.i)),'b'))+
+      `</div><div class="lk-foot"><span>${kind==='salon'?`鏡で確認できます ・ 合計 ${yen(cost)}(残高 ${yen(BANK.bal)})`:'鏡で確認できます'}</span><button data-x="ok">${kind==='salon'?(cost?'これでお願いします':'このままでいい'):'これを着る'}</button></div></div>`;};
+  el.onclick=e=>{const b=e.target.closest('button');if(!b)return;
+    if(b.dataset.k){PREVIEW[b.dataset.k]=+b.dataset.i;draw();return;}
+    if(b.dataset.x==='close'){PREVIEW=null;el.hidden=true;return;}
+    if(b.dataset.x==='ok'){const P=PREVIEW,cost=kind==='salon'?(P.h!==cur0.h?CUT_P:0)+(P.c!==cur0.c?COLOR_P:0):0;
+      if(cost>BANK.bal)return toast(`残高が足りない(残高 ${yen(BANK.bal)})`);
+      if(cost){BANK.add(-cost,`HAIR SALON Lumière ${P.h!==cur0.h?'カット':''}${P.h!==cur0.h&&P.c!==cur0.c?'+':''}${P.c!==cur0.c?'カラー':''}`);toast(`ありがとうございました!(${yen(cost)})`);}
+      sendLook(P);PREVIEW=null;el.hidden=true;}};
+  draw();el.hidden=false;if(document.exitPointerLock&&locked())document.exitPointerLock();}
+// the full-body copy that only the mirrors see (one per scene that has a mirror)
+function mirrorTwinIn(sc,dt){const ok=outfitKey(me);let t=sc.userData.twin;if(!t||t.of!==ok){if(t)sc.remove(t.g);const ty=outfitType(me);t=vis(()=>buildModel(ty,'#e2b08a'));Object.assign(t,{type:ty,skin:'#e2b08a',ctx:t.fc.getContext('2d'),expr:'',hy:0,hp:0,hr:0,walkT:0,lv:0,of:ok});vis(()=>setExpr(t,'normal'));t.g.visible=false;sc.add(t.g);sc.userData.twin=t;}
+  const q=players[me];t.g.position.set(q.pos.x,0,q.pos.z);t.g.rotation.y=view.yaw+Math.PI;t.head.rotation.set(-view.pitch*.7,0,0,'YXZ');if(q.moved)legsWalk(t,dt,true);armTo(t,0,'hang',dt,6);armTo(t,1,hand?'tray':'hang',dt,6);vis(()=>rigUpdate(t,dt));}
+function mirrorIn(sc,w,h){const mr=makeMirror(w,h);mr.userData.pre=()=>{const t=sc.userData.twin;if(t)t.g.visible=true;if(SELF.m){SELF.m.g.userData.wasVis=SELF.m.g.visible;SELF.m.g.visible=false;}};
+  mr.userData.post=()=>{const t=sc.userData.twin;if(t)t.g.visible=false;if(SELF.m)SELF.m.g.visible=SELF.m.g.userData.wasVis;};return mr;}
+// ---- the two shops on the old shrine block: interiors
+function buildSalon(S,G,B,C,PL,hit){const wood=new THREE.MeshPhongMaterial({map:woodGrain('#c8a274','90,60,30',[3,3]),shininess:40}),wall=lam(0xf4f0ea),blk=phong(0x18181a,60);
+  PL(8,9,wood,0,0,0,-Math.PI/2);PL(8,9,lam(0xfaf8f4),0,2.9,0,Math.PI/2);PL(8,2.9,wall,0,1.45,-4.5);PL(9,2.9,wall,-4,1.45,0,0,Math.PI/2);PL(9,2.9,wall,4,1.45,0,0,-Math.PI/2);PL(8,2.9,lam(0xe8e2d8),0,1.45,4.5,0,Math.PI);
+  B(8,.08,.04,phong(0xb89a5a,80),0,2.6,-4.47);
+  // the long mirror wall over three styling stations
+  {const mr=mirrorIn(S.scene,7.2,1.3);mr.position.set(0,1.6,-4.46);G.add(mr);B(7.4,.06,.06,phong(0xd8c08a,90),0,2.28,-4.44);B(7.4,.06,.06,phong(0xd8c08a,90),0,.92,-4.44);}
+  [-2.6,0,2.6].forEach((x,i)=>{B(1.4,.06,.4,wood,x,.88,-4.25);[[-.35,0x2a2a2c],[.2,0xe8e8e2],[.45,0x8a6a4a]].forEach(([dx,c])=>C(.04,.04,.18,lam(c),x+dx,1.0,-4.2));
+    C(.32,.36,.08,blk,x,.45,-3.2);C(.06,.08,.4,phong(0xb8bcc0,100),x,.24,-3.2);B(.62,.12,.58,phong(0x2a2a2e,40),x,.55,-3.2);B(.62,.6,.12,phong(0x2a2a2e,40),x,.9,-2.9);B(.08,.24,.5,blk,x-.32,.7,-3.2);B(.08,.24,.5,blk,x+.32,.7,-3.2);
+    hit(.8,1.2,.9,x,.7,-3.2,{prompt(){return'スタイリストに<b>カット・カラーをお願いする</b>';},press(){if(cur===me)openLookUI('salon');}});});
+  // shampoo bowls, waiting sofa, reception, plants, pendant lights
+  [-2.8,-1.6].forEach(z=>{B(.6,.8,.5,lam(0xf4f4f2),3.6,.4,z);C(.22,.18,.12,lam(0xfafafa),3.6,.86,z);B(.5,.4,.8,phong(0x3a3a3e,40),3.0,.35,z);});
+  B(2.2,.4,.8,phong(0x8a6a4a,30),-2.9,.2,2.7);B(2.2,.5,.15,phong(0x8a6a4a,30),-2.9,.6,3.05);B(.9,.04,.5,wood,-2.9,.42,1.9);
+  B(1.6,1.0,.6,wood,2.6,.5,3.4);B(1.7,.05,.7,phong(0xf4f0ea,60),2.6,1.02,3.4);
+  [[-3.6,-1.2],[3.6,1.2]].forEach(([x,z])=>{C(.2,.16,.4,lam(0xe8e2d8),x,.2,z);for(let k=0;k<6;k++){const l=new THREE.Mesh(new THREE.SphereGeometry(.16,8,6),lam(0x3a7a3a));l.position.set(x+Math.sin(k)*.12,.55+k*.08,z+Math.cos(k)*.12);G.add(l);}});
+  [-2.6,0,2.6].forEach(x=>{C(.005,.005,.6,blk,x,2.6,-2.2);const sh=C(.16,.1,.14,phong(0xf4e8c8,60),x,2.25,-2.2);const pl=new THREE.PointLight(0xffe8c8,.35,4,2);pl.position.set(x,2.1,-2.2);G.add(pl);});
+  {const pl=new THREE.PointLight(0xfff4e8,.5,9,1.5);pl.position.set(0,2.6,1);G.add(pl);}
+  // the stylist
+  {const ty={name:'スタイリスト',top:0x1a1a1c,pants:0x1a1a1c,hair:0xb08850,hs:'long',fem:1,young:1,lip:'#b84a5a',blush:1,build:[.9,.95,.95],shoe:0x111111},cl=buildModel(ty,'#f2d8c4');cl.g.position.set(-1.3,0,-2.5);cl.g.rotation.y=Math.PI*.85;G.add(cl.g);
+    S.clerks.push({...cl,type:ty,skin:'#f2d8c4',ctx:cl.fc.getContext('2d'),expr:'',hy:0,hp:0,hr:0,walkT:0,bac:0,lv:0});setExpr(S.clerks[0],'happy');}
+  hit(1.6,2.4,.3,0,1.2,4.35,{prompt(){return'店を<b>出る</b>';},press(){transit(exitStore);}});
+  PL(1.4,2.2,phong(0xcfe0e6,140,0xffffff),0,1.1,4.48,0,Math.PI);}
+function buildBoutique(S,G,B,C,PL,hit){const fl=new THREE.MeshPhongMaterial({map:woodGrain('#3a2e26','20,14,10',[3,3]),shininess:70,specular:0x333333}),wall=lam(0xeae6e0),gold=phong(0xc8a860,120,0xffffff),blk=phong(0x111113,60);
+  PL(8,10,fl,0,0,0,-Math.PI/2);PL(8,10,lam(0x1a1a1c),0,3.2,0,Math.PI/2);PL(8,3.2,wall,0,1.6,-5);PL(10,3.2,wall,-4,1.6,0,0,Math.PI/2);PL(10,3.2,wall,4,1.6,0,0,-Math.PI/2);PL(8,3.2,lam(0xd8d2c8),0,1.6,5,0,Math.PI);
+  // track lights
+  [-2,0,2].forEach(x=>{B(.04,.04,8,blk,x,3.15,0);for(let z=-3.5;z<=3.5;z+=1.75){C(.05,.05,.14,blk,x,3.05,z);const pl=new THREE.PointLight(0xfff0dc,.22,4.5,2);pl.position.set(x,2.9,z);G.add(pl);}});
+  // tops on the west rail
+  B(.04,.04,7.6,gold,-3.55,1.75,0);TOPS_W.forEach((t,i)=>{const z=-3.4+i*.75,c=t.t.top;B(.5,.62,.06,lam(c),-3.5,1.38,z,G).rotation.y=Math.PI/2;if(t.t.hood)B(.3,.14,.08,lam(c),-3.48,1.72,z);if(t.t.stripes)for(let k=0;k<4;k++)B(.07,.04,.5,lam(t.t.stripes),-3.46,1.2+k*.12,z);
+    B(.02,.08,.02,gold,-3.55,1.71,z);
+    hit(.5,.9,.6,-3.45,1.35,z,{prompt(){return owns('t',i)&&cur===me?`${t.n}(持ってる)に<b>着替える</b>`:`${t.n} <b>${yen(t.p)}</b> を<b>買って着る</b>`;},press(){wearItem('t',i);}},{price:t.p,cloth:'t'+i});});
+  // bottoms folded on the east tables + a rail
+  B(.04,.04,6,gold,3.55,1.6,-.6);BOTS_W.forEach((b,i)=>{const z=-3.4+i*.8;B(.08,.9,.32,lam(b.c),3.5,1.08,z);B(.02,.1,.02,gold,3.55,1.56,z);
+    hit(.5,1.0,.6,3.45,1.1,z,{prompt(){return owns('b',i)&&cur===me?`${b.n}(持ってる)に<b>はき替える</b>`:`${b.n} <b>${yen(b.p)}</b> を<b>買ってはく</b>`;},press(){wearItem('b',i);}},{price:b.p,cloth:'b'+i});});
+  // mannequins, a center table, the fitting room with a mirror, the register
+  [[-1.2,-1.2,6],[1.2,-1.2,4]].forEach(([x,z,ti])=>{const ty={name:'マネキン',top:TOPS_W[ti].t.top,pants:BOTS_W[ti%BOTS_W.length].c,hair:0xd8d8d8,hs:'bald',build:[.95,.95,.95],shoe:0x222222,...TOPS_W[ti].t},m=buildModel(ty,'#e8e8e4');m.g.position.set(x,.08,z);m.g.rotation.y=Math.PI*.15*(x<0?1:-1);G.add(m.g);C(.25,.25,.08,blk,x,.04,z);});
+  B(1.6,.8,.8,fl,0,.4,1.2);B(1.64,.04,.84,gold,0,.81,1.2);for(let k=0;k<5;k++)B(.32,.06,.26,lam([0xf2f2ee,0x2a2a2c,0xb8a07a,0x4a6a9a,0xb03030][k]),-.6+k*.3,.86,1.2);
+  {const mr=mirrorIn(S.scene,.8,1.8);mr.position.set(0,1.1,-4.97);G.add(mr);B(.9,1.9,.04,gold,0,1.1,-4.99);B(.06,2.4,1.4,blk,-.9,1.2,-4.3);B(.06,2.4,1.4,blk,.9,1.2,-4.3);B(1.86,.06,.06,gold,0,2.4,-3.6);}
+  B(1.4,1.0,.6,blk,2.4,.5,3.7);B(1.5,.04,.7,gold,2.4,1.02,3.7);
+  {const ty={name:'店員',top:0x111113,pants:0x111113,hair:0x16120f,hs:'slick',build:[1,1,1],shoe:0x111111,young:1},cl=buildModel(ty,'#e8c4a2');cl.g.position.set(2.4,0,4.25);cl.g.rotation.y=Math.PI;G.add(cl.g);
+    S.clerks.push({...cl,type:ty,skin:'#e8c4a2',ctx:cl.fc.getContext('2d'),expr:'',hy:0,hp:0,hr:0,walkT:0,bac:0,lv:0});setExpr(S.clerks[0],'normal');}
+  hit(1.6,2.4,.3,-1.8,1.2,4.85,{prompt(){return'店を<b>出る</b>';},press(){transit(exitStore);}});
+  PL(1.4,2.4,phong(0xcfe0e6,140,0xffffff),-1.8,1.2,4.98,0,Math.PI);}
+
+/* ================= みなと市民体育館: basketball / volleyball / dodgeball — just us, or mixed in with whoever is there =================
+   Everything here is in the gym's own coordinates (x: -8.8..8.8, z: -13.8..13.8); players' positions are offset by GYMX. */
+const GYMX=6000,GYG=9.8;
+const SPORTS={bask:{n:'バスケ',win:21,r:.12,col:0xd8661c},volley:{n:'バレー',win:15,r:.105,col:0xf2eedc},dodge:{n:'ドッジボール',win:3,r:.11,col:0xc8282a}};
+const GYM={mode:null,mix:false,vs:false,practice:false,teams:[[],[]],score:[0,0],ball:null,npcs:[],t:0,touch:[0,0],next:null,cnt:0,best:0,mk:0,att:0};
+const gymHumans=()=>players.map((q,i)=>i).filter(i=>locOf(i)==='store:gym');
+const mPos=m=>m.k==='p'?{x:players[m.i].pos.x-GYMX,z:players[m.i].pos.z}:{x:m.n.x,z:m.n.z};
+const mYaw=m=>m.k==='p'?players[m.i].yaw:m.n.ry+Math.PI; // facing as a player yaw (forward = -sin, -cos)
+const mFwd=m=>{const y=mYaw(m);return{x:-Math.sin(y),z:-Math.cos(y)};};
+const mSet=(m,x,z)=>{if(m.k==='p'){players[m.i].pos.x=GYMX+x;players[m.i].pos.z=z;}else{m.n.x=x;m.n.z=z;}};
+const mDist=(a,b)=>{const p=mPos(a),q=mPos(b);return Math.hypot(p.x-q.x,p.z-q.z);};
+const gymMember=i=>{for(const T of GYM.teams)for(const m of T)if(m.k==='p'&&m.i===i)return m;return null;};
+const actives=t=>GYM.teams[t].filter(m=>!m.out);
+const sideZ=t=>t===0?-1:1; // volleyball / dodgeball: team 0 plays the z<0 half
+const myTeamOf=i=>{const m=gymMember(i);return m?m.team:0;};
+const holderIs=m=>GYM.ball&&GYM.ball.hold===m;
+function gymEnsureNpcs(){if(GYM.npcs.length)return;const pool=NORMAL_TYPES.filter(t=>!['スナック帰りのママ','一人飲みのおじさん','常連のおっちゃん'].includes(t.name)),cols=[0x2a6ad8,0xd83a3a,0x2a9a5a,0xf0b020,0x7a3ad8,0xf06a2a,0x20a8c8,0xe8e8e8];
+  for(let k=0;k<8;k++){const b=pick(pool),type={...b,top:cols[k],pants:0x22222a,suit:0,tie:0,cardigan:0,zip:0,hood:0,stripes:0,shirt:0,workcap:0,shades:0,chain:0,shoe:0xf4f4f4};
+    const side=k%2?1:-1,hz=-9+Math.floor(k/2)*5.5;GYM.npcs.push({id:k,type,skin:skinFor(type),x:side*8.2,z:hz,home:[side*8.2,hz],ry:side>0?-Math.PI/2:Math.PI/2,team:-1,idle:true,sit:true,jump:0,act:0,holdT:0,cd:0,spot:null,name:`${b.name}`});}}
+const npcFace=(n,x,z)=>{n.ry=Math.atan2(x-n.x,z-n.z);};
+function npcMove(n,tx,tz,dt,sp=3.2){const dx=tx-n.x,dz=tz-n.z,d=Math.hypot(dx,dz);n.sit=false;if(d<.08)return true;const s=Math.min(d,sp*dt);n.x+=dx/d*s;n.z+=dz/d*s;n.ry=lerpAngle(n.ry,Math.atan2(dx,dz),Math.min(1,dt*10));return false;}
+// ---- start / stop
+function gymStart(code){const c=code-3000,s=['bask','volley','dodge'][Math.floor(c/10)%3],mix=!!(c%10&2),vsReq=!!(c%10&1),H=gymHumans();if(!H.length)return;gymEnsureNpcs();gymStop(true);
+  Object.assign(GYM,{mode:s,mix,vs:false,practice:!mix&&H.length===1,score:[0,0],t:0,touch:[0,0],next:null,cnt:0,best:0,mk:0,att:0});
+  const P=H.map(i=>({k:'p',i}));let A=[],Bt=[];
+  if(GYM.practice)A=[P[0]];
+  else if(!mix){A=[P[0]];Bt=[P[1]];GYM.vs=true;}
+  else{const size=s==='volley'?4:3,vs=H.length>1&&vsReq;GYM.vs=vs;if(vs){A=[P[0]];Bt=[P[1]];}else A=P.slice();const pool=GYM.npcs.slice();
+    while(A.length<size&&pool.length)A.push({k:'n',n:pool.shift()});while(Bt.length<size&&pool.length)Bt.push({k:'n',n:pool.shift()});}
+  GYM.teams=[A,Bt];GYM.teams.forEach((T,t)=>T.forEach(m=>{m.team=t;m.out=false;if(m.k==='n'){m.n.team=t;m.n.idle=false;m.n.sit=false;}}));
+  GYM.ball={x:0,y:1,z:0,vx:0,vy:0,vz:0,hold:null,last:null,cool:0,r:SPORTS[s].r,live:false,pass:null};
+  gymSetup(0);sfx.whistle();
+  if(H.includes(me))toast(GYM.practice?{bask:'シュート練習: ボールを持って使う長押し→離すでシュート(0.5秒くらいがベスト)',volley:'パス練習: ボールの下で使うを押して上げ続けよう',dodge:'フリー練習: 拾って使う長押しで投げる'}[s]
+    :{bask:'バスケ開始! 使う長押しでシュート/短押しでパス/相手の近くで使うとスティール',volley:'バレー開始! ボールの近くで使う=トス/ネットの方を向いて使う=アタック',dodge:'ドッジ開始! 拾う=使う、投げる=使う長押し→離す、飛んできたら使うでキャッチ'}[s]);}
+function gymStop(silent){GYM.teams.forEach(T=>T.forEach(m=>{if(m.k==='n'){m.n.team=-1;m.n.idle=true;m.n.act=0;}}));GYM.teams=[[],[]];GYM.mode=null;GYM.ball=null;GYM.next=null;
+  if(!silent&&locOf(me)==='store:gym')toast('試合を終了した');}
+function gymLeft(i){const m=gymMember(i);if(!m)return;if(holderIs(m))GYM.ball.hold=null;GYM.teams.forEach(T=>{const k=T.indexOf(m);if(k>=0)T.splice(k,1);});if(!GYM.teams.some(T=>T.some(x=>x.k==='p')))gymStop(true);}
+// everyone to their places; `t` gets the ball
+function gymSetup(t){const b=GYM.ball,s=GYM.mode;b.vx=b.vy=b.vz=0;b.live=false;b.pass=null;b.cool=.5;GYM.touch=[0,0];
+  GYM.teams.forEach((T,tm)=>T.forEach((m,j)=>{m.out=false;const sz=sideZ(tm),n=T.length;let x=(j-(n-1)/2)*2.4,z;
+    if(s==='bask')z=sz*(3+(j%2)*2);else if(s==='volley')z=sz*(j%2?6.2:2.4);else z=sz*(3+j%2*2.5);
+    if(GYM.practice&&s==='bask'){x=0;z=7;}if(GYM.practice&&s==='volley'){x=0;z=-4;}
+    mSet(m,x,z);if(m.k==='n')m.n.ry=sz<0?0:Math.PI;else if(m.i===me){view.yaw=sz<0?Math.PI:0;}}));
+  const T=GYM.teams[t].length?GYM.teams[t]:GYM.teams[0],h=T[0];b.hold=null;
+  if(s==='bask'||s==='volley'){b.hold=h;if(s==='volley'&&!GYM.practice){mSet(h,1.2,sideZ(h.team)*8.4);}}
+  else{b.x=0;b.y=b.r;b.z=sideZ(h.team)*1.2;}
+  b.last=null;}
+// ---- the ball
+function launchTo(b,sx,sy,sz,tx,ty,tz,T){b.x=sx;b.y=sy;b.z=sz;b.vx=(tx-sx)/T;b.vz=(tz-sz)/T;b.vy=(ty-sy+.5*GYG*T*T)/T;}
+const hoopZ=t=>t===0?12:-12;
+function gymShoot(m,acc){const b=GYM.ball,p=mPos(m),hz=hoopZ(m.team),d=Math.hypot(p.x,p.z-hz),bac=m.k==='p'?(players[m.i].P.bac||0):0;
+  const err=(.045+d*.032)*(1.3-acc)+bac*.004,a=R()*Math.PI*2,e=err*Math.sqrt(R()),T=.75+d*.07;
+  launchTo(b,p.x,2.1,p.z,Math.cos(a)*e,3.12,hz-Math.sign(hz)*.0+Math.sin(a)*e,T);b.hold=null;b.last=m;b.cool=.5;b.shot={d,t:m.team};if(m.k==='n')m.n.act=.4;
+  if(GYM.practice)GYM.att++;sfx.whoosh&&sfx.whoosh('punch');}
+function gymPass(m,to){const b=GYM.ball,p=mPos(m),q=mPos(to),d=Math.hypot(q.x-p.x,q.z-p.z),T=.35+d*.06;launchTo(b,p.x,1.2,p.z,q.x,1.1,q.z,T);b.hold=null;b.last=m;b.cool=.25;b.pass=to;if(m.k==='n')m.n.act=.25;}
+function volleyHit(m,attack){const b=GYM.ball,t=m.team,sz=sideZ(t),p=mPos(m);GYM.touch[t]++;GYM.touch[1-t]=0;b.last=m;b.cool=.35;b.live=true;if(m.k==='n'){m.n.act=.35;m.n.jump=1;}
+  if(GYM.practice){b.vx=(R()-.5)*.6;b.vz=(R()-.5)*.6;b.vy=6.2;GYM.cnt++;GYM.best=Math.max(GYM.best,GYM.cnt);sfx.kickBall(.3);return;}
+  if(m.k==='n'&&R()<.12){b.vx=(R()-.5)*4;b.vz=(R()-.5)*4;b.vy=3;sfx.kickBall(.2);return;} // shanked
+  if(attack||GYM.touch[t]>=3){const tx=(R()-.5)*7,tz=-sz*(1.5+R()*6.5),spike=b.y>2.1&&Math.abs(p.z)<3.2;let T=spike?.65:1.15;
+    for(let k=0;k<12;k++){const u=Math.abs(b.z)/(Math.abs(b.z)+Math.abs(tz)),vy=(0-b.y+.5*GYG*T*T)/T,tc=T*u,yc=b.y+vy*tc-.5*GYG*tc*tc;if(yc>2.45)break;T+=.12;}
+    launchTo(b,b.x,b.y,b.z,tx,0,tz,T);if(spike&&m.k==='p'&&m.i===me)toast('アタック!');}
+  else{const mates=GYM.teams[t].filter(x=>x!==m&&!x.out),to=mates.length?pick(mates):null,q=to?mPos(to):{x:p.x,z:p.z};launchTo(b,b.x,b.y,b.z,q.x*.6,2.6,sz*2.2,1.15);b.vy+=1.5;}
+  sfx.kickBall(.35);}
+function volleyServe(m){const b=GYM.ball,sz=sideZ(m.team),p=mPos(m);let T=1.3;const tx=(R()-.5)*6.5,tz=-sz*(2+R()*6);
+  for(let k=0;k<12;k++){const vy=(0-1.6+.5*GYG*T*T)/T,u=Math.abs(p.z)/(Math.abs(p.z)+Math.abs(tz)),tc=T*u,yc=1.6+vy*tc-.5*GYG*tc*tc;if(yc>2.5)break;T+=.12;}
+  b.hold=null;launchTo(b,p.x,1.6,p.z,tx,0,tz,T);b.last=m;b.cool=.4;b.live=true;GYM.touch=[0,0];GYM.touch[m.team]=1;sfx.kickBall(.4);}
+function dodgeThrow(m,fx,fz,power,aimAt){const b=GYM.ball,p=mPos(m),sp=10+power*8;let tx,tz;
+  if(aimAt){const q=mPos(aimAt);tx=q.x+(R()-.5)*.8;tz=q.z+(R()-.5)*.8;}else{let best=null,bd=.55;actives(1-m.team).forEach(o=>{const q=mPos(o),dx=q.x-p.x,dz=q.z-p.z,d=Math.hypot(dx,dz),c=(dx*fx+dz*fz)/d;if(c>1-bd){bd=1-c;best=q;}});
+    tx=best?best.x:p.x+fx*12;tz=best?best.z:p.z+fz*12;}
+  const d=Math.hypot(tx-p.x,tz-p.z),T=Math.max(.18,d/sp);launchTo(b,p.x+fx*.3,1.5,p.z+fz*.3,tx,1.0,tz,T);b.hold=null;b.last=m;b.live=true;b.cool=.15;if(m.k==='n')m.n.act=.35;sfx.whoosh&&sfx.whoosh('punch');}
+function gymPoint(t,why,pts=1){GYM.score[t]+=pts;sfx.whistle();const S=SPORTS[GYM.mode],H=gymHumans(),mt=myTeamOf(me);
+  if(H.includes(me))toast(`${why}  ${GYM.vs?`1P ${GYM.score[0]} - ${GYM.score[1]} 2P`:`自チーム ${GYM.score[mt]} - ${GYM.score[1-mt]} 相手`}`);
+  if(GYM.score[t]>=S.win){const won=t===mt;if(H.includes(me))later(()=>{if(W.running&&locOf(me)==='store:gym')toast(GYM.vs?`${t+1}Pの勝ち! (${GYM.score[0]}-${GYM.score[1]})`:won?`勝った!! (${GYM.score[mt]}-${GYM.score[1-mt]})`:`負けた… (${GYM.score[mt]}-${GYM.score[1-mt]})`);},1200);
+    GYM.next={t:1.5,fn:()=>{gymStop(true);}};return;}
+  GYM.next={t:GYM.mode==='dodge'?2.5:1.3,fn:()=>gymSetup(GYM.mode==='bask'?1-t:t)};}
+function ballPos(b){const h=b.hold;if(!h)return;const p=mPos(h),f=mFwd(h);
+  if(GYM.mode==='bask'){b.x=p.x+f.x*.35;b.z=p.z+f.z*.35;b.y=.25+Math.abs(Math.sin(W.t*8))*.75;}else{b.x=p.x+f.x*.3;b.z=p.z+f.z*.3;b.y=1.15;}b.vx=b.vy=b.vz=0;}
+function stepGymBall(dt){const b=GYM.ball;if(!b)return;if(b.cool>0)b.cool-=dt;if(b.hold){ballPos(b);return;}
+  const px=b.x,py=b.y,pz=b.z,r=b.r,s=GYM.mode;b.vy-=GYG*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;b.z+=b.vz*dt;
+  if(b.x<-8.8+r){b.x=-8.8+r;b.vx=Math.abs(b.vx)*.6;}if(b.x>8.8-r){b.x=8.8-r;b.vx=-Math.abs(b.vx)*.6;}if(b.z<-13.8+r){b.z=-13.8+r;b.vz=Math.abs(b.vz)*.6;}if(b.z>13.8-r){b.z=13.8-r;b.vz=-Math.abs(b.vz)*.6;}if(b.y>8-r){b.y=8-r;b.vy=-Math.abs(b.vy)*.5;}
+  if(s==='bask'){[12,-12].forEach(hz=>{const bz=hz+Math.sign(hz)*.35;
+      if((pz-bz)*(b.z-bz)<=0&&Math.abs(b.x)<.9&&b.y>2.9&&b.y<4.0){b.z=bz-Math.sign(hz)*.01;b.vz=-b.vz*.6;sfx.thud&&sfx.thud();}
+      const dx=b.x,dz=b.z-hz,dh=Math.hypot(dx,dz);
+      if(py>=3.05&&b.y<3.05&&dh<.2&&b.vy<0&&!b.made){b.made=1;const t=hz>0?0:1,three=b.shot&&b.shot.d>6.5;if(GYM.practice){GYM.mk++;sfx.goal();if(locOf(me)==='store:gym')toast(`ナイスシュート! ${GYM.mk}/${GYM.att}`);}else gymPoint(t,three?'3ポイント!!':'ナイスシュート!',three?3:2);}
+      else if(Math.abs(b.y-3.05)<.09&&Math.abs(dh-.23)<r+.02){const ux=dx/(dh||1),uz=dz/(dh||1),vr=b.vx*ux+b.vz*uz;if((dh<.23&&vr>0)||(dh>.23&&vr<0)){b.vx-=1.6*vr*ux;b.vz-=1.6*vr*uz;b.vy*=.7;sfx.clink&&sfx.clink(.5);}}});}
+  if(s==='volley'&&(pz*b.z<=0)&&Math.abs(b.x)<4.9&&b.y<2.24){b.z=pz;b.vz=-b.vz*.3;b.vx*=.5;}
+  if(s==='volley'&&pz*b.z<=0)GYM.touch=[0,0];
+  if(b.y<r){b.y=r;const hit=b.vy<-1.5;b.vy=hit?-b.vy*(s==='bask'?.78:s==='volley'?.55:.45):0;const f=Math.exp(-2.2*dt);b.vx*=f;b.vz*=f;
+    if(hit&&s==='bask')sfx.thud&&sfx.thud();b.made=0;
+    if(s==='volley'&&b.live&&!GYM.next){b.live=false;
+      if(GYM.practice){if(GYM.cnt&&locOf(me)==='store:gym')toast(`${GYM.cnt}回つながった (ベスト ${GYM.best})`);GYM.cnt=0;GYM.next={t:1,fn:()=>{const m=GYM.teams[0][0];if(m)GYM.ball.hold=m;}};}
+      else{const inb=Math.abs(b.x)<=4.5&&Math.abs(b.z)<=9,side=b.z<0?0:1,lt=b.last?b.last.team:0;gymPoint(inb?1-side:1-lt,inb?'ボールが落ちた!':'アウト!');}}
+    if(s==='dodge'){b.live=false;if(Math.abs(b.z)<.6&&Math.hypot(b.vx,b.vz)<.5)b.z=b.z<0?-.65:.65;}}
+  // dodgeball: a live ball hitting someone on the other side
+  if(s==='dodge'&&b.live&&b.last){const ot=1-b.last.team;for(const m of actives(ot)){const q=mPos(m),d=Math.hypot(b.x-q.x,b.z-q.z,(b.y-1.0)*.7);if(d>.5)continue;
+      const caught=m.k==='p'?(W.t-(players[m.i].gpT||-9)<.45):(Math.hypot(b.vx,b.vz)<16&&R()<.22);
+      b.live=false;b.vx*=-.25;b.vz*=-.25;b.vy=2;
+      if(caught){b.hold=m;const th=b.last;if(!GYM.practice){th.out=true;gymOut(th);}sfx.clink(1);if(m.k==='p'&&m.i===me)toast('キャッチ!! 投げた相手はアウト');}
+      else{m.out=true;gymOut(m);sfx.thud&&sfx.thud();if(m.k==='p'&&m.i===me)toast('当たった… アウト(外で応援)');}
+      [0,1].forEach(t=>{if(!GYM.next&&GYM.teams[t].length&&!actives(t).length)gymPoint(1-t,`${t===myTeamOf(me)?'全員当てられた…':'全員当てた!'}`);});break;}}
+  // passes / loose balls get picked up
+  if(!(b.cool>0)&&b.y<1.6&&s!=='volley'){const all=[...GYM.teams[0],...GYM.teams[1]].filter(m=>!m.out);
+    for(const m of all){const q=mPos(m),d=Math.hypot(b.x-q.x,b.z-q.z);if(d>(b.pass===m?.9:.5))continue;if(s==='dodge'&&(m.k==='p'||Math.sign(b.z)!==sideZ(m.team))&&b.pass!==m)continue;
+      b.hold=m;b.pass=null;b.live=false;if(m.k==='n')m.n.holdT=0;break;}}}
+function gymOut(m){if(m.k==='n'){m.n.idle=false;}else{const sz=sideZ(m.team);mSet(m,-7.6,sz*4);}if(holderIs(m))GYM.ball.hold=null;}
+// ---- the people we play with
+function npcPlay(m,dt){const n=m.n,b=GYM.ball,s=GYM.mode,t=m.team,sz=sideZ(t);n.cd-=dt;if(n.act>0)n.act-=dt;if(n.jump>0)n.jump-=dt*2.2;
+  if(m.out){npcMove(n,(n.x<0?-1:1)*7.8,sz*(3+n.id%3),dt,2);return;}
+  if(!b){npcMove(n,n.home[0],n.home[1],dt,2);return;}
+  if(s==='bask'){const hz=hoopZ(t),mine=b.hold&&b.hold.team===t,theirs=b.hold&&b.hold.team!==t;
+    if(holderIs(m)){n.holdT+=dt;const d=Math.hypot(n.x,n.z-hz),opp=actives(1-t).find(o=>mDist(o,m)<.9);
+      if(d<4.3&&n.holdT>.6||n.holdT>4)return gymShoot(m,.55+R()*.35);
+      if(opp&&R()<dt*.9){const mates=actives(t).filter(x=>x!==m);if(mates.length)return gymPass(m,pick(mates));}
+      npcMove(n,clamp(n.x,-3,3),hz-Math.sign(hz)*3,dt,2.6);return;}
+    if(mine){const j=GYM.teams[t].indexOf(m),sp=[[-3.4,3.2],[3.4,3.2],[0,5.8],[-2,1.8]][j%4];npcMove(n,sp[0],hz-Math.sign(hz)*sp[1],dt,3);npcFace(n,b.x,b.z);return;}
+    if(theirs){const man=actives(1-t)[GYM.teams[t].indexOf(m)%Math.max(1,actives(1-t).length)]||b.hold,q=mPos(man),oh=hoopZ(1-t),dz=oh-q.z,dd=Math.hypot(q.x,dz)||1,gap=man===b.hold?.55:1.0;
+      npcMove(n,q.x+(-q.x/dd)*gap,q.z+dz/dd*gap,dt,3.3);npcFace(n,q.x,q.z);if(man===b.hold&&mDist(m,man)<.75&&n.cd<=0&&R()<dt*.35){n.cd=1.5;b.hold=m;n.holdT=0;n.act=.3;}return;}
+    const near=actives(t).slice().sort((a,c)=>{const pa=mPos(a),pc=mPos(c);return Math.hypot(pa.x-b.x,pa.z-b.z)-Math.hypot(pc.x-b.x,pc.z-b.z);})[0];
+    if(near===m)npcMove(n,b.x,b.z,dt,3.6);else npcMove(n,n.x*.9,n.z*.95,dt,2);return;}
+  if(s==='volley'){const base=[[-2.2,2.4],[2.2,2.4],[-2,6.2],[2,6.2]][GYM.teams[t].indexOf(m)%4];
+    if(holderIs(m)){n.holdT=(n.holdT||0)+dt;npcMove(n,1.2,sz*8.4,dt,2);if(n.holdT>1.6){n.holdT=0;volleyServe(m);}return;}
+    // where will it come down (at reach height)?
+    let lx=b.x,lz=b.z;if(!b.hold&&b.live){let x=b.x,y=b.y,z=b.z,vx=b.vx,vy=b.vy,vz=b.vz;for(let k=0;k<120;k++){vy-=GYG/30;x+=vx/30;y+=vy/30;z+=vz/30;if(y<1.4&&vy<0)break;}lx=x;lz=z;}
+    const mineSide=Math.sign(lz)===sz&&b.live,team=actives(t),close=team.slice().sort((a,c)=>{const pa=mPos(a),pc=mPos(c);return Math.hypot(pa.x-lx,pa.z-lz)-Math.hypot(pc.x-lx,pc.z-lz);}).find(x=>x!==b.last||GYM.touch[t]===0);
+    if(mineSide&&close===m){npcMove(n,clamp(lx,-4.4,4.4),clamp(lz,sz>0?.4:-9,sz>0?9:-.4),dt,4.2);
+      const d=Math.hypot(b.x-n.x,b.z-n.z);if(d<.95&&b.y<2.7&&b.y>.4&&!(b.cool>0)&&n.cd<=0){if(R()<(GYM.touch[t]?.1:.2))n.cd=1.2;else volleyHit(m,false);}}
+    else npcMove(n,base[0],sz*base[1],dt,2.4);npcFace(n,b.x,b.z);return;}
+  if(s==='dodge'){const zone=z=>clamp(z,sz>0?.6:-7.6,sz>0?7.6:-.6);
+    if(holderIs(m)){n.holdT=(n.holdT||0)+dt;npcMove(n,n.x,zone(sz*1.6),dt,2);const tg=actives(1-t);if(n.holdT>.9+R()*.8&&tg.length){n.holdT=0;dodgeThrow(m,0,0,.6,pick(tg));}return;}
+    if(!b.hold&&Math.sign(b.z)===sz&&!b.live){const near=actives(t).filter(x=>x.k==='n').sort((a,c)=>{const pa=mPos(a),pc=mPos(c);return Math.hypot(pa.x-b.x,pa.z-b.z)-Math.hypot(pc.x-b.x,pc.z-b.z);})[0];if(near===m){npcMove(n,b.x,clamp(b.z,sz>0?.6:-13.4,sz>0?13.4:-.6),dt,3.4);return;}}
+    if(!n.spot||n.cd<=0){n.cd=1.2+R()*1.5;n.spot=[clamp(n.x+(R()-.5)*3,-4.6,4.6),zone(sz*(2+R()*4.5))];}
+    if(b.hold&&b.hold.team!==t&&R()<dt*1.2)n.spot=[clamp(n.x+(R()<.5?-1.5:1.5),-4.6,4.6),n.spot[1]];
+    npcMove(n,n.spot[0],n.spot[1],dt,3);npcFace(n,b.x,b.z);}}
+function npcIdle(n,dt){if(n.jump>0)n.jump-=dt*2.2;if(npcMove(n,n.home[0],n.home[1],dt,1.6)){n.sit=true;n.ry=n.home[0]>0?-Math.PI/2:Math.PI/2;}}
+// one sim tick (everyone in the gym)
+function gymStep(dt){if(!GYM.npcs.length&&!gymHumans().length)return;const m0=SHOPMUTE;SHOPMUTE=locOf(me)!=='store:gym';
+  try{gymEnsureNpcs();if(GYM.mode&&!gymHumans().length)gymStop(true);
+    GYM.npcs.forEach(n=>{if(n.team<0)npcIdle(n,dt);});if(!GYM.mode)return;GYM.t+=dt;
+    if(GYM.next){GYM.next.t-=dt;if(GYM.next.t<=0){const f=GYM.next.fn;GYM.next=null;f();}if(!GYM.mode)return;}
+    GYM.teams.forEach(T=>T.forEach(m=>{if(m.k==='n')npcPlay(m,dt);}));
+    // keep us on our own half where the sport needs it
+    if(GYM.mode!=='bask'&&!GYM.practice)GYM.teams.forEach(T=>T.forEach(m=>{if(m.k!=='p'||m.out)return;const p=mPos(m),sz=sideZ(m.team),z=sz<0?clamp(p.z,-9.6,-.35):clamp(p.z,.35,9.6);if(z!==p.z)mSet(m,p.x,z);}));
+    // someone (human) just standing there with the ball: a nudge, then it goes by itself
+    {const b=GYM.ball,h=b&&b.hold;if(h&&h.k==='p'&&!GYM.practice&&!GYM.next){if(b.htm!==h){b.htm=h;b.ht=0;}b.ht+=dt;const lim=GYM.mode==='bask'?9:6;
+      if(b.ht>3&&b.ht-dt<=3&&h.i===me)toast({bask:'使う長押し→離すでシュート、短押しでパス',volley:'使うでサーブ!',dodge:'使う長押し→離すで投げる'}[GYM.mode]);
+      if(b.ht>lim){b.ht=0;const f=mFwd(h);if(GYM.mode==='volley')volleyServe(h);else if(GYM.mode==='dodge')dodgeThrow(h,f.x,f.z,.5,pick(actives(1-h.team).length?actives(1-h.team):[h]));else{const mt=actives(h.team).filter(x=>x!==h);if(mt.length)gymPass(h,pick(mt));else gymShoot(h,.5);}}}
+      else if(b){b.htm=null;b.ht=0;}}
+    stepGymBall(dt);}finally{SHOPMUTE=m0;}}
+// my buttons while playing
+const gymPlaying=()=>W.store==='gym'&&!!GYM.mode&&!!gymMember(cur)&&!gymMember(cur).out;
+function gymPress(q){q.gpT=W.t;}
+function gymRelease(q,held){const m=gymMember(cur),b=GYM.ball;if(!m||m.out||!b||GYM.next)return;const p=mPos(m),fx=-Math.sin(yaw),fz=-Math.cos(yaw),db=Math.hypot(b.x-p.x,b.z-p.z);
+  if(GYM.mode==='bask'){if(holderIs(m)){const mates=actives(m.team).filter(x=>x!==m);
+      if(held<.2&&mates.length){const to=mates.slice().sort((a,c)=>{const pa=mPos(a),pc=mPos(c),sa=((pa.x-p.x)*fx+(pa.z-p.z)*fz)/(Math.hypot(pa.x-p.x,pa.z-p.z)||1),sc=((pc.x-p.x)*fx+(pc.z-p.z)*fz)/(Math.hypot(pc.x-p.x,pc.z-p.z)||1);return sc-sa;})[0];gymPass(m,to);}
+      else gymShoot(m,clamp(1-Math.abs(held-.55)*1.6,.15,1));return;}
+    if(b.hold&&b.hold.team!==m.team&&mDist(m,b.hold)<1.0){if(R()<.4){b.hold=m;sfx.clink(.8);if(cur===me)toast('スティール!');}else if(cur===me)toast('取れなかった');return;}
+    if(!b.hold&&db<1.3&&b.y<1.8){b.hold=m;b.pass=null;}return;}
+  if(GYM.mode==='volley'){if(holderIs(m)){if(GYM.practice){b.hold=null;b.vx=0;b.vz=0;b.vy=5.5;b.live=true;b.last=m;GYM.cnt=0;return;}volleyServe(m);return;}
+    if(!b.hold&&db<1.4&&b.y>.3&&b.y<3.1&&!(b.cool>0)){const sz=sideZ(m.team),towardNet=(-sz*fz)>.35;volleyHit(m,towardNet&&!GYM.practice);}else if(cur===me)toast('ボールに届かない');return;}
+  if(GYM.mode==='dodge'){if(holderIs(m)){dodgeThrow(m,fx,fz,clamp(held/.8,0,1));return;}
+    if(!b.hold&&!b.live&&db<1.3&&b.y<1.0&&(GYM.practice||Math.sign(b.z)===sideZ(m.team))){b.hold=m;}}}
+
+// ---- the gym hall (built when someone first walks in)
+function buildGym(S,G,B,C,PL,hit){
+  const ft=ctex(512,1024,(g,w,h)=>{g.fillStyle='#d8a868';g.fillRect(0,0,w,h);for(let i=0;i<120;i++){g.fillStyle=`rgba(120,70,30,${.05+Math.random()*.08})`;g.fillRect(0,i*8.6,w,1);}
+    const X=x=>(x+8.8)/17.6*w,Z=z=>(z+13.8)/27.6*h,line=(c,lw,f)=>{g.strokeStyle=c;g.lineWidth=lw;g.beginPath();f();g.stroke();},rect=(x0,x1,z0,z1)=>g.rect(X(x0),Z(z0),X(x1)-X(x0),Z(z1)-Z(z0));
+    line('#f4f4f0',3,()=>{rect(-7,7,-13,13);g.moveTo(X(-7),Z(0));g.lineTo(X(7),Z(0));});line('#f4f4f0',3,()=>g.ellipse(X(0),Z(0),1.8/17.6*w,1.8/27.6*h,0,0,7));
+    [12,-12].forEach(hz=>{line('#f4f4f0',3,()=>g.ellipse(X(0),Z(hz),6.75/17.6*w,6.75/27.6*h,0,hz>0?Math.PI:0,hz>0?Math.PI*2:Math.PI));g.fillStyle='rgba(180,40,30,.55)';g.fillRect(X(-2.45),Z(hz>0?7.2:-13),X(2.45)-X(-2.45),Z(hz>0?13:-7.2)-Z(hz>0?7.2:-13));});
+    line('#2a6ad8',3,()=>{rect(-4.5,4.5,-9,9);g.moveTo(X(-4.5),Z(-3));g.lineTo(X(4.5),Z(-3));g.moveTo(X(-4.5),Z(3));g.lineTo(X(4.5),Z(3));});
+    line('#e8c020',3,()=>rect(-5,5,-8,8));});
+  PL(17.6,27.6,new THREE.MeshPhongMaterial({map:ft,shininess:40,specular:0x2a2a2a,color:0xc8c0b4}),0,0,0,-Math.PI/2);
+  const wall=lam(0xe8e4dc),pad=lam(0x2a4a8a);PL(17.6,27.6,lam(0xe8e6e0),0,8,0,Math.PI/2);[[-13.8,0],[13.8,Math.PI]].forEach(([z,r])=>PL(17.6,8,wall,0,4,z,0,r));[[-8.8,Math.PI/2],[8.8,-Math.PI/2]].forEach(([x,r])=>PL(27.6,8,wall,x,4,0,0,r));
+  [[-8.78,Math.PI/2],[8.78,-Math.PI/2]].forEach(([x,r])=>PL(27.6,1.6,pad,x,.8,0,0,r));
+  for(let z=-11;z<=11;z+=5.5)[-6,0,6].forEach(x=>{B(.9,.08,.9,new THREE.MeshBasicMaterial({color:0xfafaf4}),x,7.9,z);});
+  {const hl=new THREE.HemisphereLight(0xffffff,0xb89a70,.25);G.add(hl);[[0,-7],[0,7]].forEach(([x,z])=>{const pl=new THREE.PointLight(0xfff8ec,.45,30,1);pl.position.set(x,7,z);G.add(pl);});}
+  // hoops at both ends
+  [12,-12].forEach(hz=>{const s=Math.sign(hz),wh=lam(0xf4f4f4),rd=phong(0xd84a1a,80);B(.25,3.2,.25,phong(0x3a3a3e,60),0,1.6,hz+s*1.5);B(.12,.12,1.2,phong(0x3a3a3e,60),0,3.4,hz+s*.95);
+    B(1.8,1.05,.05,new THREE.MeshPhongMaterial({color:0xffffff,transparent:true,opacity:.55,shininess:120}),0,3.45,hz+s*.35);B(.6,.45,.06,wh,0,3.25,hz+s*.33);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(.23,.012,6,20),rd);ring.rotation.x=Math.PI/2;ring.position.set(0,3.05,hz);G.add(ring);
+    const net=new THREE.Mesh(new THREE.CylinderGeometry(.23,.15,.4,12,1,true),new THREE.MeshBasicMaterial({color:0xffffff,wireframe:true,transparent:true,opacity:.7}));net.position.set(0,2.85,hz);G.add(net);});
+  // volleyball posts + net (only shown during volleyball)
+  {const ng=new THREE.Group();G.add(ng);S.net=ng;[-4.9,4.9].forEach(x=>B(.1,2.5,.1,phong(0xb8bcc0,90),x,1.25,0,ng));B(9.8,.04,.02,lam(0xf4f4f4),0,2.24,0,ng);
+    const nm=new THREE.Mesh(new THREE.PlaneGeometry(9.6,.9),new THREE.MeshBasicMaterial({color:0x1a1a1a,wireframe:true,transparent:true,opacity:.55,side:THREE.DoubleSide}));nm.position.set(0,1.8,0);ng.add(nm);ng.visible=false;}
+  // benches, scoreboard, reception, doors
+  [-8.2,8.2].forEach(x=>{B(.45,.45,22,phong(0xc89a5a,40),x,.22,0);});
+  {const sb=ctex(512,192,(g,w,h)=>{g.fillStyle='#101418';g.fillRect(0,0,w,h);g.fillStyle='#f4c020';g.font='bold 36px sans-serif';g.textAlign='center';g.fillText('みなと市民体育館',w/2,60);g.fillStyle='#e8e8e8';g.font='22px sans-serif';g.fillText('バスケ ・ バレー ・ ドッジボール',w/2,110);g.fillText('受付で申し込み(使う)',w/2,150);});
+    PL(5,1.9,new THREE.MeshBasicMaterial({map:sb}),0,5.6,-13.75);}
+  B(2.6,1.0,.7,phong(0x6a4a2a,40),7.2,.5,12.9);B(2.7,.04,.8,lam(0xf4f0ea),7.2,1.02,12.9);
+  {const ty={name:'受付',top:0x2a5a3a,pants:0x2a2a30,hair:0x6a6a66,hs:'short',old:1,glasses:1,build:[1,1.1,1],shoe:0x222222},cl=buildModel(ty,'#e8c4a2');cl.g.position.set(7.2,0,13.45);cl.g.rotation.y=Math.PI;G.add(cl.g);
+    S.clerks.push({...cl,type:ty,skin:'#e8c4a2',ctx:cl.fc.getContext('2d'),expr:'',hy:0,hp:0,hr:0,walkT:0,bac:0,lv:0});setExpr(S.clerks[0],'normal');}
+  hit(2.6,1.2,.9,7.2,1.1,12.6,{prompt(){return GYM.mode?'受付(試合中・<b>やめる/変更</b>)':'受付で<b>コートを使う</b>(バスケ・バレー・ドッジ)';},press(){if(cur===me)openGymUI();}});
+  B(2.2,2.6,.1,phong(0x8a9aa8,80),-6.5,1.3,13.78);hit(2.2,2.6,.4,-6.5,1.3,13.6,{prompt(){return'体育館を<b>出る</b>';},press(){transit(exitStore);}});}
+// ---- local: reception picker, scoreboard HUD, drawing the people and the ball
+function openGymUI(){const el=$('#gymUI');let sp=0,mix=1,vs=0;const two=gymHumans().length>1;
+  const draw=()=>{const b=(k,v,cur,t)=>`<button class="lk-b${cur===v?' on':''}" data-${k}="${v}">${t}</button>`;
+    el.innerHTML=`<div class="lk-win"><div class="lk-bar"><b>みなと市民体育館 受付</b><button data-x="close">×</button></div><div class="lk-body">
+      <div class="lk-h">種目</div><div class="lk-row">${b('sp',0,sp,'🏀 バスケ')}${b('sp',1,sp,'🏐 バレー')}${b('sp',2,sp,'🔴 ドッジボール')}</div>
+      <div class="lk-h">メンバー</div><div class="lk-row">${b('mix',0,mix,two?'2人だけでやる':'ひとりで練習')}${b('mix',1,mix,'来てる人も混ぜる')}</div>
+      ${two&&mix?`<div class="lk-h">2人のチーム</div><div class="lk-row">${b('vs',0,vs,'同じチーム')}${b('vs',1,vs,'敵同士で対決')}</div>`:''}
+      </div><div class="lk-foot"><span>${GYM.mode?`いま: ${SPORTS[GYM.mode].n}${GYM.practice?'(練習)':''}`:'コートは空いてます'}</span>${GYM.mode?'<button data-x="stop">やめる</button>':''}<button data-x="ok">はじめる</button></div></div>`;};
+  el.onclick=e=>{const t=e.target.closest('button');if(!t)return;if(t.dataset.sp!=null)sp=+t.dataset.sp;else if(t.dataset.mix!=null)mix=+t.dataset.mix;else if(t.dataset.vs!=null)vs=+t.dataset.vs;
+    else if(t.dataset.x==='close'){el.hidden=true;return;}else if(t.dataset.x==='stop'){input.acQ=3999;el.hidden=true;return;}else if(t.dataset.x==='ok'){input.acQ=3000+sp*10+mix*2+(two&&mix?vs:0);el.hidden=true;return;}draw();};
+  draw();el.hidden=false;if(document.exitPointerLock&&locked())document.exitPointerLock();}
+function gymHud(){const el=$('#gymHud'),on=W.running&&W.store==='gym'&&!!GYM.mode;if(el.hidden===!on&&!on)return;el.hidden=!on;if(!on)return;
+  const S=SPORTS[GYM.mode],mt=myTeamOf(me),m=gymMember(me);let t;
+  if(GYM.practice)t=GYM.mode==='bask'?`🏀 シュート練習  成功 ${GYM.mk} / ${GYM.att}`:GYM.mode==='volley'?`🏐 パス練習  ${GYM.cnt}回 (ベスト ${GYM.best})`:'🔴 ドッジボール フリー練習';
+  else t=`${{bask:'🏀',volley:'🏐',dodge:'🔴'}[GYM.mode]} ${S.n} ${GYM.vs?`1P ${GYM.score[0]} - ${GYM.score[1]} 2P`:`あなたのチーム ${GYM.score[mt]} - ${GYM.score[1-mt]} 相手`}  (${S.win}${GYM.mode==='dodge'?'セット':'点'}先取)${m&&m.out?' ・ アウト中':''}`;
+  if(el.textContent!==t)el.textContent=t;}
+function drawGym(S,dt){const V=S.gv||(S.gv={npc:{},ball:null});if(S.net)S.net.visible=GYM.mode==='volley';
+  GYM.npcs.forEach(n=>{let m=V.npc[n.id];if(!m){m=vis(()=>buildModel(n.type,n.skin));Object.assign(m,{type:n.type,skin:n.skin,ctx:m.fc.getContext('2d'),expr:'',hy:0,hp:0,hr:0,walkT:0,bac:0,lv:0});vis(()=>setExpr(m,'happy'));S.scene.add(m.g);m.g.position.set(GYMX+n.x,0,n.z);V.npc[n.id]=m;}
+    const tx=GYMX+n.x,px=m.g.position.x,pz=m.g.position.z;m.g.position.x+=(tx-px)*Math.min(1,dt*14);m.g.position.z+=(n.z-pz)*Math.min(1,dt*14);if(Math.hypot(tx-px,n.z-pz)>.004)legsWalk(m,dt,true);
+    m.g.position.y=n.jump>0?Math.sin(Math.min(1,n.jump)*Math.PI)*.45:n.sit?-.4:0;m.forceLP=n.sit?'chair':null;m.g.rotation.y=lerpAngle(m.g.rotation.y,n.ry,Math.min(1,dt*10));
+    const hb=GYM.ball&&GYM.ball.hold&&GYM.ball.hold.k==='n'&&GYM.ball.hold.n===n,a=n.act>0?(GYM.mode==='volley'?'overhead':'punch'):hb?'counter':'hang';armTo(m,0,a,dt,10);armTo(m,1,hb?'counter':a,dt,10);rigUpdate(m,dt);});
+  const b=GYM.ball;if(!V.ball||V.mode!==GYM.mode){if(V.ball)S.scene.remove(V.ball);const sp=SPORTS[GYM.mode||'bask'];V.ball=new THREE.Mesh(new THREE.SphereGeometry(sp.r,20,14),new THREE.MeshStandardMaterial({color:sp.col,roughness:.6}));S.scene.add(V.ball);V.mode=GYM.mode;}
+  V.ball.visible=!!b;if(b){const tg=_bt.set(GYMX+b.x,b.y,b.z);if(V.ball.position.distanceTo(tg)>1.5)V.ball.position.copy(tg);else V.ball.position.lerp(tg,1-Math.exp(-dt*25));}}
+
+Object.assign(sfx,{whistle(){tone(2900,.3,'square',.035);tone(2900,.15,'square',.03,null,.32);}});
 const STORES={
   konbini:{kind:'konbini',name:'DAILY MART',X:2000,hid:700000,rect:[-3.75,3.75,-4.6,4.7],spawn:[-2.5,3.9,0],out:[-4.1,109.3,0],obst:[[1.85,4.2,.3,5.2],[-1.75,-1.05,-3,1.5],[.05,.75,-3,1.5],[-4.2,-3.25,-2.6,1.6],[-4.2,1.9,-5.2,-4.25],[-.95,1.65,4.3,5.2],[-1.75,-1.05,4.0,4.6]],clerks:[],shoppers:[],
     aisles:[-2.5,-.35,1.3],za:[-3.4,1.2],cross:[2.6,-3.75]},
   konbini2:{kind:'konbini',name:'DAILY MART 繁華街店',X:2500,hid:650000,rect:[-3.75,3.75,-4.6,4.7],spawn:[-2.5,3.9,0],out:[-8.0,38.15,Math.PI/2],obst:[[1.85,4.2,.3,5.2],[-1.75,-1.05,-3,1.5],[.05,.75,-3,1.5],[-4.2,-3.25,-2.6,1.6],[-4.2,1.9,-5.2,-4.25],[-.95,1.65,4.3,5.2],[-1.75,-1.05,4.0,4.6]],clerks:[],shoppers:[],
     aisles:[-2.5,-.35,1.3],za:[-3.4,1.2],cross:[2.6,-3.75]},
   super:{kind:'super',name:'スーパーまるやす',X:3000,hid:600000,rect:[-7.6,7.6,-6.55,6.6],spawn:[5.6,5.9,0],out:[37.3,85.1,Math.PI],open:[9,20],obst:[[-1.5,-.5,3.2,5.4],[1.5,2.5,3.2,5.4],[-7.6,-6.45,1.75,5.55],[-5.05,-3.95,2.75,4.45],[-4.0,-3.0,-4.6,1.4],[-.5,.5,-4.6,1.4],[3.0,4.0,-4.6,1.4],[-7.8,7.8,-7.2,-6.2],[7.0,8.2,-4.6,1.6],[4.3,4.9,5.9,6.5],[6.55,7.25,4.95,5.65]],clerks:[],shoppers:[],
-    aisles:[-5.4,-1.75,1.75,5.4],za:[-4.2,1.0],cross:[1.95,-5.5]}};
+    aisles:[-5.4,-1.75,1.75,5.4],za:[-4.2,1.0],cross:[1.95,-5.5]},
+  salon:{kind:'salon',name:'HAIR SALON Lumière',X:4500,hid:550000,rect:[-3.75,3.75,-4.25,4.25],spawn:[0,3.7,0],out:[-30.6,95.3,0],open:[10,20],obst:[[-3.4,-1.8,-4.5,-2.75],[-.8,.8,-4.5,-2.75],[1.8,3.4,-4.5,-2.75],[2.6,4.2,-3.2,-1.2],[-4.2,-1.7,2.2,4.5],[1.7,3.5,3.0,4.5],[-4.2,-3.3,-1.5,-.9],[3.3,4.2,.9,1.5]],clerks:[],shoppers:[]},
+  boutique:{kind:'boutique',name:'SELECT SHOP NOIR',X:5000,hid:500000,rect:[-3.75,3.75,-4.75,4.75],spawn:[-1.8,4.1,0],out:[-23.3,95.3,0],open:[11,21],obst:[[-4.2,-3.1,-4.0,4.2],[3.1,4.2,-4.0,1.9],[-1.6,-.8,-1.6,-.8],[.8,1.6,-1.6,-.8],[-.9,.9,.7,1.7],[1.6,3.2,3.3,5.2],[-1.0,-.84,-5.2,-3.5],[.84,1.0,-5.2,-3.5]],clerks:[],shoppers:[]},
+  gym:{kind:'gym',name:'みなと市民体育館',X:GYMX,hid:450000,rect:[-8.6,8.6,-13.6,13.6],spawn:[-6.5,12.6,0],out:[53,77.7,Math.PI],open:[9,22],obst:[[-8.8,-7.9,-11.2,11.2],[7.9,8.8,-11.2,11.2],[5.8,8.8,12.45,13.8]],clerks:[],shoppers:[]}};
 function storeOpen(k){const S=STORES[k];if(!S.open)return true;const c=gameClock(),h=c.h+c.m/60;return h>=S.open[0]&&h<S.open[1];}
 function storeWalk(x,z){const S=STORES[W.store];if(!S)return false;const lx=x-S.X;if(lx<S.rect[0]||lx>S.rect[1]||z<S.rect[2]||z>S.rect[3])return false;return!S.obst.some(o=>lx>o[0]-.12&&lx<o[1]+.12&&z>o[2]-.12&&z<o[3]+.12);}
 function enterStore(k){const S=STORES[k];if(!S.built)buildStore(k);W.outside=false;W.store=k;player.x=S.X+S.spawn[0];player.z=S.spawn[1];yaw=S.spawn[2];pitch=-.05;if(cur===me){view.yaw=yaw;view.pitch=-.05;}sfx.chime();}
-function exitStore(){const S=STORES[W.store];if(!S){W.store=null;return;}if(hand&&(hand.type==='basket'||(hand.type==='goods'&&!hand.paid)))setHand(null);W.store=null;W.outside=true;player.x=S.out[0];player.z=S.out[1];yaw=S.out[2];pitch=-.05;if(cur===me){view.yaw=yaw;view.pitch=-.05;}sfx.chime();}
+function exitStore(){const S=STORES[W.store];if(!S){W.store=null;return;}if(W.store==='gym')gymLeft(cur);if(cur===me){PREVIEW=null;['#lookUI','#gymUI'].forEach(k=>$(k).hidden=true);}if(hand&&(hand.type==='basket'||(hand.type==='goods'&&!hand.paid)))setHand(null);W.store=null;W.outside=true;player.x=S.out[0];player.z=S.out[1];yaw=S.out[2];pitch=-.05;if(cur===me){view.yaw=yaw;view.pitch=-.05;}sfx.chime();}
 const basketTotal=h=>h.items.reduce((s,k)=>s+GOODS[k].p,0);
 function dueAt(h){if(!h)return 0;if(h.type==='goods'&&!h.paid)return GOODS[h.g].p;if(h.type==='basket')return basketTotal(h);return 0;}
 
@@ -5511,6 +5847,7 @@ function buildStore(k){vis(()=>{const S=STORES[k];const sc=new THREE.Scene();S.s
   const flo=ctex(256,256,(g,w,h)=>{g.fillStyle='#dcdcd8';g.fillRect(0,0,w,h);for(let i=0;i<4;i++)for(let j=0;j<4;j++){const v=212+Math.floor(rr()*12);g.fillStyle=`rgb(${v},${v},${v-3})`;g.fillRect(i*64+1,j*64+1,62,62);}},[4,4]);
   const baskets=(x,z)=>{for(let i=0;i<6;i++){const b=basketMesh({type:'basket',items:[]});b.scale.setScalar(1.25);b.position.set(x,i*.06,z);G.add(b);}};
   sc.add(new THREE.HemisphereLight(0xffffff,0x9a9a90,.85));
+  if(S.kind==='salon'||S.kind==='boutique'||S.kind==='gym'){(S.kind==='salon'?buildSalon:S.kind==='boutique'?buildBoutique:buildGym)(S,G,B,C,PL,hit);setShadows(sc);sc.updateMatrixWorld(true);S.built=true;return;}
   if(S.kind==='konbini'){const wall=lam(0xf3f4f2),grn=new THREE.MeshBasicMaterial({color:0x1a8a3a}),lt=new THREE.MeshBasicMaterial({color:0xf8fbff});
     PL(8,10,new THREE.MeshPhongMaterial({map:flo,shininess:60,specular:0x444444}),0,0,0,-Math.PI/2);PL(8,10,lam(0xf4f4f2),0,2.8,0,Math.PI/2);
     PL(8,2.8,wall,0,1.4,-5);PL(10,2.8,wall,-4,1.4,0,0,Math.PI/2);PL(10,2.8,wall,4,1.4,0,0,-Math.PI/2);
@@ -5593,7 +5930,7 @@ function streetView(G,PL,B,W,D,rr){const bm=c=>new THREE.MeshBasicMaterial({colo
   for(let i=0;i<3;i++){const x=-W/2+1+i*.7;bBox(Bt,.05,.7,1.5,0x2a4a8a,x,.45,D+1.4);bBox(Bt,.04,.5,.5,0x111111,x,.3,D+.85);bBox(Bt,.04,.5,.5,0x111111,x,.3,D+1.95);}
   flushBatch(Bt,G,true);flushBatch(Lt,G,true);
   const sky=ctex(64,64,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#141a30');gr.addColorStop(1,'#4a3a48');g.fillStyle=gr;g.fillRect(0,0,w,h);});PL(90,28,new THREE.MeshBasicMaterial({map:sky}),0,12,D+22,0,Math.PI);}
-function updateStore(dt){const S=STORES[W.store];if(!S||!S.built)return;
+function updateStore(dt){const S=STORES[W.store];if(!S||!S.built)return;if(S.kind==='gym')drawGym(S,dt);if(S.kind==='salon'||S.kind==='boutique')mirrorTwinIn(S.scene,dt);
   S.clerks.forEach((c,i)=>{c.t=(c.t||0)+dt;armTo(c,0,'counter',dt,3);armTo(c,1,i%2?'counter':'hang',dt,3);headTo(c,Math.sin(c.t*.4+i)*.3,.05,0,dt,2);rigUpdate(c,dt);});
   S.shoppers.forEach(p=>{shopperStep(S,p,dt);rigUpdate(p,dt);});}
 Object.assign(sfx,{chime(){[880,698,880,698].forEach((f,i)=>tone(f,.18,'sine',.06,null,i*.16));}});
@@ -5618,7 +5955,8 @@ function sampleInput(){
   else{if(K.w||K.arrowup)mz-=1;if(K.s||K.arrowdown)mz+=1;if(K.a||K.arrowleft)mx-=1;if(K.d||K.arrowright)mx+=1;
   const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l;}}
   const o={mx,mz,yaw:view.yaw,pitch:view.pitch,a:(input.act||input.tap)?1:0,aid:input.tapAim||(window.__forceAim|0)||aimId,atk:input.atkQ,sh:input.shQ,ac:input.acQ};
-  if(o.a&&W.store&&!input.tapAim){const m=STORES[W.store].hits.find(x=>x.userData.hid===o.aid);if(m&&m.userData.register&&dueAt(hand)>BANK.bal){o.a=0;input.act=false;toast(`残高が足りない(残高 ${yen(BANK.bal)})`);}}
+  if(o.a&&W.store&&!input.tapAim){const m=STORES[W.store].hits.find(x=>x.userData.hid===o.aid);if(m&&m.userData.register&&dueAt(hand)>BANK.bal){o.a=0;input.act=false;toast(`残高が足りない(残高 ${yen(BANK.bal)})`);}
+    if(m&&m.userData.cloth&&!owns(m.userData.cloth[0],+m.userData.cloth.slice(1))&&m.userData.price>BANK.bal){o.a=0;input.act=false;toast(`残高が足りない(残高 ${yen(BANK.bal)})`);}}
   input.tap=false;input.tapAim=0;input.atkQ=0;input.shQ=0;input.acQ=0;return o;
 }
 function applyInput(q,inp,dt){
@@ -5637,7 +5975,7 @@ function applyInput(q,inp,dt){
   else{const b=P.bac||0;if(b>12&&(mx||mz)){const k=Math.min(.6,(b-12)/45);mx+=Math.sin(W.t*.9+q.i*2)*k;mz+=Math.sin(W.t*.63+1+q.i)*k*.5;}if(P.phone){mx*=.6;mz*=.6;}}
   const l=Math.hypot(mx,mz);q.moved=l>.1;
   if(l>.001){
-    const sp=2.4*(CARRY.c?.6:1),sn=Math.sin(yaw),cs=Math.cos(yaw);
+    const sp=2.4*(CARRY.c?.6:1)*(W.store==='gym'?1.7:1),sn=Math.sin(yaw),cs=Math.cos(yaw);
     const nx=player.x+(cs*mx+sn*mz)*sp*dt,nz=player.z+(-sn*mx+cs*mz)*sp*dt;
     const ps=(W.outside||W.home||W.store)?[]:persons().filter(p=>p.g.position.y>-.1),others=players.filter((o,j)=>o!==q&&!W.home&&locOf(j)===locOf(cur)&&!(o.car&&o.car.inCar&&W.outside)),wk=W.store?storeWalk:W.home?walkHome:(W.outside?walkOut:walkable);
     const okP=(x,z)=>wk(x,z)&&!ps.some(p=>{const a=Math.hypot(p.g.position.x-x,p.g.position.z-z);return a<.38&&a<Math.hypot(p.g.position.x-player.x,p.g.position.z-player.z);})
@@ -5647,11 +5985,12 @@ function applyInput(q,inp,dt){
   if(q.sk&&q.sk.t>0){q.sk.t-=dt;let nx,nz;if(q.sk.curve){const u=Math.min(1,1-q.sk.t/q.sk.d);[nx,nz]=bez(q.sk,u);}else{nx=player.x+q.sk.dx*dt;nz=player.z+q.sk.dz*dt;}if(W.outside&&walkOut(nx,nz)){player.x=nx;player.z=nz;}q.moved=true;}
   q.vx=(player.x-ox)/dt;q.vz=(player.z-oz)/dt;
   if(W.running)healthTick(q,dt);
-  if(W.store==='super'&&!storeOpen('super')&&!W.transit){toast('閉店時間になりました');sub('店内放送','本日はご来店ありがとうございました。まもなく閉店いたします','quiet');transit(exitStore);}
+  if(W.store&&STORES[W.store].open&&!storeOpen(W.store)&&!W.transit){if(cur===me)toast(W.store==='gym'?'閉館時間になりました':'閉店時間になりました');if(W.store==='super')sub('店内放送','本日はご来店ありがとうございました。まもなく閉店いたします','quiet');transit(exitStore);}
   if(riding){const rc=rideCar();if(rc){const st2=seatOf(rc);player.x=st2.x;player.z=st2.z;}q.moved=false;}
   else if(W.outside&&!inCarNow)footOutStep();
   const hb=inp.aid?(W.store?STORES[W.store].hits:W.home?HOME.hits:W.outside?OUT.hits:hits).find(m=>m.userData.hid===inp.aid):null,st=hb&&!W.transit&&!P.phone&&!(hb.userData.veh!=null&&hb.userData.veh!==q.i)&&!(riding&&hb.userData.passOf==null)?hb.userData.st:null;
-  if(bm&&!CARRY.c){if(inp.a){if(!q.act){q.act=1;q.actT=0;q.pid=0;q.shoot=1;}else q.actT+=dt;}else{if(q.act&&q.shoot)kickBall(q,'shoot',Math.min(1,q.actT/.7),inp.pitch);q.act=0;q.pid=0;q.shoot=0;}} // use = shoot (hold to power up)
+  if(gymPlaying()&&!st&&!q.pid){if(inp.a){if(!q.act){q.act=1;q.actT=0;q.pid=0;q.gym=1;gymPress(q);}else q.actT+=dt;}else{if(q.act&&q.gym)gymRelease(q,q.actT);q.act=0;q.pid=0;q.gym=0;}}
+  else if(bm&&!CARRY.c){if(inp.a){if(!q.act){q.act=1;q.actT=0;q.pid=0;q.shoot=1;}else q.actT+=dt;}else{if(q.act&&q.shoot)kickBall(q,'shoot',Math.min(1,q.actT/.7),inp.pitch);q.act=0;q.pid=0;q.shoot=0;}} // use = shoot (hold to power up)
   else{q.shoot=0;
   if(inp.a&&!q.act){q.act=1;q.actT=0;q.pid=inp.aid;if(W.outside&&BIKE.riding)dismountBike();else if(CARRY.c)carryUse(st);else if(st)st.press();}
   else if(inp.a){q.actT+=dt;if(st&&inp.aid===q.pid&&st.hold&&!CARRY.c)st.hold(dt,q.actT);}
@@ -5672,7 +6011,7 @@ function simStep(dt,inps){
   if(W.t>=W.dur*480/180)players.forEach((q,i)=>{if(!LW(i).slept)withPlayer(i,forceSleep);});if(!W.running)return;
   // 2P: when both are asleep or napping, the clock skips ahead to the first one waking up
   if(players.length>1){const L=players.map((q,i)=>LW(i)),naps=L.filter(l=>l.napUntil!=null);if(naps.length&&L.every(l=>l.slept||l.napUntil!=null)){const t=Math.min(...naps.map(l=>l.napUntil));if(t>W.t)W.t=t;}}
-  updateBalls(dt);courtCheck();
+  updateBalls(dt);courtCheck();gymStep(dt);
   if(DAY.pending){const pd=DAY.pending;DAY.pending=null;withPlayer(0,()=>{if(pd==='next')nextDay();else endGame(W.offDay?{offday:true}:{clockout:true,allHome:true});});if(!W.running)return;}
   withPlayer(0,()=>simWorld(dt));
 }
@@ -5743,7 +6082,7 @@ function viewUpdate(dt){
   // clock
   const mins=Math.floor(W.t/W.dur*180);$('#clock').textContent=clockFmt(W.t);
   const hr=(18+mins/60)%12;hHand.rotation.z=-hr/12*Math.PI*2;mHand.rotation.z=-(mins%60)/60*Math.PI*2;
-  $('#money').textContent='¥'+W.money.toLocaleString();{const jr=$('#jobRow'),on=!!(W.job&&!W.offDay&&DAY.n>=3);if(jr.hidden===on)jr.hidden=!on;if(on&&jr.dataset.j!==W.job){jr.dataset.j=W.job;$('#jobTag').textContent=JOB_NAME[W.job];}}$('#rageN').textContent=W.rage;$('#confN').textContent=W.conf+W.giveup;
+  $('#money').textContent='¥'+W.money.toLocaleString();gymHud();{const jr=$('#jobRow'),on=!!(W.job&&!W.offDay&&DAY.n>=3);if(jr.hidden===on)jr.hidden=!on;if(on&&jr.dataset.j!==W.job){jr.dataset.j=W.job;$('#jobTag').textContent=JOB_NAME[W.job];}}$('#rageN').textContent=W.rage;$('#confN').textContent=W.conf+W.giveup;
   updateTickets();
   const ph=CARRY.c&&W.running?vis(()=>carryPrompt(aim)):aim?vis(()=>aim.prompt()):'';if(ph!==promptHTML){promptHTML=ph;$('#prompt').innerHTML=ph;}
   if(toastT>0){toastT-=dt;if(toastT<=0)$('#toast').style.opacity=0;}
@@ -5767,7 +6106,7 @@ function render(dt){
   const sc=W.store&&STORES[W.store].scene?STORES[W.store].scene:W.home&&HOME.scene?HOME.scene:(W.outside&&OUT.scene?OUT.scene:scene);if(camera.parent!==sc){sc.add(camera);camera.far=sc===scene?40:sc===OUT.scene?170:30;camera.updateProjectionMatrix();}
   drawScene(sc,dt);fpsWatch(dt);
 }
-if(window.__TEST__)window.__G={forceSleep,dayWrap,get gOrd(){return W.gOrd;},leaveHome,enterCar,get trays(){return trays;},CARRYDAY,openGuestShop,enterAsGuest,guestSit,guestOrder,guestKeys,startPassout,sleepNow,exitHome,enterHome,crewReact,PARTIES,SLOTS,spawnParty,trySpawnParty,staffN,tgtKeys,partyServeDrink,partyServeFood,groupCards,PASS,putPass,sgServeBeer,sgServeFood,setJob,SEKKYO,GLINE,meddle,fryers,get rack(){return rack;},lineThreads,LW,JOB_NAME,setSky,NIGHT,buildOut,CREW_NOW,crewToday,MAKA,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
+if(window.__TEST__)window.__G={GYM,gymStart,gymStop,gymRelease,gymPress,gymMember,STORES,enterStore,applyLook,lookOf,lookCode,openLookUI,wearItem,outfitKey,OWN,forceSleep,dayWrap,get gOrd(){return W.gOrd;},leaveHome,enterCar,get trays(){return trays;},CARRYDAY,openGuestShop,enterAsGuest,guestSit,guestOrder,guestKeys,startPassout,sleepNow,exitHome,enterHome,crewReact,PARTIES,SLOTS,spawnParty,trySpawnParty,staffN,tgtKeys,partyServeDrink,partyServeFood,groupCards,PASS,putPass,sgServeBeer,sgServeFood,setJob,SEKKYO,GLINE,meddle,fryers,get rack(){return rack;},lineThreads,LW,JOB_NAME,setSky,NIGHT,buildOut,CREW_NOW,crewToday,MAKA,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
 camera.position.set(0,1.62,.2);
 {const _bm=buildModel;buildModel=function(t,s){const m=_bm(t,s);if(SHADOWS)m.g.traverse(o=>{if(o.isMesh)o.castShadow=true;});m.blob=blob(m.g,0,.02,.6,.48,.012);return m;};}
 setShadows(scene);if(HQ)loadPP();
