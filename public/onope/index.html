@@ -3937,9 +3937,9 @@ const dayLabel=n=>{const t=dayDate(n);return`${t.m}月${t.d}日(${t.w})`;};
 const CREW=[
   {n:'権田 剛志',r:'店長・45歳',d:'バイトの女子大生にだけやたら優しい。シフト表の「白石」の欄にだけハートが付いている',c:'#9a3a2a',w:[1,0,1,0,1,1,0]},
   {n:'三好 恭平',r:'社員・32歳・独身',d:'発注ミスと伝票ミスの常習犯。悪い人ではない。休みの日は一人でパチンコ',c:'#5a6a7a',w:[1,1,0,1,0,1,0]},
-  {n:'桐谷 蓮',r:'大学3年・飲みサー幹事長',d:'仕事が異常に速い。ドリンク場を一人で回し、飲み会の段取りも完璧',c:'#2a5a9a',w:[0,1,1,0,1,0,0]},
+  {n:'桐谷 颯真',r:'大学3年・飲みサー幹事長',d:'仕事が異常に速い。ドリンク場を一人で回し、飲み会の段取りも完璧',c:'#2a5a9a',w:[0,1,1,0,1,0,0]},
   {n:'白石 ひなの',r:'大学1年・新人',d:'店のアイドル。常連のおっちゃんはだいたいひなの目当て',c:'#d8558a',w:[1,0,0,1,0,1,0]},
-  {n:'早川 美咲',r:'大学4年・古株',d:'内定が出てからシフト入りまくり。毒舌の姉御で、三好さんに一番厳しい',c:'#7a4a9a',w:[0,1,0,0,1,0,0]},
+  {n:'早川 莉子',r:'大学4年・古株',d:'内定が出てからシフト入りまくり。毒舌の姉御で、三好さんに一番厳しい',c:'#7a4a9a',w:[0,1,0,0,1,0,0]},
   {n:'大森 拓海',r:'大学2年・軽音サークル',d:'ギターを背負って出勤。遅刻とシフト交代のお願いの常習犯。まかないを一番食べる',c:'#3a8a5a',w:[0,0,1,1,0,0,1]}];
 // whoever has today in their submitted week works; in 2P one scheduled player means both are called in
 function isWorkDay(n){if(n<=1)return true;if(needShiftDay(n))return false;const k=n-DAY.base;if(k<0||k>6)return false;
@@ -3990,13 +3990,13 @@ $('#deNext').addEventListener('click',()=>{if(!W.dayChoice)input.acQ=20;});$('#d
 const CREW_LOOK={
   '権田 剛志':{top:0x2a2a30,pants:0x2a2a30,hair:0x1a1614,hs:'slick',build:[1.08,1.25,1.05],old:1,stubble:1,shoe:0x15100c,glasses:1},
   '三好 恭平':{top:0x1f2c55,pants:0x2a2a2a,hair:0x16120f,hs:'side',build:[1.1,1.2,1.05],glasses:1,shoe:0x111111,workcap:0x1f2c55},
-  '桐谷 蓮':{top:0x1f2c55,pants:0x2a2a2a,hair:0x3a2616,hs:'side',build:[1,.95,1.02],shoe:0x111111,young:1,workcap:0x1f2c55},
+  '桐谷 颯真':{top:0x1f2c55,pants:0x2a2a2a,hair:0x3a2616,hs:'side',build:[1,.95,1.02],shoe:0x111111,young:1,workcap:0x1f2c55},
   '白石 ひなの':{top:0x1f2c55,pants:0x2a2a2a,hair:0x2a1c14,hs:'pony',fem:1,young:1,curvy:1,lip:'#d0505a',blush:1,build:[.88,.92,.95],shoe:0x111111,skin:'#f6dccb'},
-  '早川 美咲':{top:0x1f2c55,pants:0x2a2a2a,hair:0x4a2c1a,hs:'bun',fem:1,young:1,lip:'#b8404a',blush:1,build:[.9,.95,.95],shoe:0x111111},
+  '早川 莉子':{top:0x1f2c55,pants:0x2a2a2a,hair:0x4a2c1a,hs:'bun',fem:1,young:1,lip:'#b8404a',blush:1,build:[.9,.95,.95],shoe:0x111111},
   '大森 拓海':{top:0x4a5a3a,pants:0x2a2a30,hair:0x161210,hs:'messy',hood:1,young:1,build:[.98,1.0,1.0],shoe:0xe8e8e8}};
 // post: where they stand, which way they face, what they do there
-const CREW_POST={'権田 剛志':{role:'boss',x:-4.55,z:-6.35,ry:-2.4},'三好 恭平':{role:'reg',x:-6.6,z:-6.95,ry:0},'桐谷 蓮':{role:'drinks',x:4.7,z:-4.5,ry:Math.PI},
-  '白石 ひなの':{role:'hall',x:-4.0,z:-5.65,ry:-Math.PI/2},'早川 美咲':{role:'dish',x:-2.25,z:1.35,ry:-Math.PI/2},'大森 拓海':{role:'slack',x:8.4,z:-8.3,ry:Math.PI,sit:1}};
+const CREW_POST={'権田 剛志':{role:'boss',x:-4.55,z:-6.35,ry:-2.4},'三好 恭平':{role:'reg',x:-6.6,z:-6.95,ry:0},'桐谷 颯真':{role:'drinks',x:4.7,z:-4.5,ry:Math.PI},
+  '白石 ひなの':{role:'hall',x:-4.0,z:-5.65,ry:-Math.PI/2},'早川 莉子':{role:'dish',x:-2.25,z:1.35,ry:-Math.PI/2},'大森 拓海':{role:'slack',x:8.4,z:-8.3,ry:Math.PI,sit:1}};
 const CREW_NOW=[];
 const CREW_LINES={
   hall:['いらっしゃいませー! 何名様ですかー?','いらっしゃいませー!','お好きなお席どうぞー!'],
@@ -4011,7 +4011,7 @@ const pickL=(k,o)=>{let t=pick(CREW_LINES[k]);if(o)Object.keys(o).forEach(x=>t=t
 function crewToday(){if(W.offDay||DAY.n<3)return[];const k=DAY.n-DAY.base;if(k<0||k>6)return[];return CREW.filter(m=>m.w[k]);}
 function clearCrew(){CREW_NOW.forEach(p=>{if(p.g.parent)p.g.parent.remove(p.g);});CREW_NOW.length=0;MAKA.on=false;MAKA.done=false;MAKA.lines=null;MAKA.joined=[];if(MAKA.bowls){MAKA.bowls.forEach(b=>scene.remove(b));MAKA.bowls=null;}}
 const MAKA={on:false,done:false,t:0,lines:null,li:0,joined:[],bowls:null,wait:0};
-const CANCEL={'大森 拓海':['すみません、熱が出ちゃって…今日休ませてください🙏','(インスタのストーリーにライブハウスの写真が上がっている)'],'白石 ひなの':['すみません!レポートの締切が今日で…お休みさせてください🙇‍♀️',null],'桐谷 蓮':['サークルの代表会議入っちゃって、今日だけ代わりいなくて…すみません!',null],'早川 美咲':['ごめん!内定先の懇親会がずれて今日になった!',null],'三好 恭平':['すみません、本部研修が入ってしまい…',null]};
+const CANCEL={'大森 拓海':['すみません、熱が出ちゃって…今日休ませてください🙏','(インスタのストーリーにライブハウスの写真が上がっている)'],'白石 ひなの':['すみません!レポートの締切が今日で…お休みさせてください🙇‍♀️',null],'桐谷 颯真':['サークルの代表会議入っちゃって、今日だけ代わりいなくて…すみません!',null],'早川 莉子':['ごめん!内定先の懇親会がずれて今日になった!',null],'三好 恭平':['すみません、本部研修が入ってしまい…',null]};
 // crew day plan (seeded, so both players agree): who cancels, who leaves early, who arrives when
 function spawnCrew(){clearCrew();const today=crewToday(),out=[];
   today.forEach(m=>{const post=CREW_POST[m.n];if(post.role!=='boss'&&R()<(post.role==='slack'?.3:.1)){out.push(m);return;}
@@ -4124,7 +4124,7 @@ function courtCheck(){const any=players.some((p,i)=>locOf(i)==='out'&&inFence(p.
   if(SOCCER.inside&&!any&&(SOCCER.n||SOCCER.s)){SOCCER.n=0;SOCCER.s=0;if(locOf(me)==='out')toast('コートを出たのでスコアをリセット(0 - 0)');}SOCCER.inside=any;}
 // crew group chat on the phone (from day 2)
 function crewThread(m,at){if(DAY.n<2)return null;const L=[[-476,'権田(店長)','新人くん、グループ追加しといたよ〜! みんなよろしくね👍'],[-475,'権田(店長)','【シフト提出】来週分、今日中に出してね〜!'],[-462,'三好','すみません、来週月曜の発注、レモン30kgで頼んでました…'],[-460,'早川','三好さんまた!? レモンサワー祭りやるしかないじゃん'],
-  [-456,'桐谷','レモン消費プラン作りました。サワー半額+唐揚げレモン増し、原価的にもいけます'],[-452,'白石','すご〜い蓮さん!! ひなの、レモンしぼる係やります🍋'],[-449,'権田(店長)','ひなのちゃん今日も可愛いね😊 シフト終わりにごはんでもどう?(笑)'],[-431,'大森','おはようございます(今起きた) 明日のシフト誰か代わってくれませんか…ライブ入っちゃって'],
+  [-456,'桐谷','レモン消費プラン作りました。サワー半額+唐揚げレモン増し、原価的にもいけます'],[-452,'白石','すご〜い颯真さん!! ひなの、レモンしぼる係やります🍋'],[-449,'権田(店長)','ひなのちゃん今日も可愛いね😊 シフト終わりにごはんでもどう?(笑)'],[-431,'大森','おはようございます(今起きた) 明日のシフト誰か代わってくれませんか…ライブ入っちゃって'],
   [-428,'早川','拓海またそれ? あと店長、ひなのちゃんに個チャしないでくださいね'],[-427,'権田(店長)','し、してないよ!?']];
   const show=W.offDay&&DAY.n===2?L.filter(x=>m>=x[0]):L;return{id:'crew',name:'呑兵衛バイト(7)',msgs:show.map(([t,who,x])=>({t:at(t),x:`<b>${who}</b> ${x}`}))};}
 
