@@ -358,10 +358,12 @@ const R=()=>VIS?Math.random():prng();
 function vis(f){VIS++;try{return f();}finally{VIS--;}}
 seedR(Math.random()*4294967296);
 const pick=a=>a[R()*a.length|0];
-let LATER=[];function later(f,ms){LATER.push({t:W.t+ms/1000,f});}
+// shop sounds and voices only reach me while I'm actually in the shop (simWorld and anything it schedules)
+let SHOPMUTE=false,INSHOP=false;
+let LATER=[];function later(f,ms){LATER.push({t:W.t+ms/1000,f,s:INSHOP});}
 // like later(), but runs as the player who scheduled it (their car, room, position...)
-function laterP(f,ms){LATER.push({t:W.t+ms/1000,f,p:cur});}
-function runLater(){if(!LATER.length)return;const due=LATER.filter(x=>x.t<=W.t+1e-9);if(!due.length)return;LATER=LATER.filter(x=>x.t>W.t+1e-9);due.forEach(x=>x.p!=null?withPlayer(x.p,x.f):x.f());}
+function laterP(f,ms){LATER.push({t:W.t+ms/1000,f,p:cur,s:INSHOP});}
+function runLater(){if(!LATER.length)return;const due=LATER.filter(x=>x.t<=W.t+1e-9);if(!due.length)return;LATER=LATER.filter(x=>x.t>W.t+1e-9);due.forEach(x=>{const m=SHOPMUTE;if(x.s)SHOPMUTE=locOf(me)!=='shop';try{x.p!=null?withPlayer(x.p,x.f):x.f();}finally{SHOPMUTE=m;}});}
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const isTouch=matchMedia('(pointer: coarse)').matches||('ontouchstart' in window);
 $('#ctrlText').textContent=isTouch
@@ -1524,7 +1526,7 @@ function serve(s){
   s.plate={data:p,mesh,owner:c};s.ver++;
   c.res=evaluate(c,p);c.state='inspect';c.st=0;c.phone.visible=false;sfx.clink(.5);
 }
-function say(c,text,cls){if(!text||W.outside||W.home)return;sub(c.name,text,cls);}
+function say(c,text,cls){if(!text||SHOPMUTE||locOf(me)!=='shop')return;sub(c.name,text,cls);}
 function startLeave(c,pay){
   const s=c.seat;c.st=0;c.calling=false;c.addWant=false;c.wantWater=false;
   const amt=pay===true?(c.ate?ITEMS[c.order.item].price:0)+c.bill:pay==='drinks'?c.bill:0;
@@ -1787,7 +1789,7 @@ Object.assign(sfx,{
 let murmur=null;
 function updateAmbience(){
   if(AC&&!murmur){const s=AC.createBufferSource();s.buffer=noiseBuf;s.loop=true;const f=AC.createBiquadFilter();f.type='bandpass';f.frequency.value=420;f.Q.value=.9;const g=AC.createGain();g.gain.value=0;s.connect(f).connect(g).connect(AC.destination);s.start();murmur=g;}
-  if(murmur){const d=Math.hypot(players[me].pos.x,players[me].pos.z+7.5);murmur.gain.value=W.running&&!W.outside&&!W.home?.05*clamp(1-d/14,.15,1)*(1+(SG.noise||0)*2.2):0;}
+  if(murmur){const d=Math.hypot(players[me].pos.x,players[me].pos.z+7.5);murmur.gain.value=W.running&&locOf(me)==='shop'?.05*clamp(1-d/14,.15,1)*(1+(SG.noise||0)*2.2):0;}
 }
 
 /* ================= drinks ================= */
@@ -3015,7 +3017,7 @@ let popT=0;function popMoney(t){const e=$('#pop');e.textContent=t;e.style.opacit
 function bumpPill(id){const e=$(id);e.classList.remove('bump');void e.offsetWidth;e.classList.add('bump');}
 const subsEl=$('#subs');
 const psub=(...a)=>{if(cur===me)sub(...a);};
-function sub(who,text,cls){if(who==='あなた'&&cur!==me){if(cls==='quiet'||W.outside||W.home||W.store)return;who='相方';}const d=document.createElement('div');d.className='sub'+(cls?' '+cls:'');const w=document.createElement('span');w.className='who';w.textContent=who;d.appendChild(w);d.appendChild(document.createTextNode('「'+text+'」'));subsEl.appendChild(d);while(subsEl.children.length>3)subsEl.firstChild.remove();setTimeout(()=>{d.style.opacity=0;setTimeout(()=>d.remove(),450);},cls==='loud'?3800:3200);}
+function sub(who,text,cls){if(SHOPMUTE)return;if(who==='あなた'&&cur!==me){if(cls==='quiet'||W.outside||W.home||W.store)return;who='相方';}const d=document.createElement('div');d.className='sub'+(cls?' '+cls:'');const w=document.createElement('span');w.className='who';w.textContent=who;d.appendChild(w);d.appendChild(document.createTextNode('「'+text+'」'));subsEl.appendChild(d);while(subsEl.children.length>3)subsEl.firstChild.remove();setTimeout(()=>{d.style.opacity=0;setTimeout(()=>d.remove(),450);},cls==='loud'?3800:3200);}
 const tkEls=seats.map(()=>{const d=document.createElement('div');d.className='tk empty';$('#tickets').appendChild(d);return d;});
 const tkVer=seats.map(()=>-1);
 const gtk=document.createElement('div');gtk.className='gtk';$('#tickets').appendChild(gtk);
@@ -3055,7 +3057,7 @@ function groupTickets(){const L=groupCards(),seatsOn=tkEls.filter(d=>!d.hidden).
   gtk.innerHTML=show.map(g=>`<div class="tk ${g.clutter?'dish':'grp'}${g.call?' hot':''}"><div class="no">${g.name}</div><div class="it">${g.clutter?'片付けて皿を返却口へ':g.pay?'お会計待ち(レジ)':g.seat?'席へ案内中':g.f.length?tally(g.f,k=>ITEMS[k].name):'料理OK'}</div><div class="dk">${g.d&&g.d.length?'飲: '+tally(g.d,k=>DSHORT[k]):''}</div>${g.call?'<span class="stamp">呼んでる</span>':g.pay?'<span class="stamp">会計</span>':g.pass?'<span class="stamp">台に出てる</span>':''}</div>`).join('')
     +(more?`<div class="tk more">ほか ${more}卓 対応待ち</div>`:'')+(idle.length?`<div class="tk more">飲食中: ${idle.map(g=>g.name.split(' ')[0]).join('・')}</div>`:'');}
 
-Object.keys(sfx).forEach(k=>{const f=sfx[k];if(typeof f==='function')sfx[k]=function(...a){return vis(()=>f.apply(sfx,a));};});
+Object.keys(sfx).forEach(k=>{const f=sfx[k];if(typeof f==='function')sfx[k]=function(...a){if(SHOPMUTE)return;return vis(()=>f.apply(sfx,a));};});
 
 /* ================= input ================= */
 const input={jx:0,jy:0,keys:{},act:false,tap:false,atkQ:0,shQ:0,acQ:0};
@@ -5674,7 +5676,8 @@ function simStep(dt,inps){
   if(DAY.pending){const pd=DAY.pending;DAY.pending=null;withPlayer(0,()=>{if(pd==='next')nextDay();else endGame(W.offDay?{offday:true}:{clockout:true,allHome:true});});if(!W.running)return;}
   withPlayer(0,()=>simWorld(dt));
 }
-function simWorld(dt){
+function simWorld(dt){const m0=SHOPMUTE;INSHOP=true;SHOPMUTE=locOf(me)!=='shop';try{simWorldIn(dt);}finally{INSHOP=false;SHOPMUTE=m0;}}
+function simWorldIn(dt){
   if(W.offDay){if(!W.guestShop&&W.t>=0&&W.t<W.dur*.9&&W.running)openGuestShop();if(!W.guestShop){persons().forEach(p=>rigUpdate(p,dt));return;}guestChat(dt);} // day off: the shop opens at 18:00 without me
   // fryers
   let vig=0,smoky=0;
@@ -5688,13 +5691,13 @@ function simWorld(dt){
       if(f.food.r>1.5){smoky=Math.max(smoky,f.food.r);if(R()<dt*(f.food.r>2.2?10:2.5))addSmoke(3.28,1.05,f.z,f.food.r>2.2?0x3a3430:0xa8a49c,f.food.r>2.2?.65:.35);}
     }
   });
-  if(fryGain){fryGain.gain.value=vig>0?(.03+Math.random()*.03)*vig+.01:0;fryFilter.frequency.value=2600+vig*900;}
+  if(fryGain){fryGain.gain.value=vig>0&&!SHOPMUTE?(.03+Math.random()*.03)*vig+.01:0;fryFilter.frequency.value=2600+vig*900;}
   fryGlow.intensity=vig>0?.15+Math.random()*.05:0;
   // miso steam
   if(R()<dt*2)addSmoke(3.3,1.4,1.75,0xffffff,.12,.6);
   // washing
   washing=Math.max(0,washing-dt);stream.visible=washing>0;
-  if(waterGain)waterGain.gain.value=washing>0?.1:0;
+  if(waterGain)waterGain.gain.value=washing>0&&!SHOPMUTE?.1:0;
   if(washing>0&&R()<dt*30)addDrop(-3.3+(R()-.5)*.2,1.0,-0.55+(R()-.5)*.2,0xdff2fa);
   // spawn
   W.spawnT-=dt;
@@ -5708,7 +5711,7 @@ function simWorld(dt){
   crewStep(dt);if(!W.running)return;
   updateRooms(dt);updateRegulars(dt);updateStudents(dt);updateParties(dt);updateCops(dt);updateAmbience();if(!W.running)return;
   persons().forEach(p=>rigUpdate(p,dt));
-  updateDecor(dt);updateAruaru(dt);updateStaffPhone(dt);updateCarry(dt);if(!W.running)return;
+  updateDecor(dt);updateAruaru(dt);updateStaffPhone(dt);{const m=SHOPMUTE;SHOPMUTE=false;try{updateCarry(dt);}finally{SHOPMUTE=m;}}if(!W.running)return; // carrying happens outside too
   if(W.policeT!=null){W.policeT-=dt;const cp=$('#copP');if(cp.hidden){cp.hidden=false;bumpPill('#copP');}const t=Math.max(0,Math.ceil(W.policeT));$('#copN').textContent=`${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`;
     if(W.policeT<=0){W.policeT=null;W.policeOn=true;spawnCop();sfx.siren();$('#copN').textContent='到着';}}
   if(!W.closed&&W.t>=W.dur)startClosing();
