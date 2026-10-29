@@ -3194,6 +3194,8 @@ function reset(){
   if(W.commute){W.t=-200;regulars.forEach(r=>scene.remove(r.g));regulars.length=0;W.gasOff=true;gasLamp.material.color.set(0x222222);norenMesh.visible=false;setShopLights(false,true);$('#tickets').hidden=true;}
 }
 function startGame(){
+  // every run starts on day 1, so the account and belongings (ball, clothes, hair) start over too
+  if(!window.__KEEPSAVE){BANK.reset();for(const k in OWN)delete OWN[k];OWN.ball=false;OWN.clothes={t:[0],b:[0]};saveOwn();PREVIEW=null;}
   initAudio();if(AC&&AC.state==='suspended')AC.resume();
   Object.assign(DAY,{n:1,choosing:false,pending:null,shift:players.map(()=>null),base:3,notes:[]});SOCCER.n=SOCCER.s=0;$('#dayEnd').hidden=true;$('#shiftUI').hidden=true;
   reset();W.running=true;if(W.commute){W.t=-230;players.forEach((q,i)=>withPlayer(i,startAtHome));}
@@ -3528,7 +3530,7 @@ addEventListener('keydown',e=>{if(!W.running||e.repeat)return;const k=e.key.toLo
 /* ---- bank account: lives on this device (each player has their own in 2P) ---- */
 const BANK=(()=>{let d={bal:3000,hist:[{d:'前月からの繰越',amt:3000,when:'—'}]};try{const v=JSON.parse(localStorage.getItem('onope_bank_v1')||'null');if(v&&typeof v.bal==='number')d=v;}catch(_){}
   const save=()=>{try{localStorage.setItem('onope_bank_v1',JSON.stringify(d));}catch(_){}};
-  return{get bal(){return d.bal;},get hist(){return d.hist;},
+  return{get bal(){return d.bal;},get hist(){return d.hist;},reset(){d={bal:3000,hist:[{d:'前月からの繰越',amt:3000,when:'—'}]};save();},
     add(amt,label){d.bal+=amt;d.hist.unshift({d:label,amt,when:gameClock().txt});d.hist=d.hist.slice(0,40);save();}};})();
 // belongings saved on this device (like the bank). Older saves that already paid for a ball get it back.
 const OWN=(()=>{let o={};try{o=JSON.parse(localStorage.getItem('onope_items_v1')||'null')||{};}catch(_){}
