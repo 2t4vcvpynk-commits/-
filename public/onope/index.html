@@ -910,14 +910,19 @@ let rack=[];let rackMesh=new THREE.Group();scene.add(rackMesh);
   [-.2,.2].forEach(dx=>{rod(-3.28+dx,1.005,.6,.52,'z');rod(-3.28+dx,1.15,.6,.52,'z');for(let z=.36;z<=.85;z+=.245)rod(-3.28+dx,1.077,z,.145);});
   for(let z=.36;z<=.85;z+=.0245)rod(-3.28,1.005,z,.4,'x'); // floor grid
   for(let i=0;i<8;i++){const z=.385+i*.07;[-.13,.13].forEach(dx=>rod(-3.28+dx,1.055,z,.1));rod(-3.28,1.105,z,.26,'x');} // plate slots
+  // upper tier on four posts
+  const Y=.26;[[-3.5,.34],[-3.06,.34],[-3.5,.86],[-3.06,.86]].forEach(([x,z])=>rod(x,1.13,z,.3));
+  [-.2,.2].forEach(dx=>{rod(-3.28+dx,1.005+Y,.6,.52,'z');rod(-3.28+dx,1.15+Y,.6,.52,'z');});for(let z=.36;z<=.85;z+=.049)rod(-3.28,1.005+Y,z,.4,'x');
+  for(let i=0;i<8;i++){const z=.385+i*.07;[-.13,.13].forEach(dx=>rod(-3.28+dx,1.055+Y,z,.1));rod(-3.28,1.105+Y,z,.26,'x');}
 }
 
-function refreshRack(){scene.remove(rackMesh);rackMesh=new THREE.Group();scene.add(rackMesh);rack.slice(0,6).forEach((p,i)=>{const m=makePlate(p);m.rotation.x=Math.PI/2-0.25;m.position.set(-3.28,1.13,0.42+i*0.07);rackMesh.add(m);});}
+function refreshRack(){scene.remove(rackMesh);rackMesh=new THREE.Group();scene.add(rackMesh);rack.slice(0,12).forEach((p,i)=>{const m=makePlate(p);m.rotation.x=Math.PI/2-0.25;m.position.set(-3.28,1.13+(i>=6?.26:0),0.42+(i%6)*0.07);rackMesh.add(m);});}
+const RACK_MAX=12;
 S.rack={
   prompt(){if(isPlate(hand))return hand.food?'料理が乗ってる':'水切りかごに<b>置く</b>';if(!hand&&rack.length)return'水切りかごから<b>皿を取る</b>';return hand?'手がふさがってる':'水切りかご(空)';},
-  press(){if(hand&&hand.stack)return toast('重ねた皿はまず返却口へ');if(isPlate(hand)){if(hand.food)return;if(rack.length>=6)return toast('かごがいっぱい');rack.push(hand);setHand(null);refreshRack();sfx.clink(.8);}else if(!hand&&rack.length){setHand(rack.pop());refreshRack();sfx.clink(.8);}}
+  press(){if(hand&&hand.stack)return toast('重ねた皿はまず返却口へ');if(isPlate(hand)){if(hand.food)return;if(rack.length>=RACK_MAX)return toast('かごがいっぱい');rack.push(hand);setHand(null);refreshRack();sfx.clink(.8);}else if(!hand&&rack.length){setHand(rack.pop());refreshRack();sfx.clink(.8);}}
 };
-hitBox(0.55,0.4,0.6,-3.28,1.1,0.6,S.rack);
+hitBox(0.55,0.7,0.6,-3.28,1.25,0.6,S.rack);
 
 // --- vats of breaded raw food on the cold table
 const VATX={karaage:-2.45,katsu:-1.75,ebi:-1.05};
@@ -1027,6 +1032,7 @@ const seats=SEATX.map((x,i)=>{
   const slip=new THREE.Mesh(new THREE.PlaneGeometry(.12,.18),new THREE.MeshLambertMaterial({color:0xffffff}));slip.position.set(x+.3,1.97,-3.355);slip.visible=false;scene.add(slip);seat.slip=slip;
   seat.st={
     prompt(){const c=seat.c;
+      if(W.guest){if(W.gSeat===seat.i)return isPlate(hand)&&!hand.food?'カウンターに<b>皿を置く</b>':isGlass(hand)&&gSum(hand)<.05?'空いたジョッキを<b>置く</b>':'<b>席を立つ</b>';if(W.gSeat==null&&!c&&!seat.plate&&seat.guest==null)return'カウンター<b>に座る</b>';return c?c.name:'カウンター席';}
       if(c&&c.state==='passout'&&!c.cs&&!hand)return W.closed?`<b>${c.name}に声をかける</b>${carrySolo()?'(長押しで背負う)':''}`:`<b>${c.name}を起こす</b>`;
       if(c&&c.state==='passout'&&!c.cs&&isGlass(hand))return`${c.name}に飲み物を<b>ぶっかける</b>`;
       if(isGlass(hand)){if(!c||!SEATED.has(c.state))return c?c.name:'空席';if(c.dGlass&&c.dGlass.kind!=='water'&&c.dGlass.left>.02&&gKind(hand)!=='water')return`${c.name}(まだ飲んでる)`;return c.dOrder?`<b>${c.name}</b>に出す(${DRINKS[c.dOrder.kind].name}${c.dOrder.strong?' 濃いめ':''})`:`<b>${c.name}</b>にサービスで出す`;}
@@ -1037,6 +1043,7 @@ const seats=SEATX.map((x,i)=>{
       return c.name;},
     hold(dt,t){const c=seat.c;if(c&&c.state==='passout'&&!c.cs&&!hand&&W.closed&&carrySolo()&&t>.7&&!CARRY.c)pickUp(c,'seat');},
     press(){const c=seat.c;
+      if(W.guest){if(W.gSeat===seat.i){if(isGlass(hand)&&gSum(hand)<.05){setHand(null);sfx.clink(.6);return;}if(isPlate(hand)&&!hand.food){const pl=hand;setHand(null);const mesh=makeServed(pl);mesh.position.set(seat.x,.96,-3.12);scene.add(mesh);seat.plate={data:pl,mesh,owner:null};seat.ver++;sfx.clink(.5);return;}guestStand();return;}if(W.gSeat==null&&!c&&!seat.plate&&seat.guest==null)guestSit(seat);return;}
       if(c&&c.state==='passout'&&!c.cs&&isGlass(hand)){splashPassout(c);return;}
       if(c&&c.state==='passout'&&!c.cs&&!hand&&W.closed){nagPassout(c);return;}
       if(c&&c.state==='passout'&&!c.cs&&!hand){c.body.rotation.x=0;c.bac=Math.min(c.bac,25);say(c,c.gara?(W.closed?'…ん…なんや、閉店か。…帰るわ':'…ん…寝とったわ。…会計や'):W.closed?'…ん…あ、もう閉店…? すみません、帰ります…':'…ん…あれ、寝てた…? …お会計で…','quiet');startLeave(c,true);return;}
@@ -2295,8 +2302,8 @@ function itemMesh(h){if(h.type==='basket'||h.type==='shopbag')return basketMesh(
 const norenMesh=plane(0.9,0.55,new THREE.MeshLambertMaterial({map:ctex(256,160,(g,w,h)=>{g.fillStyle='#1f2c55';g.fillRect(0,0,w,h);g.fillStyle='#121a35';g.fillRect(w/3-2,24,4,h);g.fillRect(w*2/3-2,24,4,h);g.fillStyle='#efe6d0';g.font='44px "Dela Gothic One",sans-serif';g.textAlign='center';g.textBaseline='middle';['酒','処','呑'].forEach((c,i)=>g.fillText(c,w/6+i*w/3,h/2+8));}),side:THREE.DoubleSide}),-7.12,1.8,-4.9,0,Math.PI/2);
 S.entrance={
   carryPrompt(){return W.closed?`${CARRY.c.name}を<b>外に連れ出す</b>`:'(まだ営業中)';},carry(){if(!W.closed)return toast('まだ営業中');transit(goOutsideFront);},
-  prompt(){if(W.commute&&!W.open){const left=openingTasks().filter(t=>!t.done&&t.label!=='のれんを出して開店');return left.length?`のれん(開店作業があと${left.length}つ)`:'のれんを出して<b>開店する</b>';}if(hand&&hand.type==='bag')return'ゴミ袋を<b>外に出す</b>';if(!W.closed)return'入口';if(!W.norenDown)return'のれんを<b>下ろす</b>';return'入口(のれんは下ろした)';},
-  press(){if(W.commute&&!W.open){const left=openingTasks().filter(t=>!t.done&&t.label!=='のれんを出して開店');if(left.length)return toast('まだ: '+left[0].label);openShop();return;}if(hand&&hand.type==='bag'){setHand(null);W.trashOut=true;sfx.trash();toast('ゴミを出した');return;}
+  prompt(){if(W.guest)return`店を<b>出る</b>${W.gBill?`(お会計 ${yen(Math.round(W.gBill*.8/10)*10)})`:''}`;if(W.commute&&!W.open){const left=openingTasks().filter(t=>!t.done&&t.label!=='のれんを出して開店');return left.length?`のれん(開店作業があと${left.length}つ)`:'のれんを出して<b>開店する</b>';}if(hand&&hand.type==='bag')return'ゴミ袋を<b>外に出す</b>';if(!W.closed)return'入口';if(!W.norenDown)return'のれんを<b>下ろす</b>';return'入口(のれんは下ろした)';},
+  press(){if(W.guest){guestLeave();return;}if(W.commute&&!W.open){const left=openingTasks().filter(t=>!t.done&&t.label!=='のれんを出して開店');if(left.length)return toast('まだ: '+left[0].label);openShop();return;}if(hand&&hand.type==='bag'){setHand(null);W.trashOut=true;sfx.trash();toast('ゴミを出した');return;}
     if(!W.closed)return toast('まだ営業中');if(!W.norenDown){W.norenDown=true;norenMesh.visible=false;sfx.clink(.3);toast('のれんを下ろした');}}
 };
 hitBox(0.3,2.0,1.0,-6.85,1.05,-4.9,S.entrance);
@@ -2359,13 +2366,13 @@ function openShop(){W.open=true;W.openAt=W.t;norenMesh.visible=true;spawnRegular
 function renderTasks(){const op=W.commute&&!W.open,all=op?openingTasks().filter(x=>x.label!=='のれんを出して開店'):closingTasks(),t=all.filter(x=>!x.done);
   $('#tasks').innerHTML=`<div class="h">${op?'開店作業':'締め作業'}${t.length?`<span>残り${t.length}</span>`:''}</div>`+(t.length?t.map(x=>{const o=crewTaskOwner(x.label,op);return`<div class="t${o?' ok':''}">・${x.label}${o?` <small>(${o}がやってくれる)</small>`:''}</div>`;}).join(''):`<div class="t ok">${op?'準備完了! 入口でのれんを出そう':'完了! タイムカードで退勤'}</div>`);}
 function startClosing(){
-  W.closed=true;toast('21:00 閉店。締め作業を始めよう');sub('店内放送','本日はご来店ありがとうございました。閉店のお時間です','quiet');
+  W.closed=true;if(W.guestShop){players.forEach((q,i)=>{if(LW(i).guest){const h=CREW_NOW.find(p=>crewIn(p)&&p.post.role!=='boss');if(h)say(h,'新人くーん、閉店だよ〜。お会計しよっか','');}});}else toast('21:00 閉店。締め作業を始めよう');sub('店内放送','本日はご来店ありがとうございました。閉店のお時間です','quiet');
   customers.forEach(c=>{if(c.cs||!SEATED.has(c.state))return;if(c.dOrder){c.dOrder=null;c.seat.ver++;}
     const eating=c.state==='eat'||c.state==='inspect',drinking=c.dGlass&&c.dGlass.left>.02;
     say(c,c.gara?(eating?'閉店か。これ食うたら帰るわ':drinking?'これ飲んだら帰るわ':pick(['もう閉店か','ごっそさん','会計や'])):eating?pick(['あ、もう閉店か。急いで食べますね','閉店ですか、これ食べたら帰ります']):drinking?pick(['あ、もう閉店か。これ飲んだら帰ります','閉店かぁ、最後の一杯ゆっくり飲も']):pick(['あ、もう閉店か','ごちそうさまでした','お会計お願いします']),'quiet');});
   partiesClosing();const gs=[...new Set(regulars.filter(r=>!r.student&&!r.party).map(r=>r.group))];gs.forEach((gid,i)=>{const at=W.t+18+i*9+R()*6;regulars.forEach(r=>{if(r.group===gid)r.leaveAt=at+R()*1.5;});});
   if(customers.some(c=>c.state==='passout'))later(()=>toast('酔いつぶれた客が起きない… 声をかける・飲み物をかける・暴力・背負って外へ'),2500);
-  $('#tickets').hidden=true;$('#tasks').hidden=false;renderTasks();
+  $('#tickets').hidden=true;if(!W.guestShop){$('#tasks').hidden=false;renderTasks();}
 }
 function standAndExit(p){if(p.mugMesh)p.mugMesh.visible=false;p.standT=0;p.standFrom={x:p.g.position.x,y:p.g.position.y,z:p.g.position.z};p.standTo=nearestWalkablePt(p.g.position.x,p.g.position.z);p.phone.visible=false;toExit(p);}
 function regularsClosing(){
@@ -2400,14 +2407,6 @@ function platter(x,kind){const g=new THREE.Group();g.position.set(x,.96,-3.18);s
   else{add(new THREE.BoxGeometry(.004,.004,.06),[0x6a4220,0x8a5a2a,0xc87a3a],70,.09,.035);add(new THREE.SphereGeometry(.004,4,3),[0xf0f0e0],20,.08,.06);}
   return g;}
 platter(-2.25,'nikujaga');platter(-0.95,'potesala');platter(0.35,'kinpira');
-// --- oden pot on the pass
-const oden=new THREE.Group();oden.position.set(2.12,.96,-3.12);scene.add(oden);
-box(.5,.14,.36,steel,0,.07,0,oden);box(.46,.01,.32,lam(0xb8823a),0,.12,0,oden);box(.005,.13,.32,steel,0,.07,0,oden);box(.46,.13,.005,steel,0,.07,0,oden);
-{const rr=srand(77);for(let i=0;i<14;i++){const k=i%5,x=(rr()-.5)*.4,z=(rr()-.5)*.26;let m;
-  if(k===0){m=cyl(.03,.03,.03,lam(0xd8b878),x,.125,z,12,oden);}else if(k===1){m=new THREE.Mesh(new THREE.SphereGeometry(.024,10,8),lam(0xc8a060));m.scale.y=1.25;m.position.set(x,.13,z);oden.add(m);}
-  else if(k===2){m=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.012,3),lam(0x5a5650));m.rotation.x=Math.PI/2;m.position.set(x,.13,z);oden.add(m);}
-  else if(k===3){m=cyl(.014,.014,.08,lam(0xc88a4a),x,.13,z,8,oden);m.rotation.z=Math.PI/2;}else{m=box(.05,.012,.035,lam(0xe8d8b0),x,.13,z,oden);}}}
-plane(.24,.08,new THREE.MeshLambertMaterial({map:ctex(192,64,(g,w,h)=>{g.fillStyle='#f4ead2';g.fillRect(0,0,w,h);g.fillStyle='#1d1410';g.font='bold 38px "M PLUS 1p",serif';g.textAlign='center';g.textBaseline='middle';g.fillText('おでん',w/2,h/2+2);})}),2.12,1.18,-3.32,0,Math.PI);
 // --- charcoal grill (焼き台) at the west end of the pass
 const grill=new THREE.Group();grill.position.set(-2.22,.96,-3.1);scene.add(grill);
 box(.42,.14,.24,phong(0x2a2622,40),0,.07,0,grill);const coalMat=new THREE.MeshLambertMaterial({color:0x3a1a0a,emissive:0xff5a10,emissiveIntensity:.6});box(.38,.02,.2,coalMat,0,.13,0,grill);
@@ -2517,7 +2516,6 @@ box(.02,.03,.5,lam(0x222222),3.68,1.35,.45);[0,1,2].forEach(i=>{const kn=box(.00
 plane(.8,.42,new THREE.MeshLambertMaterial({map:ctex(320,168,(g,w,h)=>{g.fillStyle='#fffdf4';g.fillRect(0,0,w,h);g.strokeStyle='#888';g.lineWidth=3;g.strokeRect(2,2,w-4,h-4);g.fillStyle='#c22';g.font='bold 22px "M PLUS 1p",sans-serif';g.textAlign='center';g.fillText('盛り付け',w/2,28);g.textAlign='left';g.fillStyle='#222';g.font='bold 18px "M PLUS 1p",sans-serif';
   ['唐揚げ　キャベツ・レモン・マヨ','とんかつ　キャベツ・からし','海老フライ　キャベツ・タルタル・レモン','※ソース・七味・塩は卓上'].forEach((t,i)=>g.fillText(t,16,62+i*28));})}),.66,1.45,2.975,0,Math.PI);
 function updateDecor(dt){
-  if(R()<dt*4)addSmoke(2.12+(R()-.5)*.3,1.12,-3.12,0xffffff,.14,.5);
   if(R()<dt*5)addSmoke(-3.38+(R()-.5)*.25,1.15,-3.1,0x8a8580,.28,.8);
   coalMat.emissiveIntensity=W.gasOff?.15:.5+Math.sin(W.t*7)*.08+R()*.05;grillLight.intensity=W.lightsOff?.15:(W.gasOff?.1:.45+R()*.1);
   fanBlades.rotation.z-=dt*(W.lightsOff?0:9);
@@ -2526,6 +2524,13 @@ function updateDecor(dt){
 /* ================= izakaya "aruaru": greeting, calls, checkout, water, lost items ================= */
 LIQ.water={name:'水',abv:0,col:0xf4f8fa,w:.3};
 const LEC_N=['店員さぁん、ワンオペなん? えらいなぁ〜','ええか兄ちゃん、仕事ってのはなぁ…','俺が若い頃はなぁ…','店員さん、彼女おるん?','ここの唐揚げはなぁ、日本一やぞぉ'];
+// what they're eating (counter order / a plate on their table)
+function foodOf(p){if(p.order&&(p.ate||p.state==='eat'||p.state==='linger'||p.state==='inspect'))return ITEMS[p.order.item].name;if(p.party&&p.party.foodMeshes.length)return ITEMS[p.party.foodMeshes[0].item].name;if(p.student&&SG.foodMesh)return'これ';return null;}
+// drunk small talk in a voice that fits: older guy / young guy / young woman / mama-san
+function lecLine(p){const t=p.type||{},f=foodOf(p),A=t.fem?(t.old?['あらお兄さん、いい男ねぇ','ちょっとぉ、ママって呼んでいいのよぉ','若いっていいわねぇ〜',f&&`ここの${f}、ほんとに美味しいわぁ`]
+    :['店員さぁん、ひとりで回してるのぉ? すごぉい','ねぇねぇ、店員さんって彼女いるのぉ?','あたし今日めっちゃ飲んでるぅ〜',f&&`この${f}、めっちゃおいしいんだけどぉ〜`])
+  :t.young?['店員さん、何歳っすかぁ〜?','バイト何時までっすかぁ? 飲み行きましょうよぉ','俺、明日1限なんすよぉ…ヒック',f&&`この${f}、マジうまいっすねぇ〜`]
+  :['店員さぁん、ワンオペなん? えらいなぁ〜','ええか兄ちゃん、仕事ってのはなぁ…','俺が若い頃はなぁ…','店員さん、彼女おるん?',f&&`ここの${f}はなぁ、日本一やぞぉ`];return pick(A.filter(Boolean));}
 const LEC_G=['おう兄ちゃん、ちょっと座れや','お前、根性あるやんけ…ヒック','わしの若い頃はなぁ…'];
 const REG_SPOTS=[[-5.95,-5.15],[-5.3,-5.05],[-4.65,-5.0]];
 function regQueue(){return customers.filter(c=>c.state==='toReg'||c.state==='payWait').sort((a,b)=>a.regIdx-b.regIdx);}
@@ -2645,7 +2650,7 @@ function updateAruaru(dt){
     if(gs.length){const gid=pick(gs),mem=regulars.filter(r=>r.group===gid&&!r.cs);mem.forEach(r=>r.cheers=1.6);say(pick(mem),pick(['かんぱーい!','おつかれー! かんぱい!','もう一回かんぱーい!']),'');[300,380,450].forEach(d=>setTimeout(()=>sfx.clink(1.1),d));}}
   regulars.forEach(r=>{if(r.cheers>0&&!r.cs){r.cheers-=dt;armTo(r,1,'cheers',dt,8);}});
   [[ZTABLES[0],.765,0],[ZTABLES[2],.765,1],[TTABLES[3],.745,2]].forEach(([[x,z],y,gid])=>{if(regulars.some(r=>r.group===gid&&!r.cs)&&R()<dt*1.6)addSmoke(x+.32,y+.06,z+.12,0xd8d8d8,.12,.35);});
-  persons().forEach(p=>{if(p.cs||p.cop||!((p.lv||0)>=2))return;const d=nearD(p.g.position.x,p.g.position.z);if(d<2.2){p.lecT=(p.lecT==null?3+R()*4:p.lecT)-dt;if(p.lecT<=0){p.lecT=12+R()*10;say(p,pick(p.gara?LEC_G:LEC_N),'quiet');}}});
+  persons().forEach(p=>{if(p.cs||p.cop||!((p.lv||0)>=2))return;const d=nearD(p.g.position.x,p.g.position.z);if(d<2.2){p.lecT=(p.lecT==null?3+R()*4:p.lecT)-dt;if(p.lecT<=0){p.lecT=12+R()*10;say(p,p.gara?pick(LEC_G):lecLine(p),'quiet');}}});
   updateReturners(dt);
 }
 Object.assign(sfx,{shout(){[0,.11,.22].forEach((d,i)=>{tone(300+i*40,.13,'sawtooth',.05,260+i*30,d);burst(.1,1200,.03,'bandpass',d);});}});
@@ -2825,7 +2830,7 @@ const PKIND={
   trio:{label:'3人組',n:[3,3],types:()=>NORMAL_TYPES,dur:[190,280]},
   company:{label:'会社の飲み会',n:[4,6],types:()=>NORMAL_TYPES.filter(t=>['営業マン','OLさん','一人飲みのおじさん'].includes(t.name)),dur:[230,330]}};
 // how many staff are on today (players + crew who actually work)
-const staffN=()=>players.length+CREW_NOW.filter(p=>p.post.role!=='boss'&&p.post.role!=='slack').length;
+const staffN=()=>(W.offDay?0:players.length)+CREW_NOW.filter(p=>p.post.role!=='boss'&&p.post.role!=='slack').length;
 const pkey=P=>'p'+P.id;
 function partyName(P){return`${P.slot.name} ${P.kindLabel}(${P.n}名)`;}
 function pickPartyKind(n){const r=R();
@@ -2910,7 +2915,7 @@ function updateParties(dt){
         if(sip){p.drinkLeft=Math.max(0,p.drinkLeft-dt*.07);p.bac+=dt*.2*Math.max(.6,(p.abv||5)/5);if(p.drinkLeft<=0&&p.mugMesh.userData.beer){p.mugMesh.userData.beer.visible=false;p.mugMesh.userData.foam.visible=false;}}
         const talk=Math.sin(p.t*.5+p.idx*2);headTo(p,talk*.45,.06,0,dt,2);setExpr(p,p.lv>=3?'sick':p.lv>=2||talk>.9?'happy':'normal');p.body.rotation.z=p.lv>=2?Math.sin(p.t*1.4)*.05:0;
         p.lv=lvOf(p);const q=Math.floor(p.bac/3);if(q!==p.flushQ){p.flushQ=q;drawFace(p);}
-        if(P.n>1&&R()<dt*.012)say(p,P.kind==='company'?pick(['いやー、今期は厳しかったね','部長、もう一杯どうですか!','で、例の案件どうなった?','ここの唐揚げ、うまいんだよ']):pick(['それな〜','え、マジで?','ここ雰囲気いいね','あはは!']),'quiet');}
+        if(P.n>1&&R()<dt*.012)say(p,P.kind==='company'?pick(['いやー、今期は厳しかったね','部長、もう一杯どうですか!','で、例の案件どうなった?',...(P.foodMeshes.length?[`ここの${ITEMS[P.foodMeshes[0].item].name}、うまいんだよ`]:[])]):pick(['それな〜','え、マジで?','ここ雰囲気いいね','あはは!']),'quiet');}
       else if(p.ps==='toReg'){
         if(p.standT<1){p.standT=Math.min(1,p.standT+dt/.6);const e=p.standT;p.g.position.x=p.standFrom.x+(p.standTo[0]-p.standFrom.x)*e;p.g.position.z=p.standFrom.z+(p.standTo[1]-p.standFrom.z)*e;p.g.position.y=p.standFrom.y*(1-e);}
         else{if(!p.path){const sp=regQueue().length?REG_SPOTS[2]:REG_SPOTS[0];p.path=findPath(p.g.position.x,p.g.position.z,sp[0],sp[1]);}
@@ -2935,17 +2940,17 @@ function partyReset(){PARTIES.length=0;PID=0;SLOTS.forEach(s=>{if(s.clutter)scen
 const partyPayer=()=>PARTIES.find(P=>P.leader&&regulars.includes(P.leader)&&P.leader.ps==='payWait'&&!P.leader.cs);
 
 /* ---- one interface for "a table that wants things" (the student table or a party), used by the crew, the pass shelf and the tickets ---- */
-function tgtKeys(){const L=[];if(SG.on&&sgAlive().some(m=>m.sg==='seated'))L.push('sg');PARTIES.forEach(P=>{if(P.st==='party'&&P.ordered)L.push(pkey(P));});return L;}
+function tgtKeys(){const L=guestKeys();if(SG.on&&sgAlive().some(m=>m.sg==='seated'))L.push('sg');PARTIES.forEach(P=>{if(P.st==='party'&&P.ordered)L.push(pkey(P));});return L;}
 const tgtParty=k=>PARTIES.find(P=>pkey(P)===k);
-const needDrinks=k=>k==='sg'?Array(Math.max(0,SG.needBeer)).fill('beer'):(tgtParty(k)||{drinks:[]}).drinks;
-const needFoods=k=>k==='sg'?(SG.food?[SG.food.item]:[]):(tgtParty(k)||{foods:[]}).foods;
+const needDrinks=k=>k[0]==='g'?LW(+k.slice(1)).gOrd.d:k==='sg'?Array(Math.max(0,SG.needBeer)).fill('beer'):(tgtParty(k)||{drinks:[]}).drinks;
+const needFoods=k=>k[0]==='g'?LW(+k.slice(1)).gOrd.f:k==='sg'?(SG.food?[SG.food.item]:[]):(tgtParty(k)||{foods:[]}).foods;
 const crewClaims=(k,f)=>CREW_NOW.filter(q=>q.tc&&q.tc.key===k&&f(q.tc)).length;
 function openDrink(k){const pend=needDrinks(k);for(const d of new Set(pend))if(pend.filter(x=>x===d).length>crewClaims(k,t=>t.drink===d))return d;return null;}
 function openFood(k){const pend=needFoods(k);for(const it of new Set(pend)){const c=crewClaims(k,t=>t.item===it)+PASS.filter(x=>x.pl&&x.seat===k&&x.pl.food&&x.pl.food.item===it).length;if(pend.filter(x=>x===it).length>c)return it;}return null;}
-const tgtSpot=k=>k==='sg'?SG_SPOT():partySpot(tgtParty(k));
-const tgtName=k=>k==='sg'?'大学生の卓':(P=>P?P.slot.name:'')(tgtParty(k));
-function serveDrinkTo(k,g){if(k==='sg')return sgServeBeer(g);const P=tgtParty(k);return!!P&&partyServeDrink(P,g);}
-function serveFoodTo(k,pl){if(k==='sg')return sgServeFood(pl);const P=tgtParty(k);return!!P&&partyServeFood(P,pl);}
+const tgtSpot=k=>k[0]==='g'?SPOT.seatH(seats[LW(+k.slice(1)).gSeat]||seats[0]):k==='sg'?SG_SPOT():partySpot(tgtParty(k));
+const tgtName=k=>k[0]==='g'?newbie(+k.slice(1)):k==='sg'?'大学生の卓':(P=>P?P.slot.name:'')(tgtParty(k));
+function serveDrinkTo(k,g){if(k[0]==='g')return serveGuest(k,g,null);if(k==='sg')return sgServeBeer(g);const P=tgtParty(k);return!!P&&partyServeDrink(P,g);}
+function serveFoodTo(k,pl){if(k[0]==='g')return serveGuest(k,null,pl);if(k==='sg')return sgServeFood(pl);const P=tgtParty(k);return!!P&&partyServeFood(P,pl);}
 // tables waiting to be cleared
 function clutterKeys(){const L=[];if(SG.clutter&&!sgAlive().length)L.push('sg');SLOTS.forEach(s=>{if(s.clutter&&!(s.party&&s.party.st==='party'))L.push('s'+s.i);});return L;}
 const clutterSpot=k=>k==='sg'?SG_SPOT():(s=>s.kind==='table'?[s.x-1.1,s.z,Math.PI/2]:[clamp(s.x,-6.2,-2.8),-5.95,Math.PI])(SLOTS[+k.slice(1)]);
@@ -2967,6 +2972,34 @@ SLOTS.forEach(s=>{s.st={
   hold(dt){if(s.sg)return SGT.hold(dt);if(hand||!s.clutter||(s.party&&s.party.st==='party'))return;s.clearP=(s.clearP||0)+dt/1.6;if(R()<dt*5)sfx.clink(.9);
     if(s.clearP>=1){s.clearP=0;const st=clearSlot(s);setHand(st);toast(`${s.name}を片付けた。重ねた皿を返却口へ`);}}};
   hitBox(s.kind==='table'?1.1:1.2,.35,s.kind==='table'?.7:.8,s.x,s.kind==='table'?.9:.85,s.z,s.st);});
+
+/* ================= days off: drop in at 呑兵衛 as a customer (opens at 18:00, run by whoever is on that day) ================= */
+const GUEST_MENU=[['beer','d'],['highball','d'],['sour','d'],['karaage','f'],['katsu','f'],['ebi','f']];
+const gName=k=>DRINKS[k]?DRINKS[k].name:ITEMS[k].name,gPrice=k=>DRINKS[k]?DRINKS[k].price:ITEMS[k].price;
+function openGuestShop(){W.guestShop=true;spawnCrew(true);W.open=true;W.openAt=W.t;W.commute=false;W.closed=false;
+  if(W.lightsOff)setShopLights(true,true);W.gasOff=false;gasLamp.material.color.set(0xff8a2a);norenMesh.visible=true;W.spawnT=20;W.partyT=null;}
+function enterAsGuest(){goInsideFront();W.guest=true;W.gBill=0;W.gOrd={d:[],f:[]};W.gWait=[];W.gSeat=null;
+  const ws=CREW_NOW.filter(q=>crewIn(q)&&q.post.role!=='boss'),a=ws.find(q=>q.does&&q.does.has('hall'))||ws[0],b=ws.find(q=>q!==a);
+  if(a)later(()=>{if(W.running&&crewIn(a))say(a,{'白石 ひなの':'いらっしゃいま…あれっ!? 新人さん! 今日お休みですよね!?','早川 莉子':'いらっしゃ…って、あんたかい。休みの日まで来るとか、ここ好きすぎでしょ','桐谷 颯真':'うぃーっす! お、今日は客っすか? カウンター空いてますよ!','三好 恭平':'いらっしゃいませー! …あ、なんだ君か。ゆっくりしてって'}[a.crew]||'いらっしゃいませー!','');},700);
+  if(b)later(()=>{if(W.running&&crewIn(b))say(b,'社割はないからね〜(冗談)','quiet');},3200);}
+function guestSit(s){if(s.c||s.plate||s.guest!=null||W.gSeat!=null)return;s.guest=cur;W.gSeat=s.i;player.x=s.x;player.z=-4.3;yaw=Math.PI;if(cur===me){view.yaw=Math.PI;view.pitch=-.3;}sfx.clink(.3);
+  if(cur===me)later(()=>toast('アクションから注文できる(飲み物・料理)'),600);}
+function guestStand(){const s=seats[W.gSeat];if(s&&s.guest===cur)s.guest=null;W.gSeat=null;player.z=-4.95;}
+function guestOrder(k){if(W.gSeat==null)return toast('先に席に座ろう');const dr=!!DRINKS[k];(dr?W.gOrd.d:W.gOrd.f).push(k);
+  const h=CREW_NOW.find(q=>crewIn(q)&&q.does&&q.does.has(dr?'drinks':'fry'))||CREW_NOW.find(q=>crewIn(q)&&q.post.role!=='boss');
+  if(h)say(h,`${gName(k)}、かしこまりましたー!`,'quiet');else toast('…誰も聞いてない');}
+function guestPay(){const L=W;if(!L.gBill)return;const amt=Math.round(L.gBill*.8/10)*10;W.money+=amt;if(cur===me){BANK.add(-amt,'呑兵衛 飲食代(社割)');toast(`お会計 ${yen(amt)}(社割2割引・残高 ${yen(BANK.bal)})`);}
+  const r=CREW_NOW.find(q=>crewIn(q)&&q.does&&q.does.has('reg'));if(r)say(r,'ありがとうございましたー! また来てね','quiet');L.gBill=0;}
+function guestLeave(){if(W.gSeat!=null)guestStand();guestPay();W.guest=false;W.gOrd={d:[],f:[]};transit(goOutsideFront);}
+const guestKey=i=>'g'+i;
+const guestKeys=()=>players.map((q,i)=>i).filter(i=>{const L=LW(i);return L.guest&&L.gSeat!=null&&L.gOrd&&(L.gOrd.d.length||L.gOrd.f.length);}).map(guestKey);
+function serveGuest(k,item,food){const i=+k.slice(1),L=LW(i),key=food?food.food&&food.food.item:gKind(item),arr=food?L.gOrd.f:L.gOrd.d,j=arr.indexOf(key);if(j<0)return false;arr.splice(j,1);
+  L.gBill+=gPrice(key);withPlayer(i,()=>{if(hand){W.gWait.push(food||item);if(cur===me)toast(`${gName(key)}が来た。手を空けたら受け取れる(空いたジョッキや皿はカウンターに置く)`);}else{setHand(food||item);if(cur===me)toast(`${gName(key)}が来た(アクションから${food?'食べる':'飲む'})`);}});return true;}
+// a word from the crew now and then while you sit there
+function guestChat(dt){const gi=players.map((q,i)=>i).find(i=>LW(i).guest&&LW(i).gSeat!=null);if(gi==null)return;W.gChatT=(W.gChatT==null?25:W.gChatT)-dt;if(W.gChatT>0)return;W.gChatT=35+R()*30;
+  const ws=CREW_NOW.filter(q=>crewIn(q)&&!q.seat&&q.post.role!=='boss');if(!ws.length)return;const q=pick(ws);
+  say(q,pick({'白石 ひなの':['ゆっくりしていってくださいね〜','今日、お客さん多くて大変なんですよ〜…','おかわりいります?'],'早川 莉子':['飲みすぎて明日のシフト遅刻しないでよ?','あんた、客側だとおとなしいね','唐揚げ、今日のは私が揚げたやつだから'],
+    '桐谷 颯真':['この後、サークルの二次会来ます?','今日のハイボール、俺が作ったんで濃いめっすよ','明日シフトっすよね? ほどほどに!'],'三好 恭平':['いやー、休みの日に来てくれるなんて嬉しいなぁ','今日は俺のおごり…いや、なんでもない','俺も休みの日、ここで飲んでたなぁ'],'大森 拓海':['(従業員室から)あれ、来てるんすか? おつかれっす〜']}[q.crew]||['ゆっくりしてってね']),'quiet');}
 
 Object.assign(sfx,{
   claps(){for(let i=0;i<3;i++)burst(.04,3200,.07,'highpass',i*.06+R()*.03);},
@@ -3029,7 +3062,7 @@ const PL0={i:0,pos:player,P,hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,a
 function mkPl(i){return{i,pos:{x:0,z:.2},P:{hp:100,atk:null,atkT:0,cd:0,lastHurt:-99,hitDone:false},hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,actT:0,pid:0,moved:false};}
 let players=[PL0],me=0,cur=0;
 // each player has their own whereabouts, car, bike and apartment; swapped in and out like the hand
-const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil','ride','homeRide','clockInT','wage','store','ball','dayChoice','makaSeat','job','sekkyoNow','sekkyo','payCut','violN','splashN','condM'];
+const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil','ride','homeRide','clockInT','wage','store','ball','dayChoice','makaSeat','job','sekkyoNow','sekkyo','payCut','violN','splashN','condM','guest','gSeat','gOrd','gBill','gWait'];
 const CKEYS=['x','z','h','v','st','engine','starting','side','gear','gearDir','doorOpen','inCar','dead','fall','warnT','brakeL','acc','rpm','atg','cam','parked','lastAcc','ck'];
 const BKEYS=['x','z','h','v','riding','arrived','warned','g','front','crank','rw','fw','lampM'];
 const HKEYS=['mode','nap','endHow','tvOn','lightOn','fridgeOpen','bathOpen'];
@@ -3106,26 +3139,30 @@ function refreshHeld(){
 /* ================= game state ================= */
 const W={running:false,t:0,dur:600,money:0,rage:0,conf:0,giveup:0,mild:0,happy:0,log:[],spawnT:1};
 let shake=0;
+// leftovers from last night: dirty plates and condiment levels carry over to the next day (day 1 starts clean)
+const CARRYDAY={ret:0,lv:null},PLATES=10;
+function noteLeftovers(){CARRYDAY.ret=Math.min(PLATES,returns.length+seats.filter(s=>s.plate).length+PASS.filter(x=>x.pl).length+SLOTS.reduce((a,s)=>a+(s.clutter?(s.plates||1):0),0)+(SG.clutter?Math.max(1,SG.plates||0):0)+(isPlate(shelf)&&shelf.dirt>.02?1:0));
+  CARRYDAY.lv=trays.map(T=>({...T.lv}));}
 function reset(){
   customers.slice().forEach(removeCustomer);customers=[];clearCrew();
   cops.forEach(p=>scene.remove(p.g));cops.length=0;messes.slice().forEach(removeMess);spawnRegulars();toiletUser=null;doors.forEach(d=>{d.open=false;d.npcT=0;});
-  seats.forEach(s=>{s.c=null;if(s.plate)scene.remove(s.plate.mesh);s.plate=null;s.leaving=null;s.ver++;setSlip(s);});
+  seats.forEach(s=>{s.c=null;if(s.plate)scene.remove(s.plate.mesh);s.plate=null;s.leaving=null;s.guest=null;s.ver++;setSlip(s);});
   fryers.forEach(f=>{if(f.mesh)f.basket.remove(f.mesh);f.food=null;f.mesh=null;f.up=false;});
   shelf=null;refreshShelf();setHand(null);
-  returns=[newPlate(.9),newPlate(.95),newPlate(.8)];refreshReturns();
-  rack=[newPlate(.02),newPlate(0),newPlate(0),newPlate(.01)];refreshRack();PASS.forEach(sl=>{sl.pl=null;sl.seat=null;sl.ck=null;refreshPass(sl);});seats.forEach(s=>s.bk=null);
+  const dirty=DAY.n<=1?0:CARRYDAY.ret;returns=Array.from({length:dirty},()=>newPlate(.8+R()*.2));refreshReturns();
+  rack=Array.from({length:PLATES-dirty},()=>newPlate(0));refreshRack();PASS.forEach(sl=>{sl.pl=null;sl.seat=null;sl.ck=null;refreshPass(sl);});seats.forEach(s=>s.bk=null);
   subsEl.innerHTML='';
   Object.assign(W,{t:0,money:0,rage:0,conf:0,giveup:0,mild:0,happy:0,log:[],spawnT:3,vomit:0,fights:0,calls:0,ko:0,hits:0,policeT:null,policeOn:false,passout:0});
   Object.assign(P,{hp:100,atk:null,atkT:0,cd:0,lastHurt:-99});hurtT=0;$('#copP').hidden=true;
   Object.assign(W,{closed:false,norenDown:false,gasOff:false,trashOut:false,bagTaken:false,regDone:false,regP:0,lightsOff:false,paidGroups:new Set(),taskT:0});
-  norenMesh.visible=true;resetTrays();sgReset();partyReset();
+  norenMesh.visible=true;resetTrays();if(DAY.n<=1)trays.forEach(T=>{CONDS.forEach(c=>T.lv[c.id]=1);showTray(T);});else if(CARRYDAY.lv)trays.forEach((T,i)=>{if(CARRYDAY.lv[i])Object.assign(T.lv,CARRYDAY.lv[i]);showTray(T);});sgReset();partyReset();W.guestShop=false;
   returners.forEach(p=>scene.remove(p.g));returners.length=0;lostItems.forEach(L=>{scene.remove(L.mesh);if(L.hb)removeHit(L.hb);});lostItems.length=0;W.contacts=[];W.staffVomit=0;Object.assign(W,{lastOrder:false,dine:0,regN:0,cheersT:null,noGreet:0,returned:0,water:0,chkP:0});shoutCD=0;gasLamp.material.color.set(0xff8a2a);if(lightList)setShopLights(true,true);$('#tickets').hidden=false;$('#tasks').hidden=true;
   LATER=[];
   W.outside=false;W.home=false;W.clockedOut=false;W.bikeUsed=false;resetCarry();Object.assign(BIKE,{x:47.6,z:104.6,h:0,v:0,riding:false,arrived:false,warned:false});W.transit=false;W.homeEnd=false;W.taskSnap=null;W.clockTxt=null;scene.add(camera);camera.far=40;camera.updateProjectionMatrix();
   Object.assign(CAR,{x:9.1,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}});{const o=OOBST.find(o=>o.k==='cop');if(o)o.r=[-11.85,-10.95,19.6,20.4];if(OUT.cop)OUT.cop.g.position.x=-11.4;}RETA.forEach(a=>scene.remove(a.mesh));RETA.length=0;
   $('#carHud').hidden=true;$('#fade').classList.remove('on');
   {const com=startMode==='commute';players.forEach((q,i)=>{const ap=aptOf(i),v=VEH[i];
-    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null,ride:null,homeRide:false,clockInT:0,wage:0,store:null,ball:null,dayChoice:null,makaSeat:false,job:null,sekkyoNow:false,sekkyo:0,payCut:0,violN:0,splashN:0,condM:null};
+    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null,ride:null,homeRide:false,clockInT:0,wage:0,store:null,ball:null,dayChoice:null,makaSeat:false,job:null,sekkyoNow:false,sekkyo:0,payCut:0,violN:0,splashN:0,condM:null,guest:false,gSeat:null,gOrd:{d:[],f:[]},gBill:0,gWait:[]};
     q.car={x:9.1-i*2.6,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,brakeL:0,acc:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}};
     q.bike=Object.assign({x:ap.bike[0],z:ap.bike[1],h:0,v:0,riding:false,arrived:false,warned:false},v?v.bikeM:{g:null,front:null,crank:null,rw:null,fw:null,lampM:null});
     q.hm={mode:'start',nap:0,endHow:null,tvOn:false,lightOn:true,fridgeOpen:false,bathOpen:false};q.carM=v?Object.assign({},v.carM):{};});
@@ -3323,6 +3360,8 @@ function ipos(q){if(!MP.on||q.px==null)return q.pos;const k=clamp(MP.acc/TICK,0,
 function mpFrame(dt){if(MP.starting&&MP.room){MP.goT-=dt;if(MP.goT<=0){MP.goT=.4;MP.room.emit('go',{g:MP.g,seed:MP.seed}).catch(()=>{});}}}
 function updateAvatars(dt){
   players.forEach((q,i)=>{const av=q.av;if(!av||i===me)return;
+    {const ok=outfitKey(i);if(av.of!==ok){const ty=outfitType(i),nv=vis(()=>buildModel(ty,'#e2b08a'));Object.assign(nv,{vis:true,type:ty,skin:'#e2b08a',ctx:nv.fc.getContext('2d'),expr:'',hy:0,hp:0,hr:0,walkT:0,hv:-1,of:ok});
+      const tag=av.g.children.find(o=>o.isSprite);if(tag)nv.g.add(tag);const par=av.g.parent;if(par){par.remove(av.g);par.add(nv.g);}vis(()=>setExpr(nv,'normal'));q.av=nv;return;}}
     const lo=locOf(i),rid=lo==='out'&&q.L&&q.L.ride!=null&&players[q.L.ride],show=lo===locOf(me)&&lo!=='home'&&!(lo==='out'&&q.car&&q.car.inCar);av.g.visible=show;if(!show)return;
     if(rid){if(av.g.parent!==OUT.scene)OUT.scene.add(av.g);const K=carPose(q.L.ride),st2=seatOf(K);av.g.position.set(st2.x,-.42,st2.z);av.g.rotation.y=K.h+Math.PI;av.head.rotation.set(-q.pitch*.5,0,0,'YXZ');vis(()=>rigUpdate(av,dt));return;}
     {const sc=lo==='out'?OUT.scene:lo.startsWith('store:')?STORES[lo.slice(6)].scene:scene;if(sc&&av.g.parent!==sc)sc.add(av.g);}
@@ -3361,6 +3400,7 @@ function staffSeen(kind){
   if(kind!=='phone')W.log.push({name:p.name,line:kind==='drink'?'(店員が仕事中に飲んでいるのを見た)':'(店員のつまみ食いを見た)'});
 }
 function doAction(code){
+  if(code>=40&&code<=45){guestOrder(GUEST_MENU[code-40][0]);return;}if(code===47){guestPay();return;}
   if(code>=1000){submitShift(code-1000);return;}
   if(code===1){P.phone=!P.phone;if(cur===me)sfx.clink(1.6);return;}
   if(code===2){
@@ -3390,7 +3430,8 @@ function doAction(code){
     if(locOf(cur)==='shop')staffSeen(it.bac>0?'drink':'nibble');return;}
   if(code===3){
     if(!isPlate(hand)||!hand.food)return toast('つまめる料理を持っていない');
-    const nm=ITEMS[hand.food.item].name;hand.food.bite=(hand.food.bite||0)+1;sfx.clink(.4);hlAdd('hunger',-7);
+    const nm=ITEMS[hand.food.item].name;hand.food.bite=(hand.food.bite||0)+1;sfx.clink(.4);hlAdd('hunger',W.guest?-12:-7);
+    if(W.guest){if(foodLeft(hand.food)<=0){hand.food=null;hand.tops={};hand.dirt=.9;toast(`${nm}を食べ終わった。お皿はカウンターに置こう`);}else toast(`${nm}をひとつ食べた(残り${foodLeft(hand.food)}個)`);handV++;return;}
     if(foodLeft(hand.food)<=0){hand.food=null;toast(`${nm}を全部食べてしまった…`);}
     else toast(`${nm}をひとつ、つまみ食いした(残り${foodLeft(hand.food)}個)`);
     handV++;staffSeen('nibble');return;}
@@ -3440,7 +3481,8 @@ function actionItems(){const q=players[me],h=me===cur?hand:q.hand,ph=q.P.phone,i
     else it.push({code:6,icon:'ball',t:'サッカーボールを出す',s:inP?'足で触れてドリブル・使うでシュート':'公園(サッカーコート)でしか出せない',ok:inP&&foot});}}
   if(h&&h.type==='goods'&&!GOODS[h.g].toy)it.push({code:5,icon:isDrinkGood(h.g)?'drink':'bite',t:`${GOODS[h.g].n}を${isDrinkGood(h.g)?'飲む':'食べる'}`,s:h.paid?goodsEffect(h.g):'まだお会計していない',ok:!!h.paid});
   if(h&&h.type==='shopbag')[...new Set(h.items)].slice(0,5).forEach(k=>it.push({code:100+GKEYS.indexOf(k),icon:isDrinkGood(k)?'drink':'bite',t:`${GOODS[k].n}を${isDrinkGood(k)?'飲む':'食べる'}`,s:`レジ袋から(${h.items.filter(x=>x===k).length}個) ${goodsEffect(k)}`,ok:true}));
-  if(inShop)it.push({code:3,icon:'bite',t:'つまみ食いする',s:isPlate(h)&&h.food?`${ITEMS[h.food.item].name} 残り${foodLeft(h.food)}個`:'料理の乗った皿を持っていない',ok:!!(isPlate(h)&&h.food)});
+  {const L=me===cur?W:q.L;if(inShop&&L.guest&&L.gSeat!=null){GUEST_MENU.forEach(([k],j)=>it.push({code:40+j,icon:DRINKS[k]?'drink':'bite',t:`${gName(k)}を注文する`,s:`${yen(gPrice(k))}(社割で2割引)`,ok:true}));it.push({code:47,icon:'phone',t:'お会計する',s:L.gBill?`いまの合計 ${yen(Math.round(L.gBill*.8/10)*10)}`:'まだ何も頼んでない',ok:!!L.gBill});}}
+  if(inShop)it.push({code:3,icon:'bite',t:(me===cur?W:q.L).guest?'料理を食べる':'つまみ食いする',s:isPlate(h)&&h.food?`${ITEMS[h.food.item].name} 残り${foodLeft(h.food)}個`:'料理の乗った皿を持っていない',ok:!!(isPlate(h)&&h.food)});
   return it;}
 const goodsEffect=k=>GOODS[k].bac>0?'お酒(酔う)':GOODS[k].bac<0?'酔いが少し醒める':'体力が回復する';
 function renderMenu(){const box=$('#actMenu');box.innerHTML='<div class="amh">ACTION</div>'+actionItems().map((it,i)=>`<button class="ami${it.ok?'':' off'}" data-code="${it.code}" style="--d:${i*40}ms"><span class="ic">${ICONS[it.icon]}</span><span class="tx"><b>${it.t}</b><small>${it.s}</small></span><kbd>${i+1}</kbd></button>`).join('');}
@@ -3612,8 +3654,8 @@ function seatIn(kind){const c=CARRY.c;dropCarry();c.g.rotation.order='XYZ';c.bod
   sfx.door2&&sfx.door2(false);toast(kind==='car'?'助手席に乗せた':'荷台に乗せた');}
 function takeFrom(kind){const c=kind==='car'?CARRY.car:CARRY.bike;if(!c)return;if(kind==='car')CARRY.car=null;else CARRY.bike=null;pickUp(c,kind);}
 function ensureCarryHits(){}
-function frontDoorHit(){oHit(.4,2.1,1.9,-7.25,1.1,-4.9,{prompt(){if(CARRY.c)return'';if(W.clockedOut)return'呑兵衛の入口(もう閉めた)';return W.closed?'店の中に<b>戻る</b>':'呑兵衛の入口';},
-    press(){if(W.clockedOut||!W.closed)return;transit(goInsideFront);}});}
+function frontDoorHit(){oHit(.4,2.1,1.9,-7.25,1.1,-4.9,{prompt(){if(CARRY.c)return'';if(W.offDay)return W.guestShop&&W.open&&!W.closed?'呑兵衛に<b>入る</b>(お客として)':W.t<0?'呑兵衛(18:00開店)':'呑兵衛(もう閉店)';if(W.clockedOut)return'呑兵衛の入口(もう閉めた)';return W.closed?'店の中に<b>戻る</b>':'呑兵衛の入口';},
+    press(){if(W.offDay){if(W.guestShop&&W.open&&!W.closed)transit(enterAsGuest);return;}if(W.clockedOut||!W.closed)return;transit(goInsideFront);}});}
 function vehCarryHits(){
   // passenger door (left)
   oHit(.3,1.0,1.3,-.95,.95,.05,{prompt(){if(CAR.inCar)return'';if(CARRY.c)return CARRY.car?'助手席はもう埋まってる':`${CARRY.c.name}を助手席に<b>乗せる</b>`;return CARRY.car?`助手席の${CARRY.car.name}を<b>背負う</b>`:'';},
@@ -4104,11 +4146,14 @@ function stowBall(){if(hand&&hand.type==='goods'&&hand.g==='ball'&&hand.paid){se
 Object.assign(sfx,{kickBall(p=.5){burst(.07,420+p*300,.22+p*.2,'lowpass');tone(110,.08,'sine',.12);},goal(){[523,659,784,1046].forEach((f,i)=>tone(f,.22,'triangle',.07,null,i*.11));burst(1.2,1800,.08,'bandpass',.1);}});
 /* ================= first-person body: my own torso, arms and legs under the camera (head hidden) ================= */
 const SELF={m:null,k:-1,kickT:0};
-function selfBody(){if(SELF.m&&SELF.k===me)return SELF.m;if(SELF.m&&SELF.m.g.parent)SELF.m.g.parent.remove(SELF.m.g);
-  const ty=STAFF_TYPES[me]||STAFF_TYPE,m=buildModel(ty,'#e2b08a');m.rig.headJ.visible=false;m.rig.neck.children.forEach(o=>{if(o!==m.rig.headJ)o.visible=false;});
+// clothes: the uniform once I've changed at the locker, otherwise my own hoodie and jeans (2P: a grey hoodie)
+function outfitType(i){const base=STAFF_TYPES[i]||STAFF_TYPE;if(LW(i).dressed)return base;const t={...base,top:i?0x55555c:0x17171b,pants:0x3d5f8f,hood:1,shoe:0xeeeeee};delete t.workcap;return t;}
+const outfitKey=i=>(LW(i).dressed?'u':'c')+i;
+function selfBody(){const ok=outfitKey(me);if(SELF.m&&SELF.k===ok)return SELF.m;if(SELF.m&&SELF.m.g.parent)SELF.m.g.parent.remove(SELF.m.g);
+  const ty=outfitType(me),m=vis(()=>buildModel(ty,'#e2b08a'));m.rig.headJ.visible=false;m.rig.neck.children.forEach(o=>{if(o!==m.rig.headJ)o.visible=false;});
   {const cap=new THREE.Mesh(new THREE.SphereGeometry(.075,16,8,0,Math.PI*2,0,Math.PI/2),clothMat(ty.top));cap.scale.set(1,.35,.75);cap.position.y=.262;m.rig.chest.add(cap);} // close the neck opening (the neck itself is hidden)
   m.g.traverse(o=>{if(o.isMesh){o.castShadow=false;o.frustumCulled=false;o.userData.noOcc=true;}});
-  SELF.m={...m,type:ty,skin:'#e2b08a',expr:'',hy:0,hp:0,hr:0,walkT:0,lv:0};SELF.k=me;return SELF.m;}
+  SELF.m={...m,type:ty,skin:'#e2b08a',expr:'',hy:0,hp:0,hr:0,walkT:0,lv:0};SELF.k=ok;return SELF.m;}
 const _sv=new THREE.Vector3();
 function updateSelf(dt,cp){const sb=selfBody(),sc=camera.parent;if(!sc)return;if(sb.g.parent!==sc)sc.add(sb.g);
   const inC=W.outside&&CAR.inCar,rideP=W.outside&&W.ride!=null,bike=W.outside&&BIKE.riding;
@@ -4150,7 +4195,7 @@ function isWorkDay(n){if(n<=1)return true;if(needShiftDay(n))return false;const 
 function allSleptCheck(){if(players.every((q,i)=>(i===cur?W:q.L).slept)&&!DAY.choosing){DAY.choosing=true;players.forEach((q,i)=>{(i===cur?W:q.L).dayChoice=null;});}}
 function dayChoice(c){if(!DAY.choosing||W.dayChoice)return;W.dayChoice=c;const cs=players.map((q,i)=>(i===cur?W:q.L).dayChoice);
   if(cs.includes('quit')){DAY.choosing=false;DAY.pending='quit';}else if(cs.every(x=>x==='next')){DAY.choosing=false;DAY.pending='next';}}
-function nextDay(){DAY.n++;const work=isWorkDay(DAY.n);startMode='commute';reset();W.running=true;GLINE.length=0;phoneSeen={};
+function nextDay(){noteLeftovers();DAY.n++;const work=isWorkDay(DAY.n);startMode='commute';reset();W.running=true;GLINE.length=0;phoneSeen={};
   if(work){W.t=-230;spawnCrew();crewMorning();players.forEach((q,i)=>withPlayer(i,()=>{startAtHome();if(MP.on&&DAY.n>2&&!(DAY.shift[i]!=null&&((DAY.shift[i]>>(DAY.n-DAY.base))&1)))laterP(()=>toast('人手が足りなくて呼び出された…今日も出勤'),1600);}));}
   else{W.offDay=true;W.commute=false;W.open=false;W.t=-480/180*W.dur; // 10:00
     if(needShiftDay(DAY.n)){DAY.shift=players.map(()=>null);DAY.base=DAY.n+1;}
@@ -4158,7 +4203,7 @@ function nextDay(){DAY.n++;const work=isWorkDay(DAY.n);startMode='commute';reset
     players.forEach((q,i)=>withPlayer(i,startOffHome));}
   players.forEach((q,i)=>{const h=health(q.P);Object.assign(h,{sleepy:12,hunger:Math.min(100,h.hunger+25),thirst:Math.min(100,h.thirst+20),pee:Math.min(100,h.pee+35),poo:Math.min(100,h.poo+25),odor:Math.min(100,h.odor+15),steps:0,warn:{}});});
   if(MP.on)MP.dayN=DAY.n;}
-function startOffHome(){if(!HOME.built)buildHome();HOME.mode='off';HOME.nap=0;HOME.endHow='walk';W.home=true;W.outside=false;W.clockedOut=true;W.clockedIn=false;W.dressed=true;
+function startOffHome(){if(!HOME.built)buildHome();HOME.mode='off';HOME.nap=0;HOME.endHow='walk';W.home=true;W.outside=false;W.clockedOut=true;W.clockedIn=false;W.dressed=false;
   player.x=HX+.4;player.z=-1.0;yaw=Math.PI;pitch=-.1;HOME.tvOn=false;HOME.lightOn=true;
   if(cur===me){view.yaw=Math.PI;view.pitch=-.1;$('#tickets').hidden=true;$('#tasks').hidden=true;}
   const sub0=needShiftDay(DAY.n);laterP(()=>{toast(`${dayLabel(DAY.n)} 10:00 今日はオフ`);sub('あなた',sub0?'…そうだ、今日はシフト提出の日だ。パソコンで出さないと':'…今日は休み。どこ行こうかな','quiet');},500);}
@@ -4249,14 +4294,22 @@ function jobPosts(out){let m=-88;
   gpost(m++,'権田(店長)',solo?`今日の配置<br>${lines.join('<br>')}<br>…ごめん、人いないから今日はほぼ一人でお願い🙏`:`【今日の配置】<br>${lines.join('<br>')}<br>持ち場は守ってね〜! よろしく👍`);
   CREW_NOW.forEach(p=>{const r={'早川 莉子':'りょ','桐谷 颯真':'了解っす!','白石 ひなの':'はーい🙌 がんばります!','三好 恭平':'了解です!','大森 拓海':'(既読)'}[p.crew];if(r)gpost(m++,p.crew.split(' ')[0],r);});}
 // crew day plan (seeded, so both players agree): who cancels, who leaves early, who arrives when, who does what
-function spawnCrew(){clearCrew();GLINE.length=0;const today=crewToday(),out=[];
-  today.forEach(m=>{const post=CREW_POST[m.n];if(post.role!=='boss'&&R()<(post.role==='slack'?.3:.1)){out.push(m);return;}
+// who runs the shop on my day off: that day's roster, or 三好 and 白石 if nobody is down for it
+function guestRoster(){const k=DAY.n-DAY.base;let r=k>=0&&k<=6?CREW.filter(m=>m.w[k]):[];if(!r.some(m=>!['boss','slack'].includes(CREW_POST[m.n].role)))r=r.concat(CREW.filter(m=>(m.n==='三好 恭平'||m.n==='白石 ひなの')&&!r.includes(m)));return r;}
+function assignCrewOnly(){const ord=['早川 莉子','桐谷 颯真','三好 恭平','白石 ひなの'],ws=CREW_NOW.filter(p=>p.post.role!=='boss'&&p.post.role!=='slack').sort((a,b)=>ord.indexOf(a.crew)-ord.indexOf(b.crew));
+  const n=ws.length,left=n<=1?['all']:n===2?['kitchen','hallD']:n===3?['kitchen','drinks','hall']:['fry','dish','drinks','hall',...Array(n-4).fill('hall')],PREF={...JOB_PREF,'三好 恭平':['hall','hallD','dish','drinks','kitchen','fry']};
+  ws.forEach(p=>{const r=(PREF[p.crew]||[]).find(x=>left.includes(x))||left[0]||'hall';const k=left.indexOf(r);if(k>=0)left.splice(k,1);setJob(p,r);if(p.post.role==='reg')p.does.add('reg');});
+  if(!ws.some(p=>p.does.has('reg')))ws.forEach(p=>{if(p.does.has('hall'))p.does.add('reg');});
+  CREW_NOW.forEach(p=>{if(p.post.role==='slack'){p.job='dish';p.does=new Set();}if(p.post.role==='boss'){p.job='boss';p.does=new Set();}});}
+function spawnCrew(guest){clearCrew();if(!guest)GLINE.length=0;const today=guest?guestRoster():crewToday(),out=[];
+  today.forEach(m=>{const post=CREW_POST[m.n];if(!guest&&post.role!=='boss'&&R()<(post.role==='slack'?.3:.1)){out.push(m);return;}
     const L=CREW_LOOK[m.n],type={name:m.n.split(' ')[0],...L},sk=skinFor(type),md=buildModel(type,sk);
     const p={...md,type,skin:sk,ctx:md.fc.getContext('2d'),expr:'',hy:0,hp:0,hr:0,walkT:0,name:m.n.split(' ')[0],crew:m.n,post,t:5+R()*8,lt:10+R()*20,bac:0,lv:0,
       arrive:post.role==='reg'?-70:post.role==='slack'?8+R()*8:-14+R()*8,leaveAt:post.role==='slack'?180:null,gone:false,did:{},q:[],spd:m.n==='桐谷 颯真'?1.75:m.n==='三好 恭平'?1.05:1.4,does:new Set(),job:null};
     md.g.position.set(post.x,post.sit?-.24:0,post.z);md.g.rotation.y=post.ry;scene.add(md.g);setExpr(p,'normal');if(post.role==='slack')p.phone.visible=true;md.g.visible=false;CREW_NOW.push(p);});
   const studs=CREW_NOW.filter(p=>['hall','drinks','dish'].includes(p.post.role));if(studs.length>1&&R()<.15){const e=studs[Math.floor(R()*studs.length)];e.leaveAt=90;e.early=1;}
   W.crewOut=out.map(m=>m.n);
+  if(guest){W.crewOut=[];assignCrewOnly();return;}
   if(today.length){assignJobs();jobPosts(W.crewOut);}else players.forEach((q,i)=>{LW(i).job='all';});}
 function crewMorning(){const out=W.crewOut||[];out.forEach((n,i)=>{const c=CANCEL[n]||['今日休みます…',null];later(()=>{toast(`📱 ${n.split(' ')[1]}「${c[0]}」`);if(c[1])later(()=>toast(c[1]),2600);},2200+i*2600);});
   const working=CREW_NOW.filter(p=>p.post.role!=='boss'&&p.post.role!=='slack');
@@ -4288,7 +4341,7 @@ const homeOf=p=>{const j=p.job;if(p.post.role==='reg')return SPOT.reg;if(p.post.
   return j==='fry'||j==='kitchen'?SPOT.gas:j==='dish'?SPOT.sink:j==='drinks'||j==='hallD'?SPOT.glass:j==='hall'?[-4.0,-5.65,-Math.PI/2]:[p.post.x,p.post.z,p.post.ry];};
 function crewCarry(p,h){if(p.cm){p.g.remove(p.cm);p.cm=null;}p.ch=h||null;if(!h)return;const m=vis(()=>itemMesh(h));if(!m)return;m.position.set(0,1.0,.38);if(h.type==='raw')m.scale.setScalar(.8);p.g.add(m);p.cm=m;}
 // drop whatever the current job was holding on to (plates go back in the rack, food is binned)
-function crewAbort(p){if(p.ch){const h=p.ch;if(isPlate(h)){if(h.food&&h.fresh)backToPass(h);else if(h.stack||h.food||h.dirt>.05)returnPlates(h);else if(rack.length<6){h.tops={};rack.push(h);refreshRack();}}crewCarry(p,null);}
+function crewAbort(p){if(p.ch){const h=p.ch;if(isPlate(h)){if(h.food&&h.fresh)backToPass(h);else if(h.stack||h.food||h.dirt>.05)returnPlates(h);else if(rack.length<RACK_MAX){h.tops={};rack.push(h);refreshRack();}}crewCarry(p,null);}
   releaseTc(p);PASS.forEach(x=>{if(x.ck===p)x.ck=null;});seats.forEach(s=>{if(s.bk===p)s.bk=null;if(s.c&&s.c.hd===p)s.c.hd=null;});p.clr=null;fryers.forEach(f=>{if(f.res===p)f.res=null;if(f.by===p)f.by=null;});p.q=[];p.path=null;}
 function crewRun(p,dt){const q=p.q;if(!q.length)return false;const s=q[0];
   if(s.go){if(!s.path)s.path=findPath(p.g.position.x,p.g.position.z,s.go[0],s.go[1]);p.path=s.path;
@@ -4328,11 +4381,11 @@ function kitchenHandOff(p,s,c,it,key){const who=s?`${s.i+1}番さん`:tgtName(ke
     if(s.c===c&&c.state==='wait'&&!s.plate){crewServeFood(s,pl);if(R()<.6)say(p,pickL('fry',{n:s.i+1,d:ITEMS[it].name}),'quiet');}else spare(pl);}});
   else p.q.push({go:tgtSpot(key)},{fn:()=>{const pl=p.ch;crewCarry(p,null);releaseTc(p);if(serveFoodTo(key,pl))say(p,`お待たせしましたー、${ITEMS[it].name}です!`,'quiet');else spare(pl);}});}
 // 洗い場: return window → (scrape leftovers) → sink → rack
-function jobDish(p,force){if(!returns.length||(!force&&rack.length>=6))return null;
+function jobDish(p,force){if(!returns.length||(!force&&rack.length>=RACK_MAX))return null;
   p.q=[{go:SPOT.ret},{wait:.35},{fn:()=>{if(!returns.length)return false;const pl=returns.shift();refreshReturns();crewCarry(p,pl);sfx.clink(.5);
       if(pl.food||Object.keys(pl.tops).length)p.q.unshift({go:SPOT.trash},{wait:.6,pose:'chop'},{fn:()=>{pl.food=null;pl.tops={};pl.dirt=Math.max(pl.dirt,.8);crewCarry(p,pl);sfx.trash();}});}},
     {go:SPOT.sink},{wait:2.4,pose:'chop'},{fn:()=>{p.ch.dirt=0;p.ch.food=null;p.ch.tops={};crewCarry(p,p.ch);if(p.lt<0){p.lt=40;say(p,pickL('dish'),'quiet');}}},
-    {go:SPOT.rack},{until:()=>force||rack.length<6},{fn:()=>{rack.push(p.ch);crewCarry(p,null);refreshRack();sfx.clink(.8);}}];
+    {go:SPOT.rack},{until:()=>force||rack.length<RACK_MAX},{fn:()=>{rack.push(p.ch);crewCarry(p,null);refreshRack();sfx.clink(.8);}}];
   return true;}
 // ドリンカー: glass → tap/bottles → soda → to the customer's side (and the student table's beers)
 function jobDrink(p){const s=seats.filter(s=>{const c=s.c;return c&&SEATED.has(c.state)&&!c.cs&&c.dOrder&&!c.dk&&c.dWait>3&&!(c.dGlass&&c.dGlass.left>.02)&&!c.wantWater;}).sort((a,b)=>b.c.dWait-a.c.dWait)[0];
@@ -4354,6 +4407,8 @@ function passTarget(sl){const pl=sl.pl;if(!pl||!pl.food)return null;
   return ok(seats[sl.seat])?seats[sl.seat]:seats.find(ok)||null;}
 // ホール: greet, carry plates out from the pass, clear finished plates to the return window, mop up, register if 三好 is off
 function jobHall(p){
+  const ad=customers.find(c=>c.state==='atDoor'&&!c.greeted&&!c.gk);
+  if(ad&&W.open&&!W.closed){ad.gk=p;p.q=[{go:SPOT.door},{fn:()=>{if(ad.state==='atDoor'){ad.greeted=true;say(p,pick(['いらっしゃいませー! おひとり様ですか? こちらどうぞー!','いらっしゃいませー! カウンターどうぞー!']),'');}}},{wait:1}];return true;}
   const wi=customers.find(c=>c.state==='walkIn'&&!c.hina);
   if(wi&&W.open&&!W.closed){wi.hina=1;wi.maxPat*=1.15;wi.pat*=1.15;p.q=[{go:SPOT.door},{fn:()=>{say(p,pickL('hall'),'quiet');setExpr(p,'happy');}},{wait:1.4}];return true;}
   const sl=PASS.find(x=>x.pl&&!x.ck&&passTarget(x));
@@ -4652,6 +4707,8 @@ function buildCar(S2,color=0x0d0d10){
   OUT.sideB=new THREE.Group();OUT.sideB.position.set(.07,.68,.05);car.add(OUT.sideB);box(.035,.035,.3,lam(0x222222),0,0,-.14,OUT.sideB);box(.04,.04,.07,red,0,0,-.29,OUT.sideB);
   [-.4,.4].forEach(x=>{box(.5,.1,.52,fab,x,.45,.15,car);const bk=box(.5,.66,.1,fab,x,.82,.46,car);bk.rotation.x=-.2;[-1,1].forEach(s=>{const bo=box(.06,.5,.12,fab,x+s*.24,.8,.44,car);bo.rotation.x=-.2;});box(.04,.6,.005,red,x,.82,.405,car).rotation.x=-.2;});
   box(.04,.4,1.4,lam(0x18191b),-.78,.68,-.05,car); // passenger door trim
+  box(1.5,.03,2.9,lam(0x141416),0,.29,.2,car);box(.5,.12,.02,lam(0x101012),.4,.36,-.92,car).rotation.x=-.6; // carpeted floor + footwell
+  [[.3,.07],[.52,.06]].forEach(([x,w])=>{const pd=box(w,.1,.02,lam(0x2a2a2c),x,.4,-.82,car);pd.rotation.x=-.5;}); // pedals
   const liner=new THREE.Mesh(new THREE.PlaneGeometry(1.3,1.2),new THREE.MeshLambertMaterial({color:0x2a2a2c,side:THREE.DoubleSide}));liner.position.set(0,1.4,.4);liner.rotation.x=Math.PI/2;car.add(liner);
   [-1,1].forEach(s=>{const ap=box(.06,.86,.07,black,s*.66,1.168,-.452,car);ap.rotation.x=.993;});
   box(.2,.06,.02,lam(0x111111),0,1.31,-.24,car);
@@ -5093,7 +5150,7 @@ const HOME={scene:null,hits:[],built:false,tvOn:false,lightOn:true,mode:'start',
 let homeHid=800000;
 function hHit(w,h,d,x,y,z,st,parent){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),hitMatO);m.position.set(x,y,z);m.userData.st=st;m.userData.hid=++homeHid;m.castShadow=false;(parent||HOME.scene).add(m);HOME.hits.push(m);return m;}
 // room: x -1.8..1.8, z -4.4..0 ; entry corridor + kitchenette: x -1.8..0.2, z 0..2.2 ; front door at z=2.2
-const HOBST=[[0.2,1.8,0.0,0.84],[1.2,1.85,1.55,2.25],[1.42,1.85,0.95,1.45],[-1.8,-1.7,-4.4,-3.3],[-1.55,-1.15,-4.4,-3.95],[-0.12,0.2,1.7,2.2],[-0.3,0.2,0.05,0.4],[0.75,1.8,-4.4,-2.3],[-0.55,0.55,-2.35,-1.65],[-1.8,-1.35,-3.2,-1.8],[-1.8,-1.25,.05,1.0],[-1.8,-1.2,1.1,1.75],[1.25,1.8,-1.2,-.1]];
+const HOBST=[[0.2,1.8,0.0,0.84],[1.2,1.85,1.55,2.25],[1.42,1.85,0.95,1.45],[-1.8,-1.7,-4.4,-3.3],[-1.55,-1.15,-4.4,-3.95],[-0.12,0.2,1.7,2.2],[-0.3,0.2,0.05,0.4],[0.75,1.8,-4.4,-2.3],[-0.55,0.55,-2.35,-1.65],[-1.8,-1.35,-3.2,-1.8],[-1.8,-1.25,.05,1.0],[-1.8,-1.2,1.1,1.75],[1.25,1.8,-1.2,-.1],[1.45,1.8,-2.1,-1.4]];
 function walkHome(x,z){x-=HX;const inBath=x>.32&&x<1.68&&z>.86&&z<2.08,inDoor=HOME.bathOpen&&x>-.1&&x<.45&&z>1.02&&z<1.48;if((inBath||inDoor)&&!HOBST.some(o=>x>o[0]-.12&&x<o[1]+.12&&z>o[2]-.12&&z<o[3]+.12))return true;const inRoom=x>-1.6&&x<1.6&&z>-4.2&&z<-.15,inHall=x>-1.6&&x<0&&z>-.3&&z<1.95;if(!inRoom&&!inHall)return false;return!HOBST.some(o=>x>o[0]-.15&&x<o[1]+.15&&z>o[2]-.15&&z<o[3]+.15);}
 function buildHome(){vis(()=>{
   const S3=new THREE.Scene();HOME.scene=S3;
@@ -5216,6 +5273,11 @@ function buildHome(){vis(()=>{
     B(.5,.01,.35,lam(0x7aa0c8),.55,.012,1.25); // bath mat
     const bl=new THREE.PointLight(0xfff4e8,.5,3,1.4);bl.position.set(1.0,2.2,1.2);S3.add(bl);}
   B(.6,.012,.4,lam(0x8a6a4a),-.8,.081,1.55); // doormat
+  // full-length mirror (姿見) leaning on the east wall
+  {const fr=lam(0x5a3e2a);B(.05,1.66,.62,fr,1.585,.9,-1.75);B(.08,.05,.66,fr,1.56,.075,-1.75);B(.08,.05,.66,fr,1.56,1.735,-1.75);B(.08,1.66,.04,fr,1.56,.905,-2.065);B(.08,1.66,.04,fr,1.56,.905,-1.435);
+    const mr=makeMirror(.56,1.6);mr.position.set(1.552,.905,-1.75);mr.rotation.y=-Math.PI/2;S3.add(mr);HOME.mirror=mr;
+    mr.userData.pre=()=>{if(HOME.twin)HOME.twin.g.visible=true;if(SELF.m)SELF.m.g.userData.wasVis=SELF.m.g.visible,SELF.m.g.visible=false;};
+    mr.userData.post=()=>{if(HOME.twin)HOME.twin.g.visible=false;if(SELF.m)SELF.m.g.visible=SELF.m.g.userData.wasVis;};}
   // ---- hitboxes
   hHit(.9,2.0,.3,-.8,1.0,2.05,{prompt(){if(shiftPending())return'玄関(シフトを出すまで出かけられない)';if(HOME.mode==='off')return'玄関から<b>出かける</b>(今日はオフ)';if(HOME.mode==='start')return'玄関から<b>出かける</b>(出勤)';return'玄関から<b>出かける</b>';},
     press(){if(shiftPending())return toast('シフトを出すまで出かけられない(机のパソコン)');if(HOME.mode==='off'){HOME.mode='back';transit(leaveOff);return;}if(HOME.mode==='start'){HOME.mode='back';transit(leaveHome);return;}transit(exitHome);}});
@@ -5256,7 +5318,25 @@ function sleepNow(){if(!W.home||W.t<W.dur||shiftPending()||W.slept)return;transi
 function openSleepAsk(){const el=$('#sleepAsk');$('#saSub').textContent=`今日はここで終わりにして、${dayLabel(DAY.n+1)} に進みます`;el.hidden=false;if(document.exitPointerLock&&locked())document.exitPointerLock();}
 function goHome(how){if(!HOME.built)buildHome();HOME.mode='end';HOME.endHow=how;W.home=true;W.outside=false;player.x=HX-.8;player.z=1.5;yaw=0;pitch=-.05;if(cur===me){view.yaw=0;view.pitch=-.05;}HOME.lightOn=false;HOME.tvOn=false;
   laterP(()=>{toast('ただいま…');sub('あなた','…ただいま。今日も疲れた','quiet');},400);}
-function updateHome(dt){if(!HOME.built)return;const on=HOME.lightOn;HOME.light.intensity=on?.95:0;HOME.hallL.intensity=on?.5:.08;HOME.lampM.color.set(on?0xfffaf0:0x555550);
+function makeMirror(w,h){const rt=new THREE.WebGLRenderTarget(512,1280);
+  const mat=new THREE.ShaderMaterial({uniforms:{tDiffuse:{value:rt.texture},textureMatrix:{value:new THREE.Matrix4()}},
+    vertexShader:'uniform mat4 textureMatrix;varying vec4 vUv;void main(){vUv=textureMatrix*vec4(position,1.0);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:'uniform sampler2D tDiffuse;varying vec4 vUv;void main(){vec4 c=texture2DProj(tDiffuse,vUv);gl_FragColor=vec4(c.rgb*vec3(.93,.96,.98),1.0);}'});
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat),vc=new THREE.PerspectiveCamera(),P=new THREE.Vector3(),C=new THREE.Vector3(),N=new THREE.Vector3(),V=new THREE.Vector3(),T=new THREE.Vector3(),LA=new THREE.Vector3(),RM=new THREE.Matrix4(),PL=new THREE.Plane(),CP=new THREE.Vector4(),Q=new THREE.Vector4();let busy=false;
+  m.onBeforeRender=(r,sc,cam)=>{if(busy)return;P.setFromMatrixPosition(m.matrixWorld);C.setFromMatrixPosition(cam.matrixWorld);RM.extractRotation(m.matrixWorld);N.set(0,0,1).applyMatrix4(RM);V.subVectors(P,C);if(V.dot(N)>0)return;
+    V.reflect(N).negate();V.add(P);RM.extractRotation(cam.matrixWorld);LA.set(0,0,-1).applyMatrix4(RM);LA.add(C);T.subVectors(P,LA);T.reflect(N).negate();T.add(P);
+    vc.position.copy(V);vc.up.set(0,1,0).applyMatrix4(RM).reflect(N);vc.lookAt(T);vc.far=cam.far;vc.updateMatrixWorld();vc.projectionMatrix.copy(cam.projectionMatrix);
+    const tm=mat.uniforms.textureMatrix.value;tm.set(.5,0,0,.5,0,.5,0,.5,0,0,.5,.5,0,0,0,1);tm.multiply(vc.projectionMatrix);tm.multiply(vc.matrixWorldInverse);tm.multiply(m.matrixWorld);
+    PL.setFromNormalAndCoplanarPoint(N,P);PL.applyMatrix4(vc.matrixWorldInverse);CP.set(PL.normal.x,PL.normal.y,PL.normal.z,PL.constant);const pm=vc.projectionMatrix;
+    Q.x=(Math.sign(CP.x)+pm.elements[8])/pm.elements[0];Q.y=(Math.sign(CP.y)+pm.elements[9])/pm.elements[5];Q.z=-1;Q.w=(1+pm.elements[10])/pm.elements[14];CP.multiplyScalar(2/CP.dot(Q));
+    pm.elements[2]=CP.x;pm.elements[6]=CP.y;pm.elements[10]=CP.z+1;pm.elements[14]=CP.w;
+    busy=true;m.visible=false;if(m.userData.pre)m.userData.pre();const crt=r.getRenderTarget(),sa=r.shadowMap.autoUpdate;r.shadowMap.autoUpdate=false;r.setRenderTarget(rt);r.clear();r.render(sc,vc);r.setRenderTarget(crt);r.shadowMap.autoUpdate=sa;if(m.userData.post)m.userData.post();m.visible=true;busy=false;};
+  return m;}
+// my whole body, only drawn into the mirror (the first-person body has no head)
+function mirrorTwin(dt){if(!HOME.mirror)return;const ok=outfitKey(me);if(!HOME.twin||HOME.twin.of!==ok){if(HOME.twin)HOME.scene.remove(HOME.twin.g);const ty=outfitType(me),t=vis(()=>buildModel(ty,'#e2b08a'));Object.assign(t,{type:ty,skin:'#e2b08a',ctx:t.fc.getContext('2d'),expr:'',hy:0,hp:0,hr:0,walkT:0,lv:0,of:ok});vis(()=>setExpr(t,'normal'));t.g.visible=false;HOME.scene.add(t.g);HOME.twin=t;}
+  const t=HOME.twin,q=players[me];t.g.position.set(q.pos.x,0,q.pos.z);t.g.rotation.y=view.yaw+Math.PI;t.head.rotation.set(-view.pitch*.7,0,0,'YXZ');if(q.moved)legsWalk(t,dt,true);
+  armTo(t,0,'hang',dt,6);armTo(t,1,hand?'tray':'hang',dt,6);vis(()=>rigUpdate(t,dt));}
+function updateHome(dt){if(!HOME.built)return;if(W.home)mirrorTwin(dt);const on=HOME.lightOn;HOME.light.intensity=on?.95:0;HOME.hallL.intensity=on?.5:.08;HOME.lampM.color.set(on?0xfffaf0:0x555550);
   const tvf=HOME.tvOn?(HOME.lightOn?.12:.35)+Math.sin(W.t*7)*.05:0;HOME.tvL.intensity=tvf;HOME.tvScr.material.emissive.set(HOME.tvOn?(Math.sin(W.t*1.3)>0?0x1e2c44:0x3a2c1e):0x000000);HOME.tvScr.material.color.set(0x0a0a0a);
   HOME.fridgeD.rotation.y+=((HOME.fridgeOpen?1.3:0)-HOME.fridgeD.rotation.y)*Math.min(1,dt*8);
   if(HOME.bathDoor)HOME.bathDoor.rotation.y+=((HOME.bathOpen?1.45:0)-HOME.bathDoor.rotation.y)*Math.min(1,dt*7);
@@ -5516,11 +5596,12 @@ function applyInput(q,inp,dt){
   yaw=inp.yaw;pitch=inp.pitch;if(W.napUntil!=null&&W.t>=W.napUntil){W.napUntil=null;toast(`${HOME.mode==='start'?'二度寝':'昼寝'}した… ${clockFmt(W.t)}`);if(HOME.nap>=3)sub('あなた','やばい、さすがに起きないと…','quiet');}
   if(inp.ac===20||inp.ac===21)dayChoice(inp.ac===20?'next':'quit');
   if(inp.ac===22)sleepNow();
+  if(W.guest&&!hand&&W.gWait&&W.gWait.length)setHand(W.gWait.shift()); // what arrived while my hands were full
   if(W.slept||W.napUntil!=null){q.moved=false;return;}
   if(W.ball&&(!onFootOut()||Math.hypot(W.ball.x-player.x,W.ball.z-player.z)>25)){W.ball=null;if(cur===me&&W.outside)toast('ボールをしまった');} // back in the bag when I drive off or walk away
   const ox=player.x,oz=player.z,bm=soccerMode();
   P.bac=Math.max(0,(P.bac||0)-dt*(q.moved?.25:.04));
-  const riding=W.outside&&W.ride!=null;let mx=inp.mx,mz=inp.mz;if(W.transit||riding||(q.sk&&q.sk.t>0)||W.makaSeat||W.sekkyoNow){mx=0;mz=0;}
+  const riding=W.outside&&W.ride!=null;let mx=inp.mx,mz=inp.mz;if(W.transit||riding||(q.sk&&q.sk.t>0)||W.makaSeat||W.sekkyoNow||W.gSeat!=null){mx=0;mz=0;}
   const inCarNow=W.outside&&CAR.inCar;
   if(inCarNow){carStep({mx,mz},dt);mx=0;mz=0;}
   else if(W.outside&&BIKE.riding){bikeStep({mx,mz},dt);mx=0;mz=0;}
@@ -5565,7 +5646,7 @@ function simStep(dt,inps){
   withPlayer(0,()=>simWorld(dt));
 }
 function simWorld(dt){
-  if(W.offDay){persons().forEach(p=>rigUpdate(p,dt));return;} // no shift today: the shop stays shut
+  if(W.offDay){if(!W.guestShop&&W.t>=0&&W.t<W.dur*.9&&W.running)openGuestShop();if(!W.guestShop){persons().forEach(p=>rigUpdate(p,dt));return;}guestChat(dt);} // day off: the shop opens at 18:00 without me
   // fryers
   let vig=0,smoky=0;
   fryers.forEach(f=>{
@@ -5591,7 +5672,7 @@ function simWorld(dt){
   const sn=staffN(),solo=sn<=1,spd=[1,1,1.4,1.8,2.2,2.5][Math.min(5,sn)];
   if(W.open&&!customers.some(c=>c.seat.c===c))W.spawnT=Math.min(W.spawnT,solo?28:12);
   if(W.open&&W.spawnT<=0&&W.t<W.dur*.9){const busy=customers.filter(c=>c.seat.c===c&&!c.ate).length;
-    if(busy>=(sn<=1?2:sn===2?3:4))W.spawnT=10;else{const free=seats.filter(s=>!s.c&&!s.leaving&&!s.plate);if(free.length){spawn(pick(free));const gm=W.t/W.dur*180;const peak=gm>55&&gm<125;W.spawnT=(peak?44+R()*24:72+R()*40)/spd;}else W.spawnT=6;}}
+    if(busy>=(sn<=1?2:sn===2?3:4))W.spawnT=10;else{const free=seats.filter(s=>!s.c&&!s.leaving&&!s.plate&&s.guest==null);if(free.length){spawn(pick(free));const gm=W.t/W.dur*180;const peak=gm>55&&gm<125;W.spawnT=(peak?44+R()*24:72+R()*40)/spd;}else W.spawnT=6;}}
   if(RETA.length)updateReta(dt);
   if(W.commute&&!W.open){W.taskT-=dt;if(W.taskT<=0){W.taskT=.4;withPlayer(me,renderTasks);}if(W.t>=W.dur*.85&&!W.noOpenEnd){W.noOpenEnd=true;endGame({crash:['開店できなかった','結局のれんを出せないまま夜が更けた。店長から長文のLINEが届いている']});return;}}
   customers.slice().forEach(c=>{if(W.running)updateCustomer(c,dt);});if(!W.running)return;
@@ -5653,7 +5734,7 @@ function render(dt){
   const sc=W.store&&STORES[W.store].scene?STORES[W.store].scene:W.home&&HOME.scene?HOME.scene:(W.outside&&OUT.scene?OUT.scene:scene);if(camera.parent!==sc){sc.add(camera);camera.far=sc===scene?40:sc===OUT.scene?170:30;camera.updateProjectionMatrix();}
   drawScene(sc,dt);fpsWatch(dt);
 }
-if(window.__TEST__)window.__G={startPassout,sleepNow,exitHome,enterHome,crewReact,PARTIES,SLOTS,spawnParty,trySpawnParty,staffN,tgtKeys,partyServeDrink,partyServeFood,groupCards,PASS,putPass,sgServeBeer,sgServeFood,setJob,SEKKYO,GLINE,meddle,fryers,get rack(){return rack;},lineThreads,LW,JOB_NAME,setSky,NIGHT,buildOut,CREW_NOW,crewToday,MAKA,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
+if(window.__TEST__)window.__G={get gOrd(){return W.gOrd;},leaveHome,enterCar,get trays(){return trays;},CARRYDAY,openGuestShop,enterAsGuest,guestSit,guestOrder,guestKeys,startPassout,sleepNow,exitHome,enterHome,crewReact,PARTIES,SLOTS,spawnParty,trySpawnParty,staffN,tgtKeys,partyServeDrink,partyServeFood,groupCards,PASS,putPass,sgServeBeer,sgServeFood,setJob,SEKKYO,GLINE,meddle,fryers,get rack(){return rack;},lineThreads,LW,JOB_NAME,setSky,NIGHT,buildOut,CREW_NOW,crewToday,MAKA,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
 camera.position.set(0,1.62,.2);
 {const _bm=buildModel;buildModel=function(t,s){const m=_bm(t,s);if(SHADOWS)m.g.traverse(o=>{if(o.isMesh)o.castShadow=true;});m.blob=blob(m.g,0,.02,.6,.48,.012);return m;};}
 setShadows(scene);if(HQ)loadPP();
