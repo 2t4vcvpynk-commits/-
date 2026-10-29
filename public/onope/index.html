@@ -41,7 +41,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 .tk .tp,.tk .dk,.tk .pb,.tk .dg{grid-column:1/-1}
 .tk .dg{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;color:#6a4a1a;margin-top:1px}.tk .dg b{flex:1;height:6px;background:rgba(0,0,0,.14);border-radius:3px;overflow:hidden}.tk .dg i{display:block;height:100%;border-radius:3px;transition:width .3s}.tk .tp:empty,.tk .dk:empty{display:none}
 .tk.empty{display:none}
-.tk.grp{border-left-color:#2a7ad8}.tk.dish{background:rgba(16,18,24,.62);color:var(--paper);border-left-color:#8a8a8a}
+.tk.grp{border-left-color:#2a7ad8}.tk.grp.hot{border-left-color:var(--shu)}.gtk .tk{display:block}.gtk .tk .it{white-space:normal;overflow:visible}.gtk .tk .dk{display:block}.gtk{display:flex;flex-direction:column;gap:4px}.tk.more{display:block;font-size:10px;padding:2px 8px;background:rgba(16,18,24,.62);color:var(--paper);border-left-color:#8a8a8a}#tickets.mini .tk .tp,#tickets.mini .tk .dg{display:none}.tk.dish{background:rgba(16,18,24,.62);color:var(--paper);border-left-color:#8a8a8a}
 .tk .no{font-size:10px;font-weight:800;letter-spacing:.04em;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tk .it{font-family:var(--f-display);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tk .tp{font-size:10px;font-weight:800}
@@ -964,8 +964,8 @@ const PASS=[1.62,1.98,2.34].map(x=>({x,pl:null,mesh:null,seat:null,ck:null}));le
 function refreshPass(sl){if(sl.mesh){scene.remove(sl.mesh);sl.mesh=null;}if(sl.pl){sl.mesh=vis(()=>makePlate(sl.pl));sl.mesh.position.set(sl.x,.995,-3.05);scene.add(sl.mesh);}PASSV++;}
 function putPass(sl,pl,seat){sl.pl=pl;sl.seat=seat;sl.at=W.t;refreshPass(sl);sfx.clink(.6);}
 function takePass(sl){const pl=sl.pl;sl.pl=null;sl.seat=null;refreshPass(sl);return pl;}
-const passGuess=pl=>{if(!pl||!pl.food)return null;const s=seats.find(s=>s.c&&s.c.state==='wait'&&!s.plate&&s.c.order.item===pl.food.item&&!PASS.some(x=>x.pl&&x.seat===s.i));if(s)return s.i;return SG.on&&SG.food&&SG.food.item===pl.food.item?'sg':null;};
-const passWho=sl=>sl.seat==='sg'?'大学生の卓':sl.seat!=null?`${sl.seat+1}番さん`:'';
+const passGuess=pl=>{if(!pl||!pl.food)return null;const s=seats.find(s=>s.c&&s.c.state==='wait'&&!s.plate&&s.c.order.item===pl.food.item&&!PASS.some(x=>x.pl&&x.seat===s.i));if(s)return s.i;return tgtKeys().find(k=>openFood(k)===pl.food.item)||null;};
+const passWho=sl=>typeof sl.seat==='string'?tgtName(sl.seat):sl.seat!=null?`${sl.seat+1}番さん`:'';
 PASS.forEach(sl=>{sl.st={prompt(){if(isPlate(hand)&&hand.food&&!hand.stack)return sl.pl?'デシャップ台(埋まってる)':'デシャップ台に<b>置く</b>';if(!hand&&sl.pl){const w=passWho(sl);return`<b>${handText(sl.pl)}</b>${w?`(${w})`:''}を取る`;}return'デシャップ台(料理の受け渡し)';},
   press(){if(isPlate(hand)&&hand.food&&!hand.stack&&!sl.pl){const pl=hand;setHand(null);putPass(sl,pl,passGuess(pl));return;}if(!hand&&sl.pl){setHand(takePass(sl));sfx.clink();}}};
   hitBox(.34,.3,.6,sl.x,1.08,-3.05,sl.st).userData.prio=true;});
@@ -1741,7 +1741,6 @@ function snackPlate(x,y,z,kind){
 }
 const regulars=[];
 const RGROUPS=[[-5.8,-7.7,0.49,[[-.35,-.62],[.35,-.62],[0,.62]]],[-4.6,-9.6,0.49,[[-.35,.62],[.35,.62]]],[3.4,-9.0,0.47,[[-.28,-.58],[.28,-.58],[-.28,.58]]]];
-[[-5.8,-7.7,0.765],[-4.6,-9.6,0.765],[3.4,-9.0,0.745]].forEach(([cx,cz,ty])=>{snackPlate(cx-.15,ty,cz,pick(['edamame','yakitori','tofu']));snackPlate(cx+.2,ty,cz+.05,pick(['edamame','yakitori','tofu']));cyl(.035,.04,.26,phong(0x5a3a12,90),cx+.4,ty+.13,cz-.15,10);});
 function regular(x,z,seatY,faceX,faceZ,type,gid,drunkGroup){
   const skin=pick(SKINS);const m=buildModel(type,skin);
   m.g.position.set(x,seatY-0.86,z);m.g.rotation.y=Math.atan2(faceX-x,faceZ-z);scene.add(m.g);
@@ -1750,12 +1749,12 @@ function regular(x,z,seatY,faceX,faceZ,type,gid,drunkGroup){
   const c={...m,type,skin,ctx:m.fc.getContext('2d'),expr:'',t:R()*10,next:2+R()*6,drink:0,hy:0,hp:0,hr:0,name:(gid<2?'座敷の':'テーブルの')+type.name,group:gid,zashiki:gid<2,bac,tol:1,flushQ:-1,walkT:0,regular:true,mugMesh:mug};
   c.lv=lvOf(c);setExpr(c,'happy');regulars.push(c);return c;
 }
-function spawnRegulars(){regulars.forEach(r=>scene.remove(r.g));regulars.length=0;
-  RGROUPS.forEach(([cx,cz,sy,spots],gid)=>{const dg=R()<.6;spots.forEach(([dx,dz])=>regular(cx+dx,cz+dz,sy,cx,cz,pick(NORMAL_TYPES),gid,dg));});}
+// tables and the zashiki start empty; parties arrive during the night (updateParties)
+function spawnRegulars(){regulars.forEach(r=>scene.remove(r.g));regulars.length=0;}
 function updateRegulars(dt){
   regulars.slice().forEach(c=>{
     if(c.cs){updateCombat(c,dt);return;}
-    if(c.student)return;
+    if(c.student||c.party)return;
     c.t+=dt;c.next-=dt;
     if(c.next<=0){c.next=3+R()*7;const r=R();if(r<.4){c.drink=2.2;}else if(r<.75){c.laugh=1.6;if(R()<.5)sfx.laugh();}else{c.look=(R()-.5)*1.4;}
       if(c.lv>=2&&R()<.12)say(c,pick(DRUNK_N),'quiet');}
@@ -2338,7 +2337,7 @@ function closingTasks(){return[
   {label:'フライヤーの火を消す',done:!!W.gasOff},
   {label:'洗い物を片付ける',done:returns.length===0&&seats.every(s=>!s.plate)&&!(isPlate(shelf)&&shelf.dirt>.02)&&!players.some((q,i)=>{const h=plHand(i);return isPlate(h)&&h.dirt>.02;})},
   {label:'汚れ・破片を掃除する',done:messes.length===0},
-  {label:'テーブルを片付ける',done:!SG.clutter},
+  {label:'テーブルを片付ける',done:!SG.clutter&&SLOTS.every(s=>!s.clutter)},
   {label:'ゴミを出す',done:!!W.trashOut},
   {label:'レジ締め',done:!!W.regDone},
   {label:'卓上調味料を補充する',done:trays.every(T=>CONDS.every(k=>T.lv[k.id]>.95))},
@@ -2361,7 +2360,7 @@ function startClosing(){
   customers.forEach(c=>{if(c.cs||!SEATED.has(c.state))return;if(c.dOrder){c.dOrder=null;c.seat.ver++;}
     const eating=c.state==='eat'||c.state==='inspect',drinking=c.dGlass&&c.dGlass.left>.02;
     say(c,c.gara?(eating?'閉店か。これ食うたら帰るわ':drinking?'これ飲んだら帰るわ':pick(['もう閉店か','ごっそさん','会計や'])):eating?pick(['あ、もう閉店か。急いで食べますね','閉店ですか、これ食べたら帰ります']):drinking?pick(['あ、もう閉店か。これ飲んだら帰ります','閉店かぁ、最後の一杯ゆっくり飲も']):pick(['あ、もう閉店か','ごちそうさまでした','お会計お願いします']),'quiet');});
-  const gs=[...new Set(regulars.filter(r=>!r.student).map(r=>r.group))];gs.forEach((gid,i)=>{const at=W.t+18+i*9+R()*6;regulars.forEach(r=>{if(r.group===gid)r.leaveAt=at+R()*1.5;});});
+  partiesClosing();const gs=[...new Set(regulars.filter(r=>!r.student&&!r.party).map(r=>r.group))];gs.forEach((gid,i)=>{const at=W.t+18+i*9+R()*6;regulars.forEach(r=>{if(r.group===gid)r.leaveAt=at+R()*1.5;});});
   if(customers.some(c=>c.state==='passout'))later(()=>toast('酔いつぶれた客が起きない… 声をかける・飲み物をかける・暴力・背負って外へ'),2500);
   $('#tickets').hidden=true;$('#tasks').hidden=false;renderTasks();
 }
@@ -2661,8 +2660,8 @@ function sgReset(){SG.members.forEach(p=>{const i=regulars.indexOf(p);if(i>=0){r
   if(SG.clutter){scene.remove(SG.clutter);}if(SG.foodMesh)scene.remove(SG.foodMesh);if(sgStool){scene.remove(sgStool);sgStool=null;}
   Object.assign(SG,{on:false,done:false,members:[],st:'none',t:0,needBeer:0,food:null,quietT:0,gameT:12,bill:0,noise:0,clutter:null,foodMesh:null,seq:null,leader:null,payT:0,greeted:false,orderT:0,callT:0,warned:0,empties:0,plates:0,tx:TTABLES[0][0],tz:TTABLES[0][1],ck:null,inFl:0,bk:null,clearP:0});}
 function sgAlive(){return SG.members.filter(p=>regulars.includes(p));}
-function startStudents(){
-  const [tx,tz]=TTABLES[0];SG.on=true;SG.st='door';SG.t=0;SG.tx=tx;SG.tz=tz;
+function startStudents(slot){
+  slot=slot||SLOTS[0];const tx=slot.x,tz=slot.z;slot.sg=true;SG.slot=slot;SG.on=true;SG.st='door';SG.t=0;SG.tx=tx;SG.tz=tz;
   const types=[...STUDENT_TYPES];if(R()<.6)types.push({...NORMAL_TYPES.find(t=>t.name==='女子大生'),nick:'アヤ'});
   const chairs=[[tx-.28,tz-.58],[tx+.28,tz-.58],[tx-.28,tz+.58],[tx+.28,tz+.58],[tx+.82,tz]];
   if(types.length===5){sgStool=cyl(.17,.17,.45,lam(0xa33a2c),tx+.82,.23,tz,12);}
@@ -2725,8 +2724,7 @@ function sgServeBeer(g){const al=sgAlive().filter(p=>p.sg==='seated'&&!p.cs);con
 function sgServeFood(pl){if(!SG.food||!pl||!pl.food)return false;
   if(SG.foodMesh)scene.remove(SG.foodMesh);SG.foodMesh=makeServed(pl);SG.foodMesh.position.set(SG.tx,.757,SG.tz);scene.add(SG.foodMesh);SG.bill+=ITEMS[SG.food.item].price;SG.food=null;SG.plates++;
       const k=doneKey(pl.food.r);sgSay(2,k==='ok'?'うまそー! いただきまーす!':k==='raw'?'え、これ生じゃねwww まあいっか':k==='charcoal'||k==='burnt'?'焦げてるwww ウケるwww':'きたー!','loud');sfx.clink(.6);return true;}
-function sgClear(){if(!SG.clutter)return null;scene.remove(SG.clutter);SG.clutter=null;if(SG.foodMesh){scene.remove(SG.foodMesh);SG.foodMesh=null;}SG.clearP=0;const n=Math.max(1,SG.plates);SG.plates=0;return{type:'plate',dirt:.9,food:null,tops:{},stack:n};}
-sgTableHit=hitBox(1.1,.35,.7,TTABLES[0][0],.9,TTABLES[0][1],SGT);
+function sgClear(){if(!SG.clutter)return null;if(SG.slot&&!sgAlive().length)SG.slot.sg=false;scene.remove(SG.clutter);SG.clutter=null;if(SG.foodMesh){scene.remove(SG.foodMesh);SG.foodMesh=null;}SG.clearP=0;const n=Math.max(1,SG.plates);SG.plates=0;return{type:'plate',dirt:.9,food:null,tops:{},stack:n};}
 function sgLeave(){
   SG.st='leave';const al=sgAlive().filter(p=>!p.cs);
   // leave the table cluttered
@@ -2737,10 +2735,9 @@ function sgLeave(){
   sgSay(0,'よっしゃ、そろそろ出るかー! 二次会カラオケなー!','loud');
 }
 function updateStudents(dt){
-  if(!SG.on&&!SG.done&&W.running&&W.open&&!W.closed&&W.t>=W.dur*.3&&!regulars.some(r=>!r.student&&Math.hypot(r.g.position.x-TTABLES[0][0],r.g.position.z-TTABLES[0][1])<1.2))startStudents();
   if(!SG.on)return;
   SG.t+=dt;const al=sgAlive();
-  if(!al.length){SG.on=false;SG.done=true;SG.noise=0;return;}
+  if(!al.length){SG.on=false;SG.done=true;SG.noise=0;if(!SG.clutter&&SG.slot)SG.slot.sg=false;return;}
   if(SG.quietT>0)SG.quietT-=dt;
   SG.noise=Math.max(0,SG.noise-dt*.08);
   if(SG.st==='door'){
@@ -2801,12 +2798,173 @@ function updateStudents(dt){
 }
 function warnStudents(){SG.quietT=45;SG.noise=0;SG.seq=null;SG.warned++;later(()=>{if(W.running){sgSay(0,'あ、すんませーん!','');later(()=>{if(W.running)sgSay(3,'しーっ! しーっ!www','quiet');},800);}},500);}
 {const o=S.register,p0=o.prompt,pr0=o.press,h0=o.hold;const ldr=()=>SG.leader&&regulars.includes(SG.leader)&&SG.leader.sg==='payWait'&&!SG.leader.cs?SG.leader:null;
-  o.prompt=function(){const l=ldr();if(l)return`<b>長押しで会計</b>(大学生グループ ¥${SG.bill.toLocaleString()})${SG.chk>0?` ${Math.round(SG.chk*100)}%`:''}`;return p0.call(this);};
-  o.press=function(){if(ldr()){this.hold(.05);return;}pr0.call(this);};
+  o.prompt=function(){const l=ldr();if(l)return`<b>長押しで会計</b>(大学生グループ ¥${SG.bill.toLocaleString()})${SG.chk>0?` ${Math.round(SG.chk*100)}%`:''}`;const P=partyPayer();if(P)return`<b>長押しで会計</b>(${partyName(P)} ¥${P.bill.toLocaleString()})${P.chk>0?` ${Math.round(P.chk*100)}%`:''}`;return p0.call(this);};
+  o.press=function(){if(ldr()||partyPayer()){this.hold(.05);return;}pr0.call(this);};
   o.hold=function(dt){const l=ldr();if(l){const prev=SG.chk||0;SG.chk=prev+dt/2.6;if(R()<dt*6)sfx.coin();
       if(prev<.3&&SG.chk>=.3)sgSay(1,'え、割り勘? 俺ほぼウーロン茶なんだけどwww','');if(prev<.65&&SG.chk>=.65)say(l,'いいから払えってwww はい、千円ずつー!','');
-      if(SG.chk>=1){SG.chk=0;W.money+=SG.bill;popMoney(`+¥${SG.bill.toLocaleString()}`);sfx.register();say(l,'ごちそうさまでしたー! また来まーす!','');l.calling=false;l.sg='out';SG.bill=0;standAndExit(l);}return;}
+      if(SG.chk>=1){SG.chk=0;sgPay(l);}return;}
+    const P=partyPayer();if(P){P.chk=(P.chk||0)+dt/2.2;if(R()<dt*6)sfx.coin();if(P.chk>=1){P.chk=0;partyPay(P);}return;}
     h0.call(this,dt);};}
+function sgPay(l){W.money+=SG.bill;popMoney(`+¥${SG.bill.toLocaleString()}`);sfx.register();say(l,'ごちそうさまでしたー! また来まーす!','');l.calling=false;l.sg='out';SG.bill=0;standAndExit(l);}
+const sgPayer=()=>SG.leader&&regulars.includes(SG.leader)&&SG.leader.sg==='payWait'&&!SG.leader.cs?SG.leader:null;
+/* ================= table & zashiki parties: pairs, trios, office parties … they order, drink, eat, pay at the register ================= */
+// slots: the 4 tables and the 3 low zashiki tables
+const SLOTS=[...TTABLES.map(([x,z],i)=>({i,kind:'table',x,z,name:`テーブル${i+1}`,ty:.757,seatY:-.39,cap:4,
+    seats:[[x-.28,z-.58,0],[x+.28,z-.58,0],[x-.28,z+.58,Math.PI],[x+.28,z+.58,Math.PI]]})),
+  ...ZTABLES.map(([x,z],k)=>({i:4+k,kind:'zashiki',x,z,name:`座敷${k+1}`,ty:.765,seatY:-.37,cap:6,
+    seats:[[x-.35,z+.62,Math.PI],[x+.35,z+.62,Math.PI],[x-.35,z-.62,0],[x+.35,z-.62,0],[x-.95,z,Math.PI/2],[x+.95,z,-Math.PI/2]]}))];
+SLOTS.forEach(s=>{s.party=null;s.clutter=null;s.sg=false;});
+const slotFree=s=>!s.party&&!s.clutter&&!s.sg;
+const PARTIES=[];let PID=0;
+const PKIND={
+  solo:{label:'一人客',n:[1,1],types:()=>NORMAL_TYPES.filter(t=>t.name!=='大学生'&&t.name!=='女子大生'),dur:[150,230]},
+  pair:{label:'二人組',n:[2,2],types:()=>NORMAL_TYPES,dur:[170,260]},
+  trio:{label:'3人組',n:[3,3],types:()=>NORMAL_TYPES,dur:[190,280]},
+  company:{label:'会社の飲み会',n:[4,6],types:()=>NORMAL_TYPES.filter(t=>['営業マン','OLさん','一人飲みのおじさん'].includes(t.name)),dur:[230,330]}};
+// how many staff are on today (players + crew who actually work)
+const staffN=()=>players.length+CREW_NOW.filter(p=>p.post.role!=='boss'&&p.post.role!=='slack').length;
+const pkey=P=>'p'+P.id;
+function partyName(P){return`${P.slot.name} ${P.kindLabel}(${P.n}名)`;}
+function pickPartyKind(n){const r=R();
+  if(n<=1)return r<.5?'solo':r<.9?'pair':'trio';
+  if(n===2)return r<.25?'solo':r<.6?'pair':r<.85?'trio':r<.95?'company':'students';
+  return r<.15?'solo':r<.42?'pair':r<.62?'trio':r<.84?'company':'students';}
+function trySpawnParty(){const n=staffN();let kind=pickPartyKind(n);
+  if(kind==='students'&&(SG.on||SG.done))kind='trio';
+  if(kind==='students'){const sl=SLOTS.filter(s=>s.kind==='table'&&slotFree(s));if(!sl.length)return false;startStudents(pick(sl));return true;}
+  const K=PKIND[kind],size=K.n[0]+Math.floor(R()*(K.n[1]-K.n[0]+1));
+  let ok=SLOTS.filter(s=>slotFree(s)&&s.cap>=size);
+  if(kind==='company'&&ok.some(s=>s.kind==='zashiki'))ok=ok.filter(s=>s.kind==='zashiki');
+  else if(size<=2&&ok.some(s=>s.kind==='table')&&R()<.75)ok=ok.filter(s=>s.kind==='table');
+  if(!ok.length)return false;spawnParty(kind,size,pick(ok));return true;}
+function spawnParty(kind,n,slot){const K=PKIND[kind],P={id:++PID,kind,kindLabel:K.label,n,slot,members:[],st:'door',t:0,drinks:[],foods:[],bill:0,served:0,plates:0,foodMeshes:[],waitT:0,callT:0,
+    dur:K.dur[0]+R()*(K.dur[1]-K.dur[0]),leader:null,ordered:false,otoshi:false,payT:0};
+  slot.party=P;PARTIES.push(P);const pool=K.types();
+  for(let i=0;i<n;i++){const type={...pick(pool)},skin=skinFor(type),m=buildModel(type,skin);m.g.position.set(-8.6-i*.55,0,-4.9);scene.add(m.g);
+    const mug=makeMug();mug.position.set(0,-.1,.035);mug.rotation.x=Math.PI/2;m.hands[1].add(mug);mug.visible=false;
+    const st=slot.seats[i],p={...m,type,skin,ctx:m.fc.getContext('2d'),expr:'',hy:0,hp:0,hr:0,walkT:0,name:`${slot.name}の${type.name}`,group:100+P.id,regular:true,party:P,
+      bac:type.drunk?14+R()*8:R()*6,tol:.8+R()*.5,flushQ:-1,lv:0,pseat:st,ps:'queue',mugMesh:mug,drinkLeft:0,dKind:null,t:R()*9,idx:i,zashiki:slot.kind==='zashiki',gara:false};
+    p.lv=lvOf(p);setExpr(p,'normal');regulars.push(p);P.members.push(p);}
+  P.leader=P.members[0];sfx.door();return P;}
+// a walk route to a seat: the hall gets them to the edge, then they step around inside the zashiki
+function seatRoute(P,p){const s=P.slot,[sx,sz]=p.pseat;
+  if(s.kind==='table'){const ax=sx<s.x?s.x-1.15:s.x+1.15;return{path:[ax,sz],glide:[]};}
+  const back=sz<s.z-.1,end=Math.abs(sx-s.x)>.6,corr=s.i===4?-5.0:-2.65,ex=back||s.i===6?corr:end?sx:sx;
+  const g=s.i===6?[[corr,-6.7],[corr,sz],[sx,sz]]:back?[[ex,-6.7],[ex,sz],[sx,sz]]:end?[[sx,-6.7],[sx,sz]]:[[sx,-6.7],[sx,sz]];
+  return{path:[g[0][0],-5.95],glide:g};}
+const partyAlive=P=>P.members.filter(p=>regulars.includes(p)&&!p.cs);
+const partySpot=P=>P.slot.kind==='table'?[P.slot.x-1.1,P.slot.z,Math.PI/2]:[clamp(P.slot.x,-6.2,-2.8),-5.95,Math.PI];
+const PDRINK=P=>P.kind==='company'?(R()<.8?'beer':R()<.5?'highball':'sour'):pickDrink();
+function partyOrder(P,first){const al=partyAlive(P).filter(p=>p.ps==='seated');if(!al.length)return;
+  const ds=first?al.map(()=>PDRINK(P)):al.filter(p=>!p.mugMesh.visible||p.drinkLeft<=.05).map(p=>p.dKind||PDRINK(P));
+  const nf=first?Math.max(1,Math.round(P.n*.6+R()*.6)):(R()<.5?1:0),fs=[];for(let i=0;i<nf;i++)fs.push(pick(ITEM_KEYS));
+  if(!ds.length&&!fs.length)return;P.drinks.push(...ds);P.foods.push(...fs);P.waitT=0;P.called=false;
+  const cnt=a=>[...new Set(a)].map(k=>`${DRINKS[k].name==='生ビール'?'生':DRINKS[k].name}${a.filter(x=>x===k).length>1?a.filter(x=>x===k).length+'つ':''}`).join('と');
+  const fl=fs.length?`、あと${[...new Set(fs)].map(k=>ITEMS[k].name+(fs.filter(x=>x===k).length>1?fs.filter(x=>x===k).length+'つ':'')).join('と')}`:'';
+  say(P.leader,first?(P.kind==='company'?`とりあえず${cnt(ds)}で! ${fl?fl.slice(1)+'も!':''}`:`すみません、${cnt(ds)}${fl}ください`):`すみませーん、${ds.length?cnt(ds)+'おかわり':''}${fl}お願いしまーす`,P.kind==='company'?'loud':'');}
+// serving
+function partyServeDrink(P,g){const k=gKind(g),i=P.drinks.indexOf(k);if(i<0)return false;const al=partyAlive(P).filter(p=>p.ps==='seated');
+  const p=al.find(m=>(!m.mugMesh.visible||m.drinkLeft<=.05)&&m.dKind===k)||al.find(m=>!m.mugMesh.visible||m.drinkLeft<=.05)||al[0];if(!p)return false;
+  P.drinks.splice(i,1);p.mugMesh.visible=true;p.drinkLeft=Math.min(1,gSum(g)/POUR_MAX);p.abv=gAbv(g);p.dKind=k;if(p.mugMesh.userData.beer){p.mugMesh.userData.beer.visible=true;p.mugMesh.userData.foam.visible=k==='beer';}
+  P.bill+=DRINKS[k].price;P.served++;if(!P.otoshi){P.otoshi=true;P.bill+=300*P.n;}P.waitT=0;if(P.leader)P.leader.calling=false;sfx.clink(.8);
+  if(!P.cheers&&!P.drinks.length&&P.n>1){P.cheers=1;later(()=>{if(W.running&&partyAlive(P).length){say(P.leader,P.kind==='company'?'それでは皆さん、今週もお疲れさまでした! かんぱーい!!':'かんぱーい!',P.kind==='company'?'loud':'');sfx.clink(1);}},600);}
+  return true;}
+function partyServeFood(P,pl){if(!pl||!pl.food)return false;const i=P.foods.indexOf(pl.food.item);if(i<0)return false;P.foods.splice(i,1);
+  const m=makeServed(pl),k=P.foodMeshes.length;m.position.set(P.slot.x+(k%3-1)*.32,P.slot.ty,P.slot.z+(k>2?.12:-.05));scene.add(m);P.foodMeshes.push({m,eat:0,item:pl.food.item});
+  P.bill+=ITEMS[pl.food.item].price;P.waitT=0;if(P.leader)P.leader.calling=false;sfx.clink(.6);
+  const dk=doneKey(pl.food.r),who=pick(partyAlive(P))||P.leader;if(who)say(who,dk==='ok'?pick(['おいしそう!','きたきた!','うまそー!']):dk==='raw'||dk==='underdone'?'…これ、ちょっと生っぽくない?':dk==='burnt'||dk==='charcoal'?'…焦げてるね':'ありがとうございまーす','quiet');
+  if(dk!=='ok'){W.mild=(W.mild||0)+1;}return true;}
+// leaving: the leader pays at the register, the table stays messy until someone clears it
+function partyLeave(P,angry){if(P.st==='leave')return;P.st='leave';const al=partyAlive(P);
+  const c=new THREE.Group();scene.add(c);const ty=P.slot.ty;for(let i=0;i<Math.max(1,P.served);i++){const g=makeMug(true);g.position.set(P.slot.x+(R()-.5)*.8,ty+.01,P.slot.z+(R()-.5)*.45);c.add(g);}
+  P.foodMeshes.forEach(f=>{scene.remove(f.m);});for(let i=0;i<P.plates+P.foodMeshes.filter(f=>f.eat<1).length;i++){const pm=makePlate(newPlate(.9));pm.position.set(P.slot.x+(R()-.5)*.7,ty,P.slot.z+(R()-.5)*.35);c.add(pm);}
+  P.plates+=P.foodMeshes.filter(f=>f.eat<1).length;P.foodMeshes=[];P.slot.clutter=c;P.slot.plates=Math.max(1,P.plates);
+  al.forEach(p=>{p.mugMesh.visible=false;if(p===P.leader&&P.bill>0){p.ps='toReg';p.standT=0;p.standFrom={x:p.g.position.x,y:p.g.position.y,z:p.g.position.z};p.standTo=nearestWalkablePt(p.g.position.x,p.g.position.z);p.path=null;}else{p.ps='out';standAndExit(p);}});
+  if(angry){W.giveup++;bumpPill('#confP');W.log.push({name:partyName(P),line:'(注文が来なくて帰った)'});say(P.leader,'…全然来ないね。もう出よっか','');}
+  else say(P.leader,P.kind==='company'?'じゃあそろそろお開きにしまーす! お会計お願いしまーす!':pick(['そろそろ行こっか','ごちそうさまー','じゃ、出ますか']),'');}
+function partyPay(P){const l=P.leader;W.money+=P.bill;popMoney(`+¥${P.bill.toLocaleString()}`);sfx.register();say(l,pick(['ごちそうさまでしたー','また来まーす','おいしかったです']),'quiet');l.calling=false;l.ps='out';P.bill=0;standAndExit(l);}
+function clearSlot(s){if(!s.clutter)return null;scene.remove(s.clutter);s.clutter=null;const n=s.plates||1;s.plates=0;if(s.party&&s.party.st!=='party')s.party=null;return{type:'plate',dirt:.9,food:null,tops:{},stack:n};}
+// one frame for every party
+function updateParties(dt){
+  // spawning: busier with more staff on (day 1 alone: about one small group)
+  if(W.open&&!W.closed&&W.t<W.dur*.78){W.partyT=(W.partyT==null?40+R()*40:W.partyT)-dt;
+    if(W.partyT<=0){const n=staffN(),T=[0,1,3,5,7,8][Math.min(5,n)],done=trySpawnParty();W.partyT=done?(W.dur*.72/T)*(.6+R()*.8):8;}}
+  for(let k=PARTIES.length-1;k>=0;k--){const P=PARTIES[k];P.t+=dt;const al=partyAlive(P);
+    if(!P.members.some(p=>regulars.includes(p))){PARTIES.splice(k,1);if(P.st!=='leave')P.foodMeshes.forEach(f=>scene.remove(f.m));if(P.slot.party===P)P.slot.party=null;continue;}
+    if(P.st==='door'){al.forEach((p,i)=>{const tx=-6.1-i*.5,dx=tx-p.g.position.x;if(dx>.02){p.g.rotation.y=Math.PI/2;p.g.position.x+=Math.min(dx,dt*1.4);legsWalk(p,dt,true);}else faceTo(p,Math.PI/2,dt,4);});
+      if(P.t>1.6&&!P.said){P.said=1;say(P.leader,P.n>1?`${P.n}人なんですけど、いけますか?`:'一人なんですけど…','');}
+      if(P.t>4){P.st='walk';al.forEach(p=>{const r=seatRoute(P,p);p.glide=r.glide.slice();p.ps='walk';p.path=findPath(p.g.position.x,p.g.position.z,r.path[0],r.path[1]);});}
+      continue;}
+    al.forEach(p=>{p.t+=dt;
+      if(p.ps==='walk'){if(followPath(p,dt,1.3)){p.ps=p.glide.length?'glide':'sitting';p.sitT=0;p.from={x:p.g.position.x,z:p.g.position.z,r:p.g.rotation.y,y:p.g.position.y};}}
+      else if(p.ps==='glide'){const [gx,gz]=p.glide[0],dx=gx-p.g.position.x,dz=gz-p.g.position.z,d=Math.hypot(dx,dz);
+        if(d<.05){p.glide.shift();if(!p.glide.length){p.ps='sitting';p.sitT=0;p.from={x:p.g.position.x,z:p.g.position.z,r:p.g.rotation.y,y:p.g.position.y};}}
+        else{const st=Math.min(d,dt*1.1);p.g.position.x+=dx/d*st;p.g.position.z+=dz/d*st;p.g.position.y+=(floorAt(p.g.position.x,p.g.position.z)-p.g.position.y)*Math.min(1,dt*10);faceTo(p,Math.atan2(dx,dz),dt,8);legsWalk(p,dt,true);}}
+      else if(p.ps==='sitting'){p.sitT+=dt;const k2=Math.min(1,p.sitT/1.0),e=k2*k2*(3-2*k2),[sx,sz,sr]=p.pseat;
+        p.g.position.x=p.from.x+(sx-p.from.x)*e;p.g.position.z=p.from.z+(sz-p.from.z)*e;p.g.position.y=p.from.y+(P.slot.seatY-p.from.y)*e;p.g.rotation.y=lerpAngle(p.from.r,sr,e);if(k2>=1)p.ps='seated';}
+      else if(p.ps==='seated'){
+        armTo(p,0,'table',dt,4);const sip=p.mugMesh.visible&&p.drinkLeft>0&&Math.sin(p.t*.8+p.idx)>.92;armTo(p,1,sip?'drink':'table',dt,6);
+        if(sip){p.drinkLeft=Math.max(0,p.drinkLeft-dt*.07);p.bac+=dt*.2*Math.max(.6,(p.abv||5)/5);if(p.drinkLeft<=0&&p.mugMesh.userData.beer){p.mugMesh.userData.beer.visible=false;p.mugMesh.userData.foam.visible=false;}}
+        const talk=Math.sin(p.t*.5+p.idx*2);headTo(p,talk*.45,.06,0,dt,2);setExpr(p,p.lv>=3?'sick':p.lv>=2||talk>.9?'happy':'normal');p.body.rotation.z=p.lv>=2?Math.sin(p.t*1.4)*.05:0;
+        p.lv=lvOf(p);const q=Math.floor(p.bac/3);if(q!==p.flushQ){p.flushQ=q;drawFace(p);}
+        if(P.n>1&&R()<dt*.012)say(p,P.kind==='company'?pick(['いやー、今期は厳しかったね','部長、もう一杯どうですか!','で、例の案件どうなった?','ここの唐揚げ、うまいんだよ']):pick(['それな〜','え、マジで?','ここ雰囲気いいね','あはは!']),'quiet');}
+      else if(p.ps==='toReg'){
+        if(p.standT<1){p.standT=Math.min(1,p.standT+dt/.6);const e=p.standT;p.g.position.x=p.standFrom.x+(p.standTo[0]-p.standFrom.x)*e;p.g.position.z=p.standFrom.z+(p.standTo[1]-p.standFrom.z)*e;p.g.position.y=p.standFrom.y*(1-e);}
+        else{if(!p.path){const sp=regQueue().length?REG_SPOTS[2]:REG_SPOTS[0];p.path=findPath(p.g.position.x,p.g.position.z,sp[0],sp[1]);}
+          if(followPath(p,dt,1.3)){p.ps='payWait';P.payT=0;p.calling=true;say(p,'お会計お願いしまーす','');}}}
+      else if(p.ps==='payWait'){legsWalk(p,dt,false);faceTo(p,-2.3,dt,4);P.payT+=dt;
+        if(P.payT>25&&!p.said2){p.said2=1;say(p,'すみませーん、お会計…','');}
+        if(P.payT>90){W.dine=(W.dine||0)+1;W.log.push({name:partyName(P),line:`(会計できずに帰られた ¥${P.bill.toLocaleString()})`,rage:1});say(p,'…もういいや、行こ','');p.calling=false;p.ps='out';P.bill=0;toExit(p,true);}}});
+    if(P.st==='walk'&&al.every(p=>p.ps==='seated')){P.st='party';P.oT=2+R()*3;}
+    if(P.st!=='party')continue;
+    if(!P.ordered){P.oT-=dt;if(P.oT<=0){P.ordered=true;partyOrder(P,true);}continue;}
+    // food on the table gets eaten; the empty plate stays until the table is cleared
+    P.foodMeshes.forEach(f=>{if(f.eat>=1)return;f.eat+=dt/55;const fm=f.m.userData.plate&&f.m.userData.plate.userData.food;if(fm)fm.scale.setScalar(Math.max(.02,1-f.eat));if(f.eat>=1){P.plates++;}});
+    const pend=P.drinks.length+P.foods.length;
+    if(pend){P.waitT+=dt;if(P.waitT>45){P.callT-=dt;if(P.callT<=0){P.callT=25;P.leader.calling=true;say(P.leader,P.foods.length&&!P.drinks.length?'すみませーん、料理まだですかー?':'すみませーん!',P.kind==='company'?'loud':'');}}
+      if(P.waitT>160)partyLeave(P,true);}
+    else if(P.t<P.dur*.85&&R()<dt*.035)partyOrder(P,false);
+    if(P.t>P.dur&&(!pend||P.t>P.dur+60))partyLeave(P,false);}}
+// at closing time everyone wraps up in turn
+function partiesClosing(){PARTIES.forEach((P,i)=>{if(P.st==='party'||P.st==='walk'){P.closeAt=W.t+12+i*8+R()*5;}});}
+function partiesCloseStep(){PARTIES.forEach(P=>{if(P.closeAt&&W.t>=P.closeAt&&(P.st==='party'||P.st==='walk')){P.closeAt=0;P.drinks.length=0;P.foods.length=0;partyLeave(P,false);}});}
+function partyReset(){PARTIES.length=0;PID=0;SLOTS.forEach(s=>{if(s.clutter)scene.remove(s.clutter);s.party=null;s.clutter=null;s.sg=false;s.plates=0;});W.partyT=null;}
+const partyPayer=()=>PARTIES.find(P=>P.leader&&regulars.includes(P.leader)&&P.leader.ps==='payWait'&&!P.leader.cs);
+
+/* ---- one interface for "a table that wants things" (the student table or a party), used by the crew, the pass shelf and the tickets ---- */
+function tgtKeys(){const L=[];if(SG.on&&sgAlive().some(m=>m.sg==='seated'))L.push('sg');PARTIES.forEach(P=>{if(P.st==='party'&&P.ordered)L.push(pkey(P));});return L;}
+const tgtParty=k=>PARTIES.find(P=>pkey(P)===k);
+const needDrinks=k=>k==='sg'?Array(Math.max(0,SG.needBeer)).fill('beer'):(tgtParty(k)||{drinks:[]}).drinks;
+const needFoods=k=>k==='sg'?(SG.food?[SG.food.item]:[]):(tgtParty(k)||{foods:[]}).foods;
+const crewClaims=(k,f)=>CREW_NOW.filter(q=>q.tc&&q.tc.key===k&&f(q.tc)).length;
+function openDrink(k){const pend=needDrinks(k);for(const d of new Set(pend))if(pend.filter(x=>x===d).length>crewClaims(k,t=>t.drink===d))return d;return null;}
+function openFood(k){const pend=needFoods(k);for(const it of new Set(pend)){const c=crewClaims(k,t=>t.item===it)+PASS.filter(x=>x.pl&&x.seat===k&&x.pl.food&&x.pl.food.item===it).length;if(pend.filter(x=>x===it).length>c)return it;}return null;}
+const tgtSpot=k=>k==='sg'?SG_SPOT():partySpot(tgtParty(k));
+const tgtName=k=>k==='sg'?'大学生の卓':(P=>P?P.slot.name:'')(tgtParty(k));
+function serveDrinkTo(k,g){if(k==='sg')return sgServeBeer(g);const P=tgtParty(k);return!!P&&partyServeDrink(P,g);}
+function serveFoodTo(k,pl){if(k==='sg')return sgServeFood(pl);const P=tgtParty(k);return!!P&&partyServeFood(P,pl);}
+// tables waiting to be cleared
+function clutterKeys(){const L=[];if(SG.clutter&&!sgAlive().length)L.push('sg');SLOTS.forEach(s=>{if(s.clutter&&!(s.party&&s.party.st==='party'))L.push('s'+s.i);});return L;}
+const clutterSpot=k=>k==='sg'?SG_SPOT():(s=>s.kind==='table'?[s.x-1.1,s.z,Math.PI/2]:[clamp(s.x,-6.2,-2.8),-5.95,Math.PI])(SLOTS[+k.slice(1)]);
+const clearClutter=k=>k==='sg'?sgClear():clearSlot(SLOTS[+k.slice(1)]);
+// the player at a table / zashiki
+SLOTS.forEach(s=>{s.st={
+  prompt(){if(s.sg)return SGT.prompt();const P=s.party;
+    if(s.clutter&&!(P&&P.st==='party'))return hand?'散らかった卓':`<b>長押しで${s.name}を片付ける</b>`;
+    if(!P||P.st!=='party')return s.name;
+    if(isGlass(hand)){const k=gKind(hand);return P.drinks.includes(k)?`<b>${s.name}に出す</b>(${DRINKS[k].name})`:P.drinks.length?`${s.name}(${P.drinks.map(d=>DRINKS[d].name).join('・')}待ち)`:`${s.name}(頼まれてない)`;}
+    if(isPlate(hand)&&hand.food&&!hand.stack)return P.foods.includes(hand.food.item)?`<b>${s.name}に${ITEMS[hand.food.item].name}を出す</b>`:`${s.name}(${ITEMS[hand.food.item].name}は頼まれてない)`;
+    return`${partyName(P)}${P.drinks.length?` 飲${P.drinks.length}`:''}${P.foods.length?` 料理${P.foods.length}`:''}`;},
+  press(){if(s.sg)return SGT.press();const P=s.party;
+    if(s.clutter&&!(P&&P.st==='party')){if(!hand)this.hold(.1);return;}
+    if(!P||P.st!=='party')return;
+    if(isGlass(hand)){if(!P.drinks.includes(gKind(hand)))return toast(P.drinks.length?`頼まれてるのは ${P.drinks.map(d=>DRINKS[d].name).join('・')}`:'いらないって');const g=hand;setHand(null);servedMsg(g,s.name);partyServeDrink(P,g);return;}
+    if(isPlate(hand)&&hand.food&&!hand.stack){if(!P.foods.includes(hand.food.item))return toast('それは頼まれてない');const pl=hand;setHand(null);partyServeFood(P,pl);return;}
+    if(hand)toast('いらないって');},
+  hold(dt){if(s.sg)return SGT.hold(dt);if(hand||!s.clutter||(s.party&&s.party.st==='party'))return;s.clearP=(s.clearP||0)+dt/1.6;if(R()<dt*5)sfx.clink(.9);
+    if(s.clearP>=1){s.clearP=0;const st=clearSlot(s);setHand(st);toast(`${s.name}を片付けた。重ねた皿を返却口へ`);}}};
+  hitBox(s.kind==='table'?1.1:1.2,.35,s.kind==='table'?.7:.8,s.x,s.kind==='table'?.9:.85,s.z,s.st);});
+
 Object.assign(sfx,{
   claps(){for(let i=0;i<3;i++)burst(.04,3200,.07,'highpass',i*.06+R()*.03);},
   glass(){burst(.5,5200,.4,'highpass');for(let i=0;i<6;i++)tone(2600+R()*3200,.12+R()*.1,'triangle',.05,null,i*.035);},
@@ -2821,17 +2979,12 @@ const psub=(...a)=>{if(cur===me)sub(...a);};
 function sub(who,text,cls){if(who==='あなた'&&cur!==me){if(cls==='quiet'||W.outside||W.home||W.store)return;who='相方';}const d=document.createElement('div');d.className='sub'+(cls?' '+cls:'');const w=document.createElement('span');w.className='who';w.textContent=who;d.appendChild(w);d.appendChild(document.createTextNode('「'+text+'」'));subsEl.appendChild(d);while(subsEl.children.length>3)subsEl.firstChild.remove();setTimeout(()=>{d.style.opacity=0;setTimeout(()=>d.remove(),450);},cls==='loud'?3800:3200);}
 const tkEls=seats.map(()=>{const d=document.createElement('div');d.className='tk empty';$('#tickets').appendChild(d);return d;});
 const tkVer=seats.map(()=>-1);
-const sgTk=document.createElement('div');sgTk.className='tk grp';sgTk.hidden=true;$('#tickets').appendChild(sgTk);
+const gtk=document.createElement('div');gtk.className='gtk';$('#tickets').appendChild(gtk);
 function ticketStatus(c){if(c.state==='atDoor')return'入口で待ち';if(c.state==='passout')return'酔いつぶれ';if(['toToilet','inToilet','fromToilet','resit','sickStand'].includes(c.state))return'トイレ中';if(c.state==='sickHere')return'吐いてる';return'';}
 function updateTickets(){
-  {const d=sgTk,al=SG.on?sgAlive():[],on=al.length>0||!!SG.clutter,ldr=SG.leader&&al.includes(SG.leader)?SG.leader:null,
-    key=on?[al.length,SG.needBeer,SG.food&&SG.food.item,!!SG.clutter,ldr&&ldr.sg,ldr&&ldr.calling,PASSV,SG.st].join('|'):'off';
-    if(d.dataset.k!==key){d.dataset.k=key;d.hidden=!on;if(on){
-      if(!al.length){d.className='tk dish';d.innerHTML=`<div class="no">卓 大学生</div><div class="it">卓が散らかってる</div><div class="tp">片付けて皿を返却口へ</div><div class="dk"></div>`;}
-      else{const pay=ldr&&ldr.sg==='payWait',onPass=PASS.some(x=>x.pl&&x.seat==='sg');d.className='tk grp';
-        d.innerHTML=`<div class="no">卓 大学生(${al.length}名)</div><div class="it">${pay?'お会計待ち(レジ)':SG.food?ITEMS[SG.food.item].name:SG.st==='party'?'料理は出した':'着席待ち'}</div><div class="tp">${SG.food&&!pay?'通常盛り':''}</div><div class="dk">${SG.needBeer>0?`飲: 生ビール ×${SG.needBeer}`:SG.st==='party'?'飲み物OK':''}</div>${ldr&&ldr.calling?'<span class="stamp">呼んでる</span>':onPass?'<span class="stamp">台に出てる</span>':''}`;}}}}
   seats.forEach((s,i)=>{
     const d=tkEls[i],c=s.c,st=c?ticketStatus(c):'',key=s.ver+'|'+st+'|'+PASSV+'|'+(c&&c.calling?1:0)+(c&&c.wantWater?1:0)+(c&&c.addWant?1:0)+(c&&c.dGlass&&c.dGlass.left>.02?1:0);
+    d.hidden=!c&&!s.plate;
     if(tkVer[i]!==key){tkVer[i]=key;
       if(!c){d.className=s.plate?'tk dish':'tk empty';d.innerHTML=`<div class="no">${i+1}番</div><div class="it">${s.plate?'皿が残ってる':'空席'}</div><div class="tp">${s.plate?'下げる':''}</div><div class="dk"></div>`;}
       else{const tp=c.order.req?'※'+c.order.req.replace(/で$/,''):'通常盛り';
@@ -2841,7 +2994,27 @@ function updateTickets(){
     if(c){const g=d.querySelector('.dg');if(g){const dg=c.dGlass,on=!!dg&&dg.left>.02;g.style.display=on?'':'none';if(on){const i=g.querySelector('i');i.style.width=Math.round(dg.left*100)+'%';i.style.background=dg.kind==='water'?'#6fb4e8':dg.left<.25?'var(--shu)':'#d8961e';}}
       const f=Math.max(0,c.pat/c.maxPat);const bar=d.querySelector('.pb i');if(bar){bar.style.width=(c.state==='wait'?f*100:100)+'%';bar.style.background=c.state!=='wait'?'#999':f>.5?'var(--ok)':f>.25?'var(--oil)':'var(--shu)';}}
   });
+  groupTickets();
 }
+const DSHORT={beer:'生',highball:'ハイボール',sour:'サワー'};
+const tally=(a,nm)=>[...new Set(a)].map(k=>nm(k)+(a.filter(x=>x===k).length>1?'×'+a.filter(x=>x===k).length:'')).join(' ');
+function groupCards(){const L=[];
+  if(SG.on||SG.clutter){const al=sgAlive(),l=SG.leader&&al.includes(SG.leader)?SG.leader:null,nm=`${SG.slot?SG.slot.name:'卓'} 大学生`;
+    if(al.length)L.push({k:'sg',name:`${nm}(${al.length}名)`,d:SG.st==='party'?Array(Math.max(0,SG.needBeer)).fill('beer'):[],f:SG.food?[SG.food.item]:[],call:!!(l&&l.calling),pay:!!(l&&l.sg==='payWait'),seat:SG.st!=='party',w:SG.orderT||0});
+    else if(SG.clutter)L.push({k:'sg',name:nm,clutter:1});}
+  PARTIES.forEach(P=>{const l=P.leader&&regulars.includes(P.leader)?P.leader:null;
+    if(P.st==='door'||P.st==='walk'||P.st==='party'&&!P.ordered)L.push({k:pkey(P),name:partyName(P),seat:1,d:[],f:[]});
+    else if(P.st==='party')L.push({k:pkey(P),name:partyName(P),d:P.drinks,f:P.foods,call:!!(l&&l.calling),w:P.waitT});
+    else if(l&&l.ps==='payWait')L.push({k:pkey(P),name:partyName(P),pay:1,d:[],f:[]});});
+  SLOTS.forEach(s=>{if(s.clutter&&!(s.party&&s.party.st==='party'))L.push({k:'c'+s.i,name:s.name,clutter:1});});
+  L.forEach(g=>{g.pass=PASS.some(x=>x.pl&&x.seat===g.k);g.sc=g.call?5:g.pay?4:(g.d&&g.d.length||g.f&&g.f.length)?3+Math.min(.9,(g.w||0)/200):g.clutter?2:g.seat?1:0;});
+  return L.sort((a,b)=>b.sc-a.sc);}
+function groupTickets(){const L=groupCards(),seatsOn=tkEls.filter(d=>!d.hidden).length,cap=Math.max(2,(innerHeight<480?6:9)-seatsOn),act=L.filter(g=>g.sc>0),idle=L.filter(g=>g.sc===0);
+  const show=act.slice(0,cap),more=act.length-show.length;
+  const sig=JSON.stringify(show.map(g=>[g.k,g.name,g.d,g.f,g.call,g.pay,g.pass,g.clutter,g.seat]))+'|'+more+'|'+idle.map(g=>g.name).join();if(gtk.dataset.k===sig)return;gtk.dataset.k=sig;
+  $('#tickets').classList.toggle('mini',seatsOn+show.length>5);
+  gtk.innerHTML=show.map(g=>`<div class="tk ${g.clutter?'dish':'grp'}${g.call?' hot':''}"><div class="no">${g.name}</div><div class="it">${g.clutter?'片付けて皿を返却口へ':g.pay?'お会計待ち(レジ)':g.seat?'席へ案内中':g.f.length?tally(g.f,k=>ITEMS[k].name):'料理OK'}</div><div class="dk">${g.d&&g.d.length?'飲: '+tally(g.d,k=>DSHORT[k]):''}</div>${g.call?'<span class="stamp">呼んでる</span>':g.pay?'<span class="stamp">会計</span>':g.pass?'<span class="stamp">台に出てる</span>':''}</div>`).join('')
+    +(more?`<div class="tk more">ほか ${more}卓 対応待ち</div>`:'')+(idle.length?`<div class="tk more">飲食中: ${idle.map(g=>g.name.split(' ')[0]).join('・')}</div>`:'');}
 
 Object.keys(sfx).forEach(k=>{const f=sfx[k];if(typeof f==='function')sfx[k]=function(...a){return vis(()=>f.apply(sfx,a));};});
 
@@ -2942,7 +3115,7 @@ function reset(){
   Object.assign(W,{t:0,money:0,rage:0,conf:0,giveup:0,mild:0,happy:0,log:[],spawnT:3,vomit:0,fights:0,calls:0,ko:0,hits:0,policeT:null,policeOn:false,passout:0});
   Object.assign(P,{hp:100,atk:null,atkT:0,cd:0,lastHurt:-99});hurtT=0;$('#copP').hidden=true;
   Object.assign(W,{closed:false,norenDown:false,gasOff:false,trashOut:false,bagTaken:false,regDone:false,regP:0,lightsOff:false,paidGroups:new Set(),taskT:0});
-  norenMesh.visible=true;resetTrays();sgReset();
+  norenMesh.visible=true;resetTrays();sgReset();partyReset();
   returners.forEach(p=>scene.remove(p.g));returners.length=0;lostItems.forEach(L=>{scene.remove(L.mesh);if(L.hb)removeHit(L.hb);});lostItems.length=0;W.contacts=[];W.staffVomit=0;Object.assign(W,{lastOrder:false,dine:0,regN:0,cheersT:null,noGreet:0,returned:0,water:0,chkP:0});shoutCD=0;gasLamp.material.color.set(0xff8a2a);if(lightList)setShopLights(true,true);$('#tickets').hidden=false;$('#tasks').hidden=true;
   LATER=[];
   W.outside=false;W.home=false;W.clockedOut=false;W.bikeUsed=false;resetCarry();Object.assign(BIKE,{x:47.6,z:104.6,h:0,v:0,riding:false,arrived:false,warned:false});W.transit=false;W.homeEnd=false;W.taskSnap=null;W.clockTxt=null;scene.add(camera);camera.far=40;camera.updateProjectionMatrix();
@@ -4110,7 +4283,7 @@ const homeOf=p=>{const j=p.job;if(p.post.role==='reg')return SPOT.reg;if(p.post.
 function crewCarry(p,h){if(p.cm){p.g.remove(p.cm);p.cm=null;}p.ch=h||null;if(!h)return;const m=vis(()=>itemMesh(h));if(!m)return;m.position.set(0,1.0,.38);if(h.type==='raw')m.scale.setScalar(.8);p.g.add(m);p.cm=m;}
 // drop whatever the current job was holding on to (plates go back in the rack, food is binned)
 function crewAbort(p){if(p.ch){const h=p.ch;if(isPlate(h)){if(h.food&&h.fresh)backToPass(h);else if(h.stack||h.food||h.dirt>.05)returnPlates(h);else if(rack.length<6){h.tops={};rack.push(h);refreshRack();}}crewCarry(p,null);}
-  releaseTc(p);PASS.forEach(x=>{if(x.ck===p)x.ck=null;});seats.forEach(s=>{if(s.bk===p)s.bk=null;if(s.c&&s.c.hd===p)s.c.hd=null;});if(SG.bk===p)SG.bk=null;fryers.forEach(f=>{if(f.res===p)f.res=null;if(f.by===p)f.by=null;});p.q=[];p.path=null;}
+  releaseTc(p);PASS.forEach(x=>{if(x.ck===p)x.ck=null;});seats.forEach(s=>{if(s.bk===p)s.bk=null;if(s.c&&s.c.hd===p)s.c.hd=null;});p.clr=null;fryers.forEach(f=>{if(f.res===p)f.res=null;if(f.by===p)f.by=null;});p.q=[];p.path=null;}
 function crewRun(p,dt){const q=p.q;if(!q.length)return false;const s=q[0];
   if(s.go){if(!s.path)s.path=findPath(p.g.position.x,p.g.position.z,s.go[0],s.go[1]);p.path=s.path;
     if(followPath(p,dt,p.spd)){p.g.position.y=0;s.turn=(s.turn||0)+dt;faceTo(p,s.go[2],dt,10);if(s.turn>.3)q.shift();}return true;}
@@ -4120,16 +4293,16 @@ function crewRun(p,dt){const q=p.q;if(!q.length)return false;const s=q[0];
   q.shift();return true;}
 // 揚げ場: plate from the rack → vat → fryer → garnish → onto the pass shelf for the floor (or straight to the customer)
 const SG_SPOT=()=>[SG.tx-1.1,SG.tz,Math.PI/2];
-function releaseTc(p){const t=p.tc;if(t==='sg'){if(SG.ck===p)SG.ck=null;}else if(t){if(t.ck===p)t.ck=null;if(t.dk===p)t.dk=null;}if(p.sgB){p.sgB=0;SG.inFl=Math.max(0,(SG.inFl||0)-1);}p.tc=null;}
+function releaseTc(p){const t=p.tc;if(t&&t.key==null){if(t.ck===p)t.ck=null;if(t.dk===p)t.dk=null;}p.tc=null;}
 // someone (crew or player) is on the floor today to carry plates out
 const hallFor=p=>CREW_NOW.some(q=>q!==p&&crewIn(q)&&q.does&&q.does.has('hall'))||players.some((q,i)=>{const d=myJobOf(i);return d.includes('hall')&&!d.includes('fry');});
 function jobFry(p){if(W.gasOff){p.q=[{go:SPOT.gas},{wait:.8,pose:'chop'},{fn:()=>{if(W.gasOff){W.gasOff=false;gasLamp.material.color.set(0xff8a2a);say(p,'え、フライヤーの火ついてないじゃん! つけとくね','');}}}];return true;}
   const f=fryers.find(f=>!f.food&&!f.res);if(!f)return null;
   const s=seats.find(s=>{const c=s.c;return c&&c.state==='wait'&&!c.ck&&!c.cs&&!s.plate&&!PASS.some(x=>x.pl&&x.seat===s.i);});
-  const sg=!s&&SG.on&&SG.food&&!SG.ck&&!PASS.some(x=>x.pl&&x.seat==='sg')&&sgAlive().some(m=>m.sg==='seated');
-  if(!s&&!sg)return null;if(!rack.length&&!returns.length)return null;
-  const c=s?s.c:null,it=s?c.order.item:SG.food.item,want=s?c.order.tops:STD[it],doneAt=p.crew==='早川 莉子'?1.0:.92+R()*.3;
-  if(s){c.ck=p;p.tc=c;}else{SG.ck=p;p.tc='sg';}f.res=p;
+  let key=null,kit=null;if(!s)for(const k of tgtKeys()){const it=openFood(k);if(it){key=k;kit=it;break;}}
+  if(!s&&!key)return null;if(!rack.length&&!returns.length)return null;
+  const c=s?s.c:null,it=s?c.order.item:kit,want=s?c.order.tops:STD[it],doneAt=p.crew==='早川 莉子'?1.0:.92+R()*.3;
+  if(s){c.ck=p;p.tc=c;}else p.tc={key,item:it};f.res=p;
   const tops=Object.entries(want).filter(([k,n])=>n>0);let yelled=false;
   p.q=[{go:SPOT.rack},{until:()=>{if(rack.length)return true;if(!yelled&&p.q[0].max<36){yelled=true;const d=crewDo('dish');const pl=players.find((q,i)=>myJobOf(i).includes('dish'));
         say(p,d&&d!==p?`${d.name}ー! 皿ないよ! 先に何枚か洗って!`:pl?'洗い場ー! お皿ないです! 急ぎで!':'…お皿がない。誰か下げてきてー!','');}return false;}},
@@ -4139,15 +4312,15 @@ function jobFry(p){if(W.gasOff){p.q=[{go:SPOT.gas},{wait:.8,pose:'chop'},{fn:()=
     {until:()=>!f.food||f.by!==p||f.food.r>=doneAt},
     {fn:()=>{if(!f.food||f.by!==p)return false;p.ch.food={item:f.food.item,r:f.food.r};p.ch.fresh=1;f.basket.remove(f.mesh);f.food=null;f.mesh=null;f.by=null;crewCarry(p,p.ch);sfx.clink();}},
     ...tops.flatMap(([id,n])=>[{go:SPOT.top(id)},{wait:.3+.25*n,pose:'chop'},{fn:()=>{p.ch.tops[id]=n;crewCarry(p,p.ch);}}]),
-    {fn:()=>kitchenHandOff(p,s,c,it)}];
+    {fn:()=>kitchenHandOff(p,s,c,it,key)}];
   return true;}
-function kitchenHandOff(p,s,c,it){const who=s?`${s.i+1}番さん`:'大学生の卓',slot=hallFor(p)&&PASS.find(x=>!x.pl);
+function kitchenHandOff(p,s,c,it,key){const who=s?`${s.i+1}番さん`:tgtName(key),slot=hallFor(p)&&PASS.find(x=>!x.pl);
   const spare=pl=>{if(!shelf){shelf=pl;refreshShelf();say(p,`${ITEMS[it].name}、盛り付け台に置いとくね`,'quiet');}};
   if(slot)p.q.push({go:[slot.x,-2.15,Math.PI]},{fn:()=>{const sl=slot.pl?PASS.find(x=>!x.pl):slot,pl=p.ch;crewCarry(p,null);releaseTc(p);
-    if(sl){putPass(sl,pl,s?s.i:'sg');say(p,`${who}、${ITEMS[it].name}あがりましたー! ホールお願いしまーす!`,'quiet');}else spare(pl);}});
+    if(sl){putPass(sl,pl,s?s.i:key);say(p,`${who}、${ITEMS[it].name}あがりましたー! ホールお願いしまーす!`,'quiet');}else spare(pl);}});
   else if(s)p.q.push({go:SPOT.pass(s.x)},{fn:()=>{const pl=p.ch;crewCarry(p,null);releaseTc(p);
     if(s.c===c&&c.state==='wait'&&!s.plate){crewServeFood(s,pl);if(R()<.6)say(p,pickL('fry',{n:s.i+1,d:ITEMS[it].name}),'quiet');}else spare(pl);}});
-  else p.q.push({go:SG_SPOT()},{fn:()=>{const pl=p.ch;crewCarry(p,null);releaseTc(p);if(sgServeFood(pl))say(p,`お待たせしましたー、${ITEMS[it].name}です!`,'quiet');else spare(pl);}});}
+  else p.q.push({go:tgtSpot(key)},{fn:()=>{const pl=p.ch;crewCarry(p,null);releaseTc(p);if(serveFoodTo(key,pl))say(p,`お待たせしましたー、${ITEMS[it].name}です!`,'quiet');else spare(pl);}});}
 // 洗い場: return window → (scrape leftovers) → sink → rack
 function jobDish(p,force){if(!returns.length||(!force&&rack.length>=6))return null;
   p.q=[{go:SPOT.ret},{wait:.35},{fn:()=>{if(!returns.length)return false;const pl=returns.shift();refreshReturns();crewCarry(p,pl);sfx.clink(.5);
@@ -4157,10 +4330,11 @@ function jobDish(p,force){if(!returns.length||(!force&&rack.length>=6))return nu
   return true;}
 // ドリンカー: glass → tap/bottles → soda → to the customer's side (and the student table's beers)
 function jobDrink(p){const s=seats.filter(s=>{const c=s.c;return c&&SEATED.has(c.state)&&!c.cs&&c.dOrder&&!c.dk&&c.dWait>3&&!(c.dGlass&&c.dGlass.left>.02)&&!c.wantWater;}).sort((a,b)=>b.c.dWait-a.c.dWait)[0];
-  if(!s){if(!(SG.on&&SG.needBeer-(SG.inFl||0)>0&&sgAlive().some(m=>m.sg==='seated')))return null;
-    SG.inFl=(SG.inFl||0)+1;p.sgB=1;p.tc=null;
-    p.q=[{go:SPOT.glass},{wait:.35,pose:'counter'},{fn:()=>{crewCarry(p,newGlass());sfx.clink(1.2);}},{go:SPOT.pour.beer},{wait:2.0,pose:'pour'},{fn:()=>{crewCarry(p,fillGlass({kind:'beer'}));sfx.pour('beer');}},
-      {go:SG_SPOT()},{fn:()=>{const g=p.ch;crewCarry(p,null);releaseTc(p);if(sgServeBeer(g))say(p,'生お待たせしましたー!','quiet');}}];return true;}
+  if(!s){let key=null,d=null;for(const k of tgtKeys()){d=openDrink(k);if(d){key=k;break;}}if(!key)return null;
+    p.tc={key,drink:d};
+    p.q=[{go:SPOT.glass},{wait:.35,pose:'counter'},{fn:()=>{crewCarry(p,newGlass());sfx.clink(1.2);}},{go:SPOT.pour[d]},{wait:d==='beer'?2.0:1.2,pose:'pour'},
+      ...(d==='beer'?[]:[{go:SPOT.soda},{wait:.9,pose:'counter'}]),{fn:()=>{crewCarry(p,fillGlass({kind:d}));sfx.pour(d==='beer'?'beer':'soda');}},
+      {go:tgtSpot(key)},{fn:()=>{const g=p.ch;crewCarry(p,null);releaseTc(p);if(serveDrinkTo(key,g))say(p,`${DRINKS[d].name}お待たせしましたー!`,'quiet');}}];return true;}
   const c=s.c,o=c.dOrder,k=o.kind;c.dk=p;p.tc=c;
   p.q=[{go:SPOT.glass},{wait:.35,pose:'counter'},{fn:()=>{crewCarry(p,newGlass());sfx.clink(1.2);}},{go:SPOT.pour[k]},{wait:k==='beer'?2.0:1.2,pose:'pour'},
     ...(k==='beer'?[]:[{go:SPOT.soda},{wait:.9,pose:'counter'}]),{fn:()=>{crewCarry(p,fillGlass(o));sfx.pour(k==='beer'?'beer':'soda');}},
@@ -4169,7 +4343,7 @@ function jobDrink(p){const s=seats.filter(s=>{const c=s.c;return c&&SEATED.has(c
   return true;}
 // a plate on the pass shelf: who should get it now
 function passTarget(sl){const pl=sl.pl;if(!pl||!pl.food)return null;
-  if(sl.seat==='sg')return SG.on&&SG.food&&SG.food.item===pl.food.item&&sgAlive().some(m=>m.sg==='seated')?'sg':null;
+  if(typeof sl.seat==='string'){const k=sl.seat,it=pl.food.item;return tgtKeys().includes(k)&&needFoods(k).filter(x=>x===it).length>crewClaims(k,t=>t.item===it&&t.carry)?k:null;}
   const ok=s=>s&&s.c&&s.c.state==='wait'&&!s.c.cs&&!s.plate&&s.c.order.item===pl.food.item&&!s.c.hd;
   return ok(seats[sl.seat])?seats[sl.seat]:seats.find(ok)||null;}
 // ホール: greet, carry plates out from the pass, clear finished plates to the return window, mop up, register if 三好 is off
@@ -4178,14 +4352,13 @@ function jobHall(p){
   if(wi&&W.open&&!W.closed){wi.hina=1;wi.maxPat*=1.15;wi.pat*=1.15;p.q=[{go:SPOT.door},{fn:()=>{say(p,pickL('hall'),'quiet');setExpr(p,'happy');}},{wait:1.4}];return true;}
   const sl=PASS.find(x=>x.pl&&!x.ck&&passTarget(x));
   if(sl){sl.ck=p;p.q=[{go:[sl.x,-4.85,0]},{fn:()=>{sl.ck=null;const t=passTarget(sl);if(!t)return false;const pl=takePass(sl);crewCarry(p,pl);
-      if(t==='sg')p.q.push({go:SG_SPOT()},{fn:()=>{const pl=p.ch;crewCarry(p,null);if(sgServeFood(pl))say(p,`お待たせしましたー、${ITEMS[pl.food?pl.food.item:'karaage'].name}です!`,'quiet');else backToPass(pl);}});
+      if(typeof t==='string'){p.tc={key:t,item:pl.food.item,carry:1};p.q.push({go:tgtSpot(t)},{fn:()=>{const pl=p.ch;crewCarry(p,null);releaseTc(p);if(serveFoodTo(t,pl))say(p,`お待たせしましたー、${ITEMS[pl.food.item].name}です!`,'quiet');else backToPass(pl);}});}
       else{t.c.hd=p;const c=t.c;p.q.push({go:SPOT.seatH(t)},{fn:()=>{const pl=p.ch;crewCarry(p,null);c.hd=null;
         if(t.c===c&&c.state==='wait'&&!t.plate){crewServeFood(t,pl);say(p,`${t.i+1}番さん、${ITEMS[pl.food.item].name}お待たせしましたー!`,'quiet');}else backToPass(pl);}});}}}];return true;}
   // a plate nobody is waiting for any more goes cold on the shelf: take it back to the return window
   const old=PASS.find(x=>x.pl&&!x.ck&&!passTarget(x)&&W.t-(x.at||0)>25);
   if(old){old.ck=p;p.q=[{go:[old.x,-4.85,0]},{fn:()=>{old.ck=null;if(!old.pl||passTarget(old))return false;const pl=takePass(old);pl.fresh=0;crewCarry(p,pl);say(p,'これ冷めちゃったんで下げますねー','quiet');}},
     {go:SPOT.retH},{wait:.3},{fn:()=>{returnPlates(p.ch);crewCarry(p,null);}}];return true;}
-  if(p.does.has('reg')){const c=customers.find(c=>c.state==='payWait'&&!c.rk);if(c){c.rk=p;p.q=[{go:SPOT.reg},{wait:1.2,pose:'counter'},{fn:()=>{if(c.state==='payWait'){payNow(c,false);say(p,pickL('reg'),'quiet');}c.rk=null;}}];return true;}}
   const cl=seats.find(s=>s.c&&s.c.calling&&SEATED.has(s.c.state)&&!s.c.cs&&W.t>(s.c.hk||-1e9));
   if(cl&&W.open&&!W.closed){const c=cl.c;c.hk=W.t+40;p.q=[{go:SPOT.seatH(cl)},{fn:()=>{if(cl.c!==c)return;c.calling=false;c.callT=15;c.pat=Math.min(c.maxPat,c.pat+c.maxPat*.12);
     say(p,c.state==='wait'?pick(['少々お待ちくださーい! すぐお持ちします!','ごめんなさい、今揚げてますので!']):pick(['はーい、伺いまーす!','お呼びでしょうかー?']),'quiet');}},{wait:1}];return true;}
@@ -4193,21 +4366,24 @@ function jobHall(p){
   const bs=seats.find(s=>s.plate&&!s.bk&&(!s.c||s.c.ate||!SEATED.has(s.c.state)));
   if(bs){bs.bk=p;p.q=[{go:SPOT.seatH(bs)},{fn:()=>{bs.bk=null;if(!bs.plate)return false;const pl=bs.plate.data;pl.fresh=0;scene.remove(bs.plate.mesh);bs.plate=null;bs.ver++;crewCarry(p,pl);sfx.clink(.6);}},
     {go:SPOT.retH},{wait:.3},{fn:()=>{returns.push(p.ch);crewCarry(p,null);refreshReturns();sfx.clink(.4);}}];return true;}
-  if(SG.clutter&&!sgAlive().length&&!SG.bk){SG.bk=p;p.q=[{go:SG_SPOT()},{until:dt=>{armTo(p,0,'chop',dt,6);armTo(p,1,'chop',dt,6);headTo(p,0,-.5,0,dt,4);if(!SG.clutter)return true;SG.clearP=(SG.clearP||0)+dt/2.4;if(R()<dt*5)sfx.clink(.9);
-      if(SG.clearP>=1){const st=sgClear();if(st)crewCarry(p,st);return true;}return false;}},
-    {fn:()=>{SG.bk=null;if(!p.ch)return;p.q.push({go:SPOT.retH},{wait:.3},{fn:()=>{returnPlates(p.ch);crewCarry(p,null);}});}}];return true;}
+  const ck=clutterKeys().find(k=>!CREW_NOW.some(q=>q.clr===k));
+  if(ck){p.clr=ck;p.clrP=0;p.q=[{go:clutterSpot(ck)},{until:dt=>{armTo(p,0,'chop',dt,6);armTo(p,1,'chop',dt,6);headTo(p,0,-.5,0,dt,4);if(!clutterKeys().includes(ck))return true;p.clrP+=dt/2.4;if(R()<dt*5)sfx.clink(.9);
+      if(p.clrP>=1){const st=clearClutter(ck);if(st)crewCarry(p,st);return true;}return false;}},
+    {fn:()=>{p.clr=null;if(!p.ch)return;p.q.push({go:SPOT.retH},{wait:.3},{fn:()=>{returnPlates(p.ch);crewCarry(p,null);}});}}];return true;}
   const M=messes.find(M=>M.m.position.y<.3&&!M.ck);
   if(M){M.ck=p;const [x,z]=nearestWalkablePt(M.x,M.z+.45);p.q=[{go:[x,z,Math.atan2(M.x-x,M.z-z)]},
     {until:dt=>{if(messes.indexOf(M)<0)return true;armTo(p,0,'chop',dt,6);armTo(p,1,'chop',dt,6);headTo(p,0,-.6,0,dt,4);M.amt-=dt*.3;M.m.scale.setScalar(Math.max(.04,M.amt)*M.sc);if(R()<dt*5)sfx.wipe();if(M.amt<=0){removeMess(M);if(R()<.5)say(p,'はーい、きれいになりましたー','quiet');return true;}return false;}}];return true;}
   return null;}
 const backToPass=pl=>{const sl=PASS.find(x=>!x.pl);if(sl)putPass(sl,pl,null);else if(!shelf){shelf=pl;refreshShelf();}};
-function jobReg(p){const c=customers.find(c=>c.state==='payWait'&&!c.rk&&W.t-(c.pwAt||(c.pwAt=W.t))>=3);if(!c)return null;c.rk=p;
+function jobReg(p){const P=partyPayer();if(P&&!P.rk&&P.payT>3){P.rk=p;p.q=[{go:SPOT.reg},{wait:1.4,pose:'counter'},{fn:()=>{P.rk=null;if(P.leader&&P.leader.ps==='payWait'){partyPay(P);say(p,pickL('reg'),'quiet');}}}];return true;}
+  const l=sgPayer();if(l&&!SG.rk&&SG.payT>3){SG.rk=p;p.q=[{go:SPOT.reg},{wait:1.6,pose:'counter'},{fn:()=>{SG.rk=null;if(sgPayer())sgPay(l);}}];return true;}
+  const c=customers.find(c=>c.state==='payWait'&&!c.rk&&W.t-(c.pwAt||(c.pwAt=W.t))>=3);if(!c)return null;c.rk=p;
   p.q=[{go:SPOT.reg},{wait:1.4,pose:'counter'},{fn:()=>{c.rk=null;if(c.state!=='payWait')return;
     if(R()<.15){W.money+=c.payDue-500;c.payDue=500;payNow(c,false);W.conf++;say(c,c.gara?'おい、お釣り500円足りひんぞ':'…あの、お釣り500円少ないんですけど…','');say(p,'す、すみません!! …あれ、レジが合わない…','');setExpr(p,'scared');}
     else{payNow(c,false);say(p,pickL('reg'),'quiet');}}}];return true;}
 function crewWork(p){const D=t=>p.does.has(t);
   if(D('fry')&&(!rack.length&&D('dish')?jobDish(p):0))return;
-  if(D('fry')&&jobFry(p))return;if(D('hall')&&(PASS.some(x=>x.pl&&!x.ck&&passTarget(x))||seats.some(s=>s.plate&&!s.bk&&(!s.c||s.plate.owner!==s.c)))&&jobHall(p))return;if(D('drinks')&&jobDrink(p))return;if(D('dish')&&jobDish(p))return;if(D('reg')&&p.post.role==='reg'&&jobReg(p))return;if(D('hall')&&jobHall(p))return;
+  if(D('fry')&&jobFry(p))return;if(D('hall')&&(PASS.some(x=>x.pl&&!x.ck&&passTarget(x))||seats.some(s=>s.plate&&!s.bk&&(!s.c||s.plate.owner!==s.c)))&&jobHall(p))return;if(D('drinks')&&jobDrink(p))return;if(D('dish')&&jobDish(p))return;if(D('reg')&&jobReg(p))return;if(D('hall')&&jobHall(p))return;
   const h=homeOf(p),d=Math.hypot(p.g.position.x-h[0],p.g.position.z-h[1]);
   if(D('hall')&&R()<.3){const f=pick(SPOT.floor);p.q=[{go:f},{wait:1.5+R()*2.5}];return;}
   if(d>.3)p.q=[{go:h}];else p.q=[{wait:.6+R()*.8}];}
@@ -4290,12 +4466,12 @@ function crewStep(dt){if(!CREW_NOW.length)return;const mins=W.t/W.dur*180;
       if(!p.did.cq){p.did.cq=1;p.t=2;const Q=[];
         if(D('fry'))Q.push({go:SPOT.gas},{wait:2.5,pose:'chop'},{fn:()=>{if(!W.gasOff){W.gasOff=true;gasLamp.material.color.set(0x222222);say(p,'フライヤーの火、消しといたよ','quiet');}}});
         if(D('hall'))Q.push({go:[0.4,-5.4,Math.PI]},{wait:2,pose:'chop'},{go:[3.4,-5.4,Math.PI]},{wait:2,pose:'chop'},{go:[-1.6,-4.9,0]},{wait:1.5,pose:'chop'},
-          {fn:()=>{trays.forEach(T=>{CONDS.forEach(c=>T.lv[c.id]=1);showTray(T);});if(SG.clutter&&!sgAlive().length){const st=sgClear();if(st)returnPlates(st);}say(p,'テーブルと調味料、やっときましたー!','quiet');}});
+          {fn:()=>{trays.forEach(T=>{CONDS.forEach(c=>T.lv[c.id]=1);showTray(T);});clutterKeys().forEach(k=>{const st=clearClutter(k);if(st)returnPlates(st);});say(p,'テーブルと調味料、やっときましたー!','quiet');}});
         if(D('drinks'))Q.push({go:SPOT.trash},{wait:1.5,pose:'chop'},{fn:()=>crewCarry(p,{type:'bag'})},{go:SPOT.back},{wait:2},{fn:()=>{crewCarry(p,null);if(!W.trashOut&&!W.bagTaken){W.trashOut=true;say(p,'ゴミ出してきましたー!','quiet');}}});
         if(D('reg'))Q.push({go:SPOT.reg},{fn:()=>{p.regT=W.t+40+(R()<.2?30:0);say(p,'レジ締めやっとくね','quiet');}});
         p.q=Q;return;}
       if(D('dish')&&(returns.length||customers.length)){if(!jobDish(p,true)&&!p.q.length)p.q=[{wait:1}];return;}
-      if(D('hall')&&(messes.some(M=>M.m.position.y<.3)||seats.some(s=>s.plate)||SG.clutter&&!sgAlive().length)&&jobHall(p))return;
+      if(D('hall')&&(messes.some(M=>M.m.position.y<.3)||seats.some(s=>s.plate)||clutterKeys().length)&&jobHall(p))return;
       if(D('reg')&&p.regT){if(W.t<p.regT||customers.length)return;if(!W.regDone){W.regDone=true;sub(p.name,W.t-p.regT>1?'…よし、レジ合った!(30分数え直した)':'レジ締め、OKです','quiet');}}
       if(D('dish'))say(p,'洗い物おわり! 皿戻しといたよ','quiet');
       p.did.close=1;p.q=[{go:homeOf(p)}];return;}
@@ -4339,7 +4515,7 @@ function endMakanai(ate){MAKA.on=false;MAKA.done=true;if(MAKA.bowls){MAKA.bowls.
   CREW_NOW.forEach(p=>{if(p.post.role!=='boss')crewLeave(p,null);});if(ate)later(()=>{if(W.running)toast('みんな帰った。電気を消して退勤しよう');},1200);}
 S.makanai={prompt(){if(!MAKA.on)return'';return MAKA.joined.includes(cur)?'(まかない中)':'みんなと<b>まかないを食べる</b>';},
   press(){if(!MAKA.on||MAKA.joined.includes(cur))return;MAKA.joined.push(cur);W.makaSeat=true;const [tx,tz]=TTABLES[0];player.x=tx-1.05;player.z=tz;yaw=-Math.PI/2;if(cur===me){view.yaw=-Math.PI/2;view.pitch=-.35;}sfx.clink(.6);}};
-{const [tx,tz]=TTABLES[0];hitBox(1.7,.5,1.3,tx,.75,tz,S.makanai).userData.prio=true;}
+{const [tx,tz]=TTABLES[0];const h=hitBox(1.7,.5,1.3,tx,.75,tz,S.makanai);h.userData.prio=true;h.userData.optional=true;}
 // scold the slacker: he walks to the sink and washes for a minute, then drifts back
 S.omori={prompt(){const p=crewBy('slack');if(!p||p.helping||p.q.length)return'';return'大森を<b>注意する</b>(YouTube見てる)';},
   press(){const p=crewBy('slack');if(!p||p.helping||p.q.length)return;p.helping=60;p.t=3;p.phone.visible=false;p.g.position.y=0;p.q=[{go:SPOT.sink}];say(p,pick(['あっ、すんません! すぐ入ります!','やべ…今行きます!','いや、ちょうど今戻ろうと思ってて…']),'');}};
@@ -5359,21 +5535,21 @@ function simWorld(dt){
   if(washing>0&&R()<dt*30)addDrop(-3.3+(R()-.5)*.2,1.0,-0.55+(R()-.5)*.2,0xdff2fa);
   // spawn
   W.spawnT-=dt;
-  const solo=players.length<2;
+  const sn=staffN(),solo=sn<=1,spd=[1,1,1.4,1.8,2.2,2.5][Math.min(5,sn)];
   if(W.open&&!customers.some(c=>c.seat.c===c))W.spawnT=Math.min(W.spawnT,solo?28:12);
   if(W.open&&W.spawnT<=0&&W.t<W.dur*.9){const busy=customers.filter(c=>c.seat.c===c&&!c.ate).length;
-    if(solo&&busy>=2)W.spawnT=10;else{const free=seats.filter(s=>!s.c&&!s.leaving&&!s.plate);if(free.length){spawn(pick(free));const gm=W.t/W.dur*180;const peak=gm>55&&gm<125;W.spawnT=solo?(peak?44+R()*24:72+R()*40):(peak?26+R()*18:45+R()*35)*.72;}else W.spawnT=6;}}
+    if(busy>=(sn<=1?2:sn===2?3:4))W.spawnT=10;else{const free=seats.filter(s=>!s.c&&!s.leaving&&!s.plate);if(free.length){spawn(pick(free));const gm=W.t/W.dur*180;const peak=gm>55&&gm<125;W.spawnT=(peak?44+R()*24:72+R()*40)/spd;}else W.spawnT=6;}}
   if(RETA.length)updateReta(dt);
   if(W.commute&&!W.open){W.taskT-=dt;if(W.taskT<=0){W.taskT=.4;withPlayer(me,renderTasks);}if(W.t>=W.dur*.85&&!W.noOpenEnd){W.noOpenEnd=true;endGame({crash:['開店できなかった','結局のれんを出せないまま夜が更けた。店長から長文のLINEが届いている']});return;}}
   customers.slice().forEach(c=>{if(W.running)updateCustomer(c,dt);});if(!W.running)return;
   crewStep(dt);if(!W.running)return;
-  updateRooms(dt);updateRegulars(dt);updateStudents(dt);updateCops(dt);updateAmbience();if(!W.running)return;
+  updateRooms(dt);updateRegulars(dt);updateStudents(dt);updateParties(dt);updateCops(dt);updateAmbience();if(!W.running)return;
   persons().forEach(p=>rigUpdate(p,dt));
   updateDecor(dt);updateAruaru(dt);updateStaffPhone(dt);updateCarry(dt);if(!W.running)return;
   if(W.policeT!=null){W.policeT-=dt;const cp=$('#copP');if(cp.hidden){cp.hidden=false;bumpPill('#copP');}const t=Math.max(0,Math.ceil(W.policeT));$('#copN').textContent=`${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`;
     if(W.policeT<=0){W.policeT=null;W.policeOn=true;spawnCop();sfx.siren();$('#copN').textContent='到着';}}
   if(!W.closed&&W.t>=W.dur)startClosing();
-  if(W.closed){regularsClosing();W.taskT-=dt;if(W.taskT<=0){W.taskT=.4;withPlayer(me,renderTasks);}}
+  if(W.closed){regularsClosing();partiesCloseStep();W.taskT-=dt;if(W.taskT<=0){W.taskT=.4;withPlayer(me,renderTasks);}}
   if(W.t>=W.dur*2&&players.some((q,i)=>!(i===cur?W:q.L).clockedOut))endGame({missed:true});
   else if(MP.on&&W.t>=W.dur*3)endGame({clockout:true,allHome:true});
 }
@@ -5390,7 +5566,7 @@ function viewUpdate(dt){
   const cp=camPose();camera.position.set(cp[0],cp[1],cp[2]);camera.rotation.set(cp[4]!=null?cp[4]:view.pitch,cp[3],0);camera.updateMatrixWorld&&camera.updateMatrixWorld();
   vis(()=>{updateSelf(dt,cp);drawBalls(dt);});dayEndView();
   ray.setFromCamera(center,camera);
-  const hs=(W.outside&&CAR.inCar&&CAR.cam)?[]:ray.intersectObjects(W.store?STORES[W.store].hits:W.home?HOME.hits:(W.outside?OUT.hits:hits),false).filter(x=>!x.object.userData.tapOnly);let hit=hs[0];if(hit){const pr=hs.find(x=>x.object.userData.prio&&x.distance<hit.distance+1.2);if(pr)hit=pr;}if(blocked(hit))hit=null;aim=hit?hit.object.userData.st:null;aimId=hit?hit.object.userData.hid|0:0;if(hit&&hit.object.userData.veh!=null&&hit.object.userData.veh!==me)aim=MATE_VEH;
+  const hs=(W.outside&&CAR.inCar&&CAR.cam)?[]:ray.intersectObjects(W.store?STORES[W.store].hits:W.home?HOME.hits:(W.outside?OUT.hits:hits),false).filter(x=>!x.object.userData.tapOnly&&!(x.object.userData.optional&&!x.object.userData.st.prompt()));let hit=hs[0];if(hit){const pr=hs.find(x=>x.object.userData.prio&&x.distance<hit.distance+1.2);if(pr)hit=pr;}if(blocked(hit))hit=null;aim=hit?hit.object.userData.st:null;aimId=hit?hit.object.userData.hid|0:0;if(hit&&hit.object.userData.veh!=null&&hit.object.userData.veh!==me)aim=MATE_VEH;
   $('#cross').classList.toggle('on',!!aim);
   if(heldV!==handV){heldV=handV;vis(refreshHeld);}
   if(isPlate(hand)&&heldMesh&&heldMesh.userData.stain){heldMesh.userData.stain.material.opacity=Math.min(1,hand.dirt*1.1);heldMesh.userData.grains.visible=hand.dirt>.45;}
@@ -5424,7 +5600,7 @@ function render(dt){
   const sc=W.store&&STORES[W.store].scene?STORES[W.store].scene:W.home&&HOME.scene?HOME.scene:(W.outside&&OUT.scene?OUT.scene:scene);if(camera.parent!==sc){sc.add(camera);camera.far=sc===scene?40:sc===OUT.scene?170:30;camera.updateProjectionMatrix();}
   drawScene(sc,dt);fpsWatch(dt);
 }
-if(window.__TEST__)window.__G={PASS,putPass,sgServeBeer,sgServeFood,setJob,SEKKYO,GLINE,meddle,fryers,get rack(){return rack;},lineThreads,LW,JOB_NAME,setSky,NIGHT,buildOut,CREW_NOW,crewToday,MAKA,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
+if(window.__TEST__)window.__G={PARTIES,SLOTS,spawnParty,trySpawnParty,staffN,tgtKeys,partyServeDrink,partyServeFood,groupCards,PASS,putPass,sgServeBeer,sgServeFood,setJob,SEKKYO,GLINE,meddle,fryers,get rack(){return rack;},lineThreads,LW,JOB_NAME,setSky,NIGHT,buildOut,CREW_NOW,crewToday,MAKA,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
 camera.position.set(0,1.62,.2);
 {const _bm=buildModel;buildModel=function(t,s){const m=_bm(t,s);if(SHADOWS)m.g.traverse(o=>{if(o.isMesh)o.castShadow=true;});m.blob=blob(m.g,0,.02,.6,.48,.012);return m;};}
 setShadows(scene);if(HQ)loadPP();
