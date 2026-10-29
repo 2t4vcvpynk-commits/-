@@ -962,7 +962,7 @@ hitBox(0.6,0.45,0.7,3.22,1.12,0.45,S.shelf);
 box(1.14,.03,.52,phong(0xc8ced2,110,0xffffff),1.98,.975,-3.05);[1.43,2.53].forEach(x=>box(.03,.06,.52,phong(0xb8bec3,110,0xffffff),x,1.0,-3.05));
 const PASS=[1.62,1.98,2.34].map(x=>({x,pl:null,mesh:null,seat:null,ck:null}));let PASSV=0;
 function refreshPass(sl){if(sl.mesh){scene.remove(sl.mesh);sl.mesh=null;}if(sl.pl){sl.mesh=vis(()=>makePlate(sl.pl));sl.mesh.position.set(sl.x,.995,-3.05);scene.add(sl.mesh);}PASSV++;}
-function putPass(sl,pl,seat){sl.pl=pl;sl.seat=seat;refreshPass(sl);sfx.clink(.6);}
+function putPass(sl,pl,seat){sl.pl=pl;sl.seat=seat;sl.at=W.t;refreshPass(sl);sfx.clink(.6);}
 function takePass(sl){const pl=sl.pl;sl.pl=null;sl.seat=null;refreshPass(sl);return pl;}
 const passGuess=pl=>{if(!pl||!pl.food)return null;const s=seats.find(s=>s.c&&s.c.state==='wait'&&!s.plate&&s.c.order.item===pl.food.item&&!PASS.some(x=>x.pl&&x.seat===s.i));if(s)return s.i;return SG.on&&SG.food&&SG.food.item===pl.food.item?'sg':null;};
 const passWho=sl=>sl.seat==='sg'?'大学生の卓':sl.seat!=null?`${sl.seat+1}番さん`:'';
@@ -4181,6 +4181,10 @@ function jobHall(p){
       if(t==='sg')p.q.push({go:SG_SPOT()},{fn:()=>{const pl=p.ch;crewCarry(p,null);if(sgServeFood(pl))say(p,`お待たせしましたー、${ITEMS[pl.food?pl.food.item:'karaage'].name}です!`,'quiet');else backToPass(pl);}});
       else{t.c.hd=p;const c=t.c;p.q.push({go:SPOT.seatH(t)},{fn:()=>{const pl=p.ch;crewCarry(p,null);c.hd=null;
         if(t.c===c&&c.state==='wait'&&!t.plate){crewServeFood(t,pl);say(p,`${t.i+1}番さん、${ITEMS[pl.food.item].name}お待たせしましたー!`,'quiet');}else backToPass(pl);}});}}}];return true;}
+  // a plate nobody is waiting for any more goes cold on the shelf: take it back to the return window
+  const old=PASS.find(x=>x.pl&&!x.ck&&!passTarget(x)&&W.t-(x.at||0)>25);
+  if(old){old.ck=p;p.q=[{go:[old.x,-4.85,0]},{fn:()=>{old.ck=null;if(!old.pl||passTarget(old))return false;const pl=takePass(old);pl.fresh=0;crewCarry(p,pl);say(p,'これ冷めちゃったんで下げますねー','quiet');}},
+    {go:SPOT.retH},{wait:.3},{fn:()=>{returnPlates(p.ch);crewCarry(p,null);}}];return true;}
   if(p.does.has('reg')){const c=customers.find(c=>c.state==='payWait'&&!c.rk);if(c){c.rk=p;p.q=[{go:SPOT.reg},{wait:1.2,pose:'counter'},{fn:()=>{if(c.state==='payWait'){payNow(c,false);say(p,pickL('reg'),'quiet');}c.rk=null;}}];return true;}}
   const cl=seats.find(s=>s.c&&s.c.calling&&SEATED.has(s.c.state)&&!s.c.cs&&W.t>(s.c.hk||-1e9));
   if(cl&&W.open&&!W.closed){const c=cl.c;c.hk=W.t+40;p.q=[{go:SPOT.seatH(cl)},{fn:()=>{if(cl.c!==c)return;c.calling=false;c.callT=15;c.pat=Math.min(c.maxPat,c.pat+c.maxPat*.12);
