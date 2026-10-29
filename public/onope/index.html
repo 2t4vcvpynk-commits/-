@@ -41,7 +41,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 .tk .tp,.tk .dk,.tk .pb,.tk .dg{grid-column:1/-1}
 .tk .dg{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;color:#6a4a1a;margin-top:1px}.tk .dg b{flex:1;height:6px;background:rgba(0,0,0,.14);border-radius:3px;overflow:hidden}.tk .dg i{display:block;height:100%;border-radius:3px;transition:width .3s}.tk .tp:empty,.tk .dk:empty{display:none}
 .tk.empty{display:none}
-.tk.dish{background:rgba(16,18,24,.62);color:var(--paper);border-left-color:#8a8a8a}
+.tk.grp{border-left-color:#2a7ad8}.tk.dish{background:rgba(16,18,24,.62);color:var(--paper);border-left-color:#8a8a8a}
 .tk .no{font-size:10px;font-weight:800;letter-spacing:.04em;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tk .it{font-family:var(--f-display);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tk .tp{font-size:10px;font-weight:800}
@@ -868,7 +868,7 @@ function handText(h){
   if(h.type==='bag')return'ゴミ袋';
   if(h.type==='lost')return`忘れ物(${h.L.name}の${h.kind})`;
   if(h.type==='raw')return`${ITEMS[h.item].name}(衣付き・生)`;
-  const bits=[];if(h.food)bits.push(ITEMS[h.food.item].name);TOPS.forEach(t=>{if(h.tops[t.id])bits.push(t.name);});
+  if(h.stack)return`重ねた皿(${h.stack}枚)`;const bits=[];if(h.food)bits.push(ITEMS[h.food.item].name);TOPS.forEach(t=>{if(h.tops[t.id])bits.push(t.name);});
   return bits.length?`皿(${bits.join('・')})`:'皿';
 }
 function doneKey(r){if(r<0.6)return'raw';if(r<0.85)return'underdone';if(r<=1.3)return'ok';if(r<=1.7)return'over';if(r<=2.3)return'burnt';return'charcoal';}
@@ -882,17 +882,17 @@ function refreshReturns(){
     if(i===0){const b=new THREE.Mesh(GEO.bowl,bowlW);b.position.set(-3.28,tray.position.y+.075,-3.23);returnsMesh.add(b);}});
 }
 S.returns={
-  prompt(){if(!returns.length)return'返却口(お客が食べ終わった皿をここに戻す)';return hand?'手がふさがってる':'返却口の<b>皿を取る</b>';},
-  press(){if(!returns.length)return toast('まだ何も返ってきてない');if(hand)return toast('手がふさがってる');meddle('dish');const p=returns.shift();refreshReturns();setHand(p);sfx.clink();}
+  prompt(){if(isPlate(hand))return`返却口に<b>戻す</b>${hand.stack?`(${hand.stack}枚)`:''}`;if(!returns.length)return'返却口(お客が食べ終わった皿をここに戻す)';return hand?'手がふさがってる':'返却口の<b>皿を取る</b>';},
+  press(){if(isPlate(hand)){const h=hand;setHand(null);returnPlates(h);sfx.clink(.5);return;}if(!returns.length)return toast('まだ何も返ってきてない');if(hand)return toast('手がふさがってる');meddle('dish');const p=returns.shift();refreshReturns();setHand(p);sfx.clink();}
 };
 hitBox(0.48,0.75,0.8,-3.28,1.3,-3.05,S.returns).userData.prio=true;
 
 // --- sink
 let washing=0;
 S.sink={
-  prompt(){if(!isPlate(hand))return'シンク';if(hand.food||Object.keys(hand.tops).length)return'残飯はゴミ箱で落としてから';return'<b>長押し</b>で皿を洗う';},
-  press(){if(isPlate(hand)&&!hand.food&&!Object.keys(hand.tops).length){meddle('dish');washing=.15;this.wash(.06);}else if(isPlate(hand))toast('先に残飯を捨てよう');},
-  hold(dt){if(isPlate(hand)&&!hand.food&&!Object.keys(hand.tops).length){washing=.15;this.wash(dt*.38);}},
+  prompt(){if(hand&&hand.stack)return'(重ねた皿はまず返却口へ)';if(!isPlate(hand))return'シンク';if(hand.food||Object.keys(hand.tops).length)return'残飯はゴミ箱で落としてから';return'<b>長押し</b>で皿を洗う';},
+  press(){if(hand&&hand.stack)return toast('重ねた皿はまず返却口へ');if(isPlate(hand)&&!hand.food&&!Object.keys(hand.tops).length){meddle('dish');washing=.15;this.wash(.06);}else if(isPlate(hand))toast('先に残飯を捨てよう');},
+  hold(dt){if(isPlate(hand)&&!hand.stack&&!hand.food&&!Object.keys(hand.tops).length){washing=.15;this.wash(dt*.38);}},
   wash(a){hand.dirt=Math.max(0,hand.dirt-a);}
 };
 hitBox(0.75,0.6,1.1,-3.25,1.15,-0.55,S.sink);
@@ -913,7 +913,7 @@ let rack=[];let rackMesh=new THREE.Group();scene.add(rackMesh);
 function refreshRack(){scene.remove(rackMesh);rackMesh=new THREE.Group();scene.add(rackMesh);rack.slice(0,6).forEach((p,i)=>{const m=makePlate(p);m.rotation.x=Math.PI/2-0.25;m.position.set(-3.28,1.13,0.42+i*0.07);rackMesh.add(m);});}
 S.rack={
   prompt(){if(isPlate(hand))return hand.food?'料理が乗ってる':'水切りかごに<b>置く</b>';if(!hand&&rack.length)return'水切りかごから<b>皿を取る</b>';return hand?'手がふさがってる':'水切りかご(空)';},
-  press(){if(isPlate(hand)){if(hand.food)return;if(rack.length>=6)return toast('かごがいっぱい');rack.push(hand);setHand(null);refreshRack();sfx.clink(.8);}else if(!hand&&rack.length){setHand(rack.pop());refreshRack();sfx.clink(.8);}}
+  press(){if(hand&&hand.stack)return toast('重ねた皿はまず返却口へ');if(isPlate(hand)){if(hand.food)return;if(rack.length>=6)return toast('かごがいっぱい');rack.push(hand);setHand(null);refreshRack();sfx.clink(.8);}else if(!hand&&rack.length){setHand(rack.pop());refreshRack();sfx.clink(.8);}}
 };
 hitBox(0.55,0.4,0.6,-3.28,1.1,0.6,S.rack);
 
@@ -958,6 +958,19 @@ S.shelf={
   press(){if(!hand&&!shelf)return;const a=hand;setHand(shelf);shelf=a;refreshShelf();sfx.clink(.6);}
 };
 hitBox(0.6,0.45,0.7,3.22,1.12,0.45,S.shelf);
+// --- pass shelf (デシャップ台): the kitchen puts finished plates here and the floor carries them out
+box(1.14,.03,.52,phong(0xc8ced2,110,0xffffff),1.98,.975,-3.05);[1.43,2.53].forEach(x=>box(.03,.06,.52,phong(0xb8bec3,110,0xffffff),x,1.0,-3.05));
+const PASS=[1.62,1.98,2.34].map(x=>({x,pl:null,mesh:null,seat:null,ck:null}));let PASSV=0;
+function refreshPass(sl){if(sl.mesh){scene.remove(sl.mesh);sl.mesh=null;}if(sl.pl){sl.mesh=vis(()=>makePlate(sl.pl));sl.mesh.position.set(sl.x,.995,-3.05);scene.add(sl.mesh);}PASSV++;}
+function putPass(sl,pl,seat){sl.pl=pl;sl.seat=seat;refreshPass(sl);sfx.clink(.6);}
+function takePass(sl){const pl=sl.pl;sl.pl=null;sl.seat=null;refreshPass(sl);return pl;}
+const passGuess=pl=>{if(!pl||!pl.food)return null;const s=seats.find(s=>s.c&&s.c.state==='wait'&&!s.plate&&s.c.order.item===pl.food.item&&!PASS.some(x=>x.pl&&x.seat===s.i));if(s)return s.i;return SG.on&&SG.food&&SG.food.item===pl.food.item?'sg':null;};
+const passWho=sl=>sl.seat==='sg'?'大学生の卓':sl.seat!=null?`${sl.seat+1}番さん`:'';
+PASS.forEach(sl=>{sl.st={prompt(){if(isPlate(hand)&&hand.food&&!hand.stack)return sl.pl?'デシャップ台(埋まってる)':'デシャップ台に<b>置く</b>';if(!hand&&sl.pl){const w=passWho(sl);return`<b>${handText(sl.pl)}</b>${w?`(${w})`:''}を取る`;}return'デシャップ台(料理の受け渡し)';},
+  press(){if(isPlate(hand)&&hand.food&&!hand.stack&&!sl.pl){const pl=hand;setHand(null);putPass(sl,pl,passGuess(pl));return;}if(!hand&&sl.pl){setHand(takePass(sl));sfx.clink();}}};
+  hitBox(.34,.3,.6,sl.x,1.08,-3.05,sl.st).userData.prio=true;});
+// dirty plates go back through the return window; a stack from a table counts as several
+function returnPlates(h){if(h.stack){for(let i=0;i<h.stack;i++)returns.push(newPlate(.85+R()*.15));}else{h.fresh=0;returns.push(h);}refreshReturns();}
 
 // --- trash
 S.trash={
@@ -993,7 +1006,7 @@ const fryers=[-0.95,-0.35].map(z=>{
     },
     press(){
       if(hand&&hand.type==='raw'){if(f.food)return toast('使用中');meddle('fry');f.food={item:hand.item,r:0};f.by=null;f.mesh=makeFood(hand.item,0,false);f.mesh.position.y=.02;basket.add(f.mesh);f.up=false;setHand(null);sfx.drop();return;}
-      if(isPlate(hand)){if(!f.food)return;if(hand.food)return toast('皿にもう乗ってる');hand.food={item:f.food.item,r:f.food.r};handV++;basket.remove(f.mesh);f.food=null;f.mesh=null;f.up=false;sfx.clink();return;}
+      if(isPlate(hand)){if(hand.stack)return toast('重ねた皿はまず返却口へ');if(!f.food)return;if(hand.food)return toast('皿にもう乗ってる');hand.food={item:f.food.item,r:f.food.r};handV++;basket.remove(f.mesh);f.food=null;f.mesh=null;f.up=false;sfx.clink();return;}
       if(f.food){f.up=!f.up;sfx.clink(.3);}else toast('食材を持ってこい');
     }
   };
@@ -1030,7 +1043,7 @@ const seats=SEATX.map((x,i)=>{
       if(!c||c.state!=='wait')return;
       if(!isPlate(hand))return toast(hand?'生のまま出す気か':'皿に盛ってから');
       if(seat.plate)return toast('前の皿を下げてから');
-      meddle('fry');serve(seat);}
+      serve(seat);}
   };
   {const a=Math.max(x-.5,-3.1),b=x+.5;hitBox(b-a,1.2,1.0,(a+b)/2,1.3,-3.2,seat.st);}
   return seat;
@@ -1496,7 +1509,7 @@ function lineFor(key,idx,c){
 function serve(s){
   const c=s.c,p=hand;setHand(null);
   const mesh=makeServed(p);mesh.position.set(s.x,.96,-3.12);scene.add(mesh);
-  s.plate={data:p,mesh};s.ver++;
+  s.plate={data:p,mesh,owner:c};s.ver++;
   c.res=evaluate(c,p);c.state='inspect';c.st=0;c.phone.visible=false;sfx.clink(.5);
 }
 function say(c,text,cls){if(!text||W.outside||W.home)return;sub(c.name,text,cls);}
@@ -1554,8 +1567,8 @@ function updateCustomerBase(c,dt){
     if(s.plate){const f=s.plate.mesh.userData.plate.userData.food;if(f)f.scale.setScalar(Math.max(.02,1-k));const cab=s.plate.mesh.userData.plate.userData.cab;if(cab)cab.scale.setScalar(Math.max(.02,1-k*1.1));s.plate.mesh.userData.side.forEach(m=>m.scale.y=Math.max(.05,1-k));}
     if(c.st>2&&c.eatLine){say(c,c.eatLine,'quiet');c.eatLine=null;}
     if(k>=1){if(c.mild)W.mild++;else W.happy++;
-      if(s.plate){s.plate.data.food=null;s.plate.data.tops={};}
-      c.ate=true;leaveWithTray(c);s.ver++;c.state='linger';c.st=0;c.lingerT=0;c.idle=0;}
+      if(s.plate){s.plate.data.food=null;s.plate.data.tops={};s.plate.data.dirt=Math.max(s.plate.data.dirt,.85+R()*.15);}
+      c.ate=true;s.ver++;c.state='linger';c.st=0;c.lingerT=0;c.idle=0;}
   }else if(c.state==='confused'){
     const t=c.st;
     if(t<1.1){headTo(c,0,.6,0,dt,6);setExpr(c,'normal');}
@@ -2646,7 +2659,7 @@ const SG={on:false,done:false,members:[],st:'none',t:0};
 let sgTableHit=null,sgStool=null;
 function sgReset(){SG.members.forEach(p=>{const i=regulars.indexOf(p);if(i>=0){regulars.splice(i,1);scene.remove(p.g);}});
   if(SG.clutter){scene.remove(SG.clutter);}if(SG.foodMesh)scene.remove(SG.foodMesh);if(sgStool){scene.remove(sgStool);sgStool=null;}
-  Object.assign(SG,{on:false,done:false,members:[],st:'none',t:0,needBeer:0,food:null,quietT:0,gameT:12,bill:0,noise:0,clutter:null,foodMesh:null,seq:null,leader:null,payT:0,greeted:false,orderT:0,callT:0,warned:0,empties:0,plates:0,tx:TTABLES[0][0],tz:TTABLES[0][1]});}
+  Object.assign(SG,{on:false,done:false,members:[],st:'none',t:0,needBeer:0,food:null,quietT:0,gameT:12,bill:0,noise:0,clutter:null,foodMesh:null,seq:null,leader:null,payT:0,greeted:false,orderT:0,callT:0,warned:0,empties:0,plates:0,tx:TTABLES[0][0],tz:TTABLES[0][1],ck:null,inFl:0,bk:null,clearP:0});}
 function sgAlive(){return SG.members.filter(p=>regulars.includes(p));}
 function startStudents(){
   const [tx,tz]=TTABLES[0];SG.on=true;SG.st='door';SG.t=0;SG.tx=tx;SG.tz=tz;
@@ -2699,15 +2712,20 @@ const SGT={
     if(SG.clutter&&!sgAlive().length&&!hand){this.hold(.1);return;}
     const al=sgAlive().filter(p=>p.sg==='seated'&&!p.cs);
     if(isGlass(hand)&&SG.needBeer>0){const p=al.find(m=>!m.mugMesh.visible||m.drinkLeft<=.05);if(!p)return toast('今は空いてるジョッキがない');const g=hand;setHand(null);servedMsg(g,'大学生の卓');
-      p.mugMesh.visible=true;p.drinkLeft=Math.min(1,gSum(g)/POUR_MAX);p.abv=gAbv(g);if(p.mugMesh.userData.beer){p.mugMesh.userData.beer.visible=true;p.mugMesh.userData.foam.visible=gKind(g)==='beer';}
-      SG.needBeer--;SG.bill+=550;SG.empties++;if(!SG.otoshi){SG.otoshi=true;SG.bill+=300*al.length;}sfx.clink(.8);if(p.abv>14)later(()=>{if(W.running)say(p,'え、これ濃くね!? うまっwww','');},400);
-      if(SG.needBeer===0)sgSay(0,'きたきたー! かんぱーい!!');if(SG.leader)SG.leader.calling=false;return;}
-    if(isPlate(hand)&&hand.food&&SG.food){const pl=hand;setHand(null);if(SG.foodMesh)scene.remove(SG.foodMesh);SG.foodMesh=makeServed(pl);SG.foodMesh.position.set(SG.tx,.757,SG.tz);scene.add(SG.foodMesh);SG.bill+=ITEMS[SG.food.item].price;SG.food=null;SG.plates++;
-      const k=doneKey(pl.food.r);sgSay(2,k==='ok'?'うまそー! いただきまーす!':k==='raw'?'え、これ生じゃねwww まあいっか':k==='charcoal'||k==='burnt'?'焦げてるwww ウケるwww':'きたー!','loud');sfx.clink(.6);return;}
+      sgServeBeer(g);return;}
+    if(isPlate(hand)&&hand.food&&SG.food){const pl=hand;setHand(null);sgServeFood(pl);return;}
     if(hand)toast('いらないって');
   },
-  hold(dt){const tm=tableMess();if(tm&&!hand){tm.hb.userData.st.hold(dt);return;}if(hand||!SG.clutter||sgAlive().length)return;SG.clearP=(SG.clearP||0)+dt/1.6;if(R()<dt*5)sfx.clink(.9);if(SG.clearP>=1){scene.remove(SG.clutter);SG.clutter=null;if(SG.foodMesh){scene.remove(SG.foodMesh);SG.foodMesh=null;}for(let i=0;i<Math.max(1,SG.plates);i++)returns.push({type:'plate',dirt:.85+R()*.15,food:null,tops:{}});refreshReturns();toast('卓を片付けた。皿は返却口へ');SG.clearP=0;}}
+  hold(dt){const tm=tableMess();if(tm&&!hand){tm.hb.userData.st.hold(dt);return;}if(hand||!SG.clutter||sgAlive().length)return;SG.clearP=(SG.clearP||0)+dt/1.6;if(R()<dt*5)sfx.clink(.9);if(SG.clearP>=1){const st=sgClear();setHand(st);toast('卓を片付けた。重ねた皿を返却口へ');}}
 };
+function sgServeBeer(g){const al=sgAlive().filter(p=>p.sg==='seated'&&!p.cs);const p=al.find(m=>!m.mugMesh.visible||m.drinkLeft<=.05);if(!p||SG.needBeer<=0)return false;
+  p.mugMesh.visible=true;p.drinkLeft=Math.min(1,gSum(g)/POUR_MAX);p.abv=gAbv(g);if(p.mugMesh.userData.beer){p.mugMesh.userData.beer.visible=true;p.mugMesh.userData.foam.visible=gKind(g)==='beer';}
+      SG.needBeer--;SG.bill+=550;SG.empties++;if(!SG.otoshi){SG.otoshi=true;SG.bill+=300*al.length;}sfx.clink(.8);if(p.abv>14)later(()=>{if(W.running)say(p,'え、これ濃くね!? うまっwww','');},400);
+      if(SG.needBeer===0)sgSay(0,'きたきたー! かんぱーい!!');if(SG.leader)SG.leader.calling=false;return true;}
+function sgServeFood(pl){if(!SG.food||!pl||!pl.food)return false;
+  if(SG.foodMesh)scene.remove(SG.foodMesh);SG.foodMesh=makeServed(pl);SG.foodMesh.position.set(SG.tx,.757,SG.tz);scene.add(SG.foodMesh);SG.bill+=ITEMS[SG.food.item].price;SG.food=null;SG.plates++;
+      const k=doneKey(pl.food.r);sgSay(2,k==='ok'?'うまそー! いただきまーす!':k==='raw'?'え、これ生じゃねwww まあいっか':k==='charcoal'||k==='burnt'?'焦げてるwww ウケるwww':'きたー!','loud');sfx.clink(.6);return true;}
+function sgClear(){if(!SG.clutter)return null;scene.remove(SG.clutter);SG.clutter=null;if(SG.foodMesh){scene.remove(SG.foodMesh);SG.foodMesh=null;}SG.clearP=0;const n=Math.max(1,SG.plates);SG.plates=0;return{type:'plate',dirt:.9,food:null,tops:{},stack:n};}
 sgTableHit=hitBox(1.1,.35,.7,TTABLES[0][0],.9,TTABLES[0][1],SGT);
 function sgLeave(){
   SG.st='leave';const al=sgAlive().filter(p=>!p.cs);
@@ -2803,15 +2821,22 @@ const psub=(...a)=>{if(cur===me)sub(...a);};
 function sub(who,text,cls){if(who==='あなた'&&cur!==me){if(cls==='quiet'||W.outside||W.home||W.store)return;who='相方';}const d=document.createElement('div');d.className='sub'+(cls?' '+cls:'');const w=document.createElement('span');w.className='who';w.textContent=who;d.appendChild(w);d.appendChild(document.createTextNode('「'+text+'」'));subsEl.appendChild(d);while(subsEl.children.length>3)subsEl.firstChild.remove();setTimeout(()=>{d.style.opacity=0;setTimeout(()=>d.remove(),450);},cls==='loud'?3800:3200);}
 const tkEls=seats.map(()=>{const d=document.createElement('div');d.className='tk empty';$('#tickets').appendChild(d);return d;});
 const tkVer=seats.map(()=>-1);
+const sgTk=document.createElement('div');sgTk.className='tk grp';sgTk.hidden=true;$('#tickets').appendChild(sgTk);
 function ticketStatus(c){if(c.state==='atDoor')return'入口で待ち';if(c.state==='passout')return'酔いつぶれ';if(['toToilet','inToilet','fromToilet','resit','sickStand'].includes(c.state))return'トイレ中';if(c.state==='sickHere')return'吐いてる';return'';}
 function updateTickets(){
+  {const d=sgTk,al=SG.on?sgAlive():[],on=al.length>0||!!SG.clutter,ldr=SG.leader&&al.includes(SG.leader)?SG.leader:null,
+    key=on?[al.length,SG.needBeer,SG.food&&SG.food.item,!!SG.clutter,ldr&&ldr.sg,ldr&&ldr.calling,PASSV,SG.st].join('|'):'off';
+    if(d.dataset.k!==key){d.dataset.k=key;d.hidden=!on;if(on){
+      if(!al.length){d.className='tk dish';d.innerHTML=`<div class="no">卓 大学生</div><div class="it">卓が散らかってる</div><div class="tp">片付けて皿を返却口へ</div><div class="dk"></div>`;}
+      else{const pay=ldr&&ldr.sg==='payWait',onPass=PASS.some(x=>x.pl&&x.seat==='sg');d.className='tk grp';
+        d.innerHTML=`<div class="no">卓 大学生(${al.length}名)</div><div class="it">${pay?'お会計待ち(レジ)':SG.food?ITEMS[SG.food.item].name:SG.st==='party'?'料理は出した':'着席待ち'}</div><div class="tp">${SG.food&&!pay?'通常盛り':''}</div><div class="dk">${SG.needBeer>0?`飲: 生ビール ×${SG.needBeer}`:SG.st==='party'?'飲み物OK':''}</div>${ldr&&ldr.calling?'<span class="stamp">呼んでる</span>':onPass?'<span class="stamp">台に出てる</span>':''}`;}}}}
   seats.forEach((s,i)=>{
-    const d=tkEls[i],c=s.c,st=c?ticketStatus(c):'',key=s.ver+'|'+st+'|'+(c&&c.calling?1:0)+(c&&c.wantWater?1:0)+(c&&c.addWant?1:0)+(c&&c.dGlass&&c.dGlass.left>.02?1:0);
+    const d=tkEls[i],c=s.c,st=c?ticketStatus(c):'',key=s.ver+'|'+st+'|'+PASSV+'|'+(c&&c.calling?1:0)+(c&&c.wantWater?1:0)+(c&&c.addWant?1:0)+(c&&c.dGlass&&c.dGlass.left>.02?1:0);
     if(tkVer[i]!==key){tkVer[i]=key;
       if(!c){d.className=s.plate?'tk dish':'tk empty';d.innerHTML=`<div class="no">${i+1}番</div><div class="it">${s.plate?'皿が残ってる':'空席'}</div><div class="tp">${s.plate?'下げる':''}</div><div class="dk"></div>`;}
       else{const tp=c.order.req?'※'+c.order.req.replace(/で$/,''):'通常盛り';
         const dk=c.wantWater?'飲: お冷':c.dOrder?`飲: ${DRINKS[c.dOrder.kind].name}${c.dOrder.strong?' 濃いめ':''}`:c.addWant?'追加注文あり':(c.dGlass&&c.dGlass.label&&c.dGlass.left>.02)?`出: ${c.dGlass.label}`:st;
-        d.className='tk';d.innerHTML=`<div class="no">${i+1}番 ${c.name}</div><div class="it">${c.ate?'料理済み':ITEMS[c.order.item].name}</div><div class="tp">${c.ate?'':(tp||'そのまま')}</div><div class="dk">${dk}</div><div class="dg"><span>残</span><b><i></i></b></div><div class="pb"><i></i></div>${c.calling?'<span class="stamp">呼んでる</span>':c.redo?'<span class="stamp">作り直し</span>':''}`;}
+        const onPass=PASS.some(x=>x.pl&&x.seat===i);d.className='tk';d.innerHTML=`<div class="no">${i+1}番 ${c.name}</div><div class="it">${c.ate?'料理済み':ITEMS[c.order.item].name}</div><div class="tp">${c.ate?(s.plate?'皿を下げる':''):(tp||'そのまま')}</div><div class="dk">${dk}</div><div class="dg"><span>残</span><b><i></i></b></div><div class="pb"><i></i></div>${c.calling?'<span class="stamp">呼んでる</span>':onPass?'<span class="stamp">台に出てる</span>':c.redo?'<span class="stamp">作り直し</span>':''}`;}
     }
     if(c){const g=d.querySelector('.dg');if(g){const dg=c.dGlass,on=!!dg&&dg.left>.02;g.style.display=on?'':'none';if(on){const i=g.querySelector('i');i.style.width=Math.round(dg.left*100)+'%';i.style.background=dg.kind==='water'?'#6fb4e8':dg.left<.25?'var(--shu)':'#d8961e';}}
       const f=Math.max(0,c.pat/c.maxPat);const bar=d.querySelector('.pb i');if(bar){bar.style.width=(c.state==='wait'?f*100:100)+'%';bar.style.background=c.state!=='wait'?'#999':f>.5?'var(--ok)':f>.25?'var(--oil)':'var(--shu)';}}
@@ -2912,7 +2937,7 @@ function reset(){
   fryers.forEach(f=>{if(f.mesh)f.basket.remove(f.mesh);f.food=null;f.mesh=null;f.up=false;});
   shelf=null;refreshShelf();setHand(null);
   returns=[newPlate(.9),newPlate(.95),newPlate(.8)];refreshReturns();
-  rack=[newPlate(.02),newPlate(0)];refreshRack();
+  rack=[newPlate(.02),newPlate(0),newPlate(0),newPlate(.01)];refreshRack();PASS.forEach(sl=>{sl.pl=null;sl.seat=null;sl.ck=null;refreshPass(sl);});seats.forEach(s=>s.bk=null);
   subsEl.innerHTML='';
   Object.assign(W,{t:0,money:0,rage:0,conf:0,giveup:0,mild:0,happy:0,log:[],spawnT:3,vomit:0,fights:0,calls:0,ko:0,hits:0,policeT:null,policeOn:false,passout:0});
   Object.assign(P,{hp:100,atk:null,atkT:0,cd:0,lastHurt:-99});hurtT=0;$('#copP').hidden=true;
@@ -4078,14 +4103,14 @@ function crewLeave(p,line){if(p.gone)return;crewAbort(p);p.gone=true;p.g.visible
 const SPOT={rack:[-2.4,.6,-Math.PI/2],sink:[-2.4,-.55,-Math.PI/2],ret:[-2.4,-2.15,-2.37],trash:[2.35,1.8,.5],gas:[2.4,-.65,Math.PI/2],
   fry:f=>[2.4,f.z,Math.PI/2],vat:k=>[VATX[k],1.85,0],top:id=>[clamp(GX[id],-2.4,2.4),1.85,0],pass:x=>[clamp(x,-2.4,2.4),-2.15,Math.PI],
   glass:[4.72,-4.85,0],pour:{beer:[4.2,-4.85,0],highball:[5.05,-4.85,0],sour:[5.33,-4.85,0]},soda:[6.2,-4.85,0],
-  seatH:s=>[s.x+.55,-4.9,-.45],door:[-5.9,-4.9,-Math.PI/2],reg:[-5.85,-6.1,-Math.PI/2],back:[8.7,-9.9,Math.PI],
+  seatH:s=>[s.x+.55,-4.9,-.45],door:[-5.9,-4.9,-Math.PI/2],reg:[-5.85,-6.1,-Math.PI/2],retH:[-3.2,-4.85,0],back:[8.7,-9.9,Math.PI],
   floor:[[1.9,-5.2,Math.PI],[-1.2,-5.2,Math.PI],[5.2,-5.6,Math.PI],[-3.6,-5.3,-2.4]]};
 const homeOf=p=>{const j=p.job;if(p.post.role==='reg')return SPOT.reg;if(p.post.role==='slack'||p.post.role==='boss')return[p.post.x,p.post.z,p.post.ry];
   return j==='fry'||j==='kitchen'?SPOT.gas:j==='dish'?SPOT.sink:j==='drinks'||j==='hallD'?SPOT.glass:j==='hall'?[-4.0,-5.65,-Math.PI/2]:[p.post.x,p.post.z,p.post.ry];};
 function crewCarry(p,h){if(p.cm){p.g.remove(p.cm);p.cm=null;}p.ch=h||null;if(!h)return;const m=vis(()=>itemMesh(h));if(!m)return;m.position.set(0,1.0,.38);if(h.type==='raw')m.scale.setScalar(.8);p.g.add(m);p.cm=m;}
 // drop whatever the current job was holding on to (plates go back in the rack, food is binned)
-function crewAbort(p){if(p.ch){if(isPlate(p.ch)&&!p.ch.food&&rack.length<6){p.ch.tops={};rack.push(p.ch);refreshRack();}crewCarry(p,null);}
-  if(p.tc){if(p.tc.ck===p)p.tc.ck=null;if(p.tc.dk===p)p.tc.dk=null;p.tc=null;}fryers.forEach(f=>{if(f.res===p)f.res=null;if(f.by===p)f.by=null;});p.q=[];p.path=null;}
+function crewAbort(p){if(p.ch){const h=p.ch;if(isPlate(h)){if(h.food&&h.fresh)backToPass(h);else if(h.stack||h.food||h.dirt>.05)returnPlates(h);else if(rack.length<6){h.tops={};rack.push(h);refreshRack();}}crewCarry(p,null);}
+  releaseTc(p);PASS.forEach(x=>{if(x.ck===p)x.ck=null;});seats.forEach(s=>{if(s.bk===p)s.bk=null;if(s.c&&s.c.hd===p)s.c.hd=null;});if(SG.bk===p)SG.bk=null;fryers.forEach(f=>{if(f.res===p)f.res=null;if(f.by===p)f.by=null;});p.q=[];p.path=null;}
 function crewRun(p,dt){const q=p.q;if(!q.length)return false;const s=q[0];
   if(s.go){if(!s.path)s.path=findPath(p.g.position.x,p.g.position.z,s.go[0],s.go[1]);p.path=s.path;
     if(followPath(p,dt,p.spd)){p.g.position.y=0;s.turn=(s.turn||0)+dt;faceTo(p,s.go[2],dt,10);if(s.turn>.3)q.shift();}return true;}
@@ -4093,59 +4118,92 @@ function crewRun(p,dt){const q=p.q;if(!q.length)return false;const s=q[0];
   if(s.until){s.max=(s.max==null?40:s.max)-dt;if(s.until(dt))q.shift();else if(s.max<0)crewAbort(p);return true;}
   if(s.fn){q.shift();if(s.fn()===false)crewAbort(p);return true;}
   q.shift();return true;}
-// 揚げ場: vat → fryer → plate from the rack → garnish → over the pass
+// 揚げ場: plate from the rack → vat → fryer → garnish → onto the pass shelf for the floor (or straight to the customer)
+const SG_SPOT=()=>[SG.tx-1.1,SG.tz,Math.PI/2];
+function releaseTc(p){const t=p.tc;if(t==='sg'){if(SG.ck===p)SG.ck=null;}else if(t){if(t.ck===p)t.ck=null;if(t.dk===p)t.dk=null;}if(p.sgB){p.sgB=0;SG.inFl=Math.max(0,(SG.inFl||0)-1);}p.tc=null;}
+// someone (crew or player) is on the floor today to carry plates out
+const hallFor=p=>CREW_NOW.some(q=>q!==p&&crewIn(q)&&q.does&&q.does.has('hall'))||players.some((q,i)=>{const d=myJobOf(i);return d.includes('hall')&&!d.includes('fry');});
 function jobFry(p){if(W.gasOff){p.q=[{go:SPOT.gas},{wait:.8,pose:'chop'},{fn:()=>{if(W.gasOff){W.gasOff=false;gasLamp.material.color.set(0xff8a2a);say(p,'え、フライヤーの火ついてないじゃん! つけとくね','');}}}];return true;}
   const f=fryers.find(f=>!f.food&&!f.res);if(!f)return null;
-  const s=seats.find(s=>{const c=s.c;return c&&c.state==='wait'&&!c.ck&&!c.cs&&!s.plate;});if(!s)return null;
-  if(!rack.length&&!returns.length)return null;
-  const c=s.c,it=c.order.item,doneAt=p.crew==='早川 莉子'?1.0:.92+R()*.3;c.ck=p;p.tc=c;f.res=p;
-  const tops=Object.entries(c.order.tops).filter(([k,n])=>n>0);let yelled=false;
+  const s=seats.find(s=>{const c=s.c;return c&&c.state==='wait'&&!c.ck&&!c.cs&&!s.plate&&!PASS.some(x=>x.pl&&x.seat===s.i);});
+  const sg=!s&&SG.on&&SG.food&&!SG.ck&&!PASS.some(x=>x.pl&&x.seat==='sg')&&sgAlive().some(m=>m.sg==='seated');
+  if(!s&&!sg)return null;if(!rack.length&&!returns.length)return null;
+  const c=s?s.c:null,it=s?c.order.item:SG.food.item,want=s?c.order.tops:STD[it],doneAt=p.crew==='早川 莉子'?1.0:.92+R()*.3;
+  if(s){c.ck=p;p.tc=c;}else{SG.ck=p;p.tc='sg';}f.res=p;
+  const tops=Object.entries(want).filter(([k,n])=>n>0);let yelled=false;
   p.q=[{go:SPOT.rack},{until:()=>{if(rack.length)return true;if(!yelled&&p.q[0].max<36){yelled=true;const d=crewDo('dish');const pl=players.find((q,i)=>myJobOf(i).includes('dish'));
-        say(p,d&&d!==p?`${d.name}ー! 皿ないよ! 先に何枚か洗って!`:pl?'洗い場ー! お皿ないです! 急ぎで!':'…お皿がない。洗うか…','');}return false;}},
+        say(p,d&&d!==p?`${d.name}ー! 皿ないよ! 先に何枚か洗って!`:pl?'洗い場ー! お皿ないです! 急ぎで!':'…お皿がない。誰か下げてきてー!','');}return false;}},
     {fn:()=>{const pl=rack.pop();refreshRack();crewCarry(p,pl);}},
     {go:SPOT.vat(it)},{wait:.7,pose:'chop'},{go:SPOT.fry(f)},
     {fn:()=>{if(f.food)return false;f.food={item:it,r:0};f.mesh=makeFood(it,0,false);f.mesh.position.y=.02;f.basket.add(f.mesh);f.up=false;f.by=p;f.res=null;sfx.drop();}},
     {until:()=>!f.food||f.by!==p||f.food.r>=doneAt},
-    {fn:()=>{if(!f.food||f.by!==p)return false;p.ch.food={item:f.food.item,r:f.food.r};f.basket.remove(f.mesh);f.food=null;f.mesh=null;f.by=null;crewCarry(p,p.ch);sfx.clink();}},
+    {fn:()=>{if(!f.food||f.by!==p)return false;p.ch.food={item:f.food.item,r:f.food.r};p.ch.fresh=1;f.basket.remove(f.mesh);f.food=null;f.mesh=null;f.by=null;crewCarry(p,p.ch);sfx.clink();}},
     ...tops.flatMap(([id,n])=>[{go:SPOT.top(id)},{wait:.3+.25*n,pose:'chop'},{fn:()=>{p.ch.tops[id]=n;crewCarry(p,p.ch);}}]),
-    {go:SPOT.pass(s.x)},
-    {fn:()=>{const pl=p.ch;crewCarry(p,null);c.ck=null;p.tc=null;
-      if(s.c===c&&c.state==='wait'&&!s.plate){crewServeFood(s,pl);if(R()<.6)say(p,pickL('fry',{n:s.i+1,d:ITEMS[it].name}),'quiet');}
-      else if(!shelf){shelf=pl;refreshShelf();say(p,`${ITEMS[it].name}、盛り付け台に置いとくね`,'quiet');}}}];
+    {fn:()=>kitchenHandOff(p,s,c,it)}];
   return true;}
-// 洗い場: return window → sink → rack
+function kitchenHandOff(p,s,c,it){const who=s?`${s.i+1}番さん`:'大学生の卓',slot=hallFor(p)&&PASS.find(x=>!x.pl);
+  const spare=pl=>{if(!shelf){shelf=pl;refreshShelf();say(p,`${ITEMS[it].name}、盛り付け台に置いとくね`,'quiet');}};
+  if(slot)p.q.push({go:[slot.x,-2.15,Math.PI]},{fn:()=>{const sl=slot.pl?PASS.find(x=>!x.pl):slot,pl=p.ch;crewCarry(p,null);releaseTc(p);
+    if(sl){putPass(sl,pl,s?s.i:'sg');say(p,`${who}、${ITEMS[it].name}あがりましたー! ホールお願いしまーす!`,'quiet');}else spare(pl);}});
+  else if(s)p.q.push({go:SPOT.pass(s.x)},{fn:()=>{const pl=p.ch;crewCarry(p,null);releaseTc(p);
+    if(s.c===c&&c.state==='wait'&&!s.plate){crewServeFood(s,pl);if(R()<.6)say(p,pickL('fry',{n:s.i+1,d:ITEMS[it].name}),'quiet');}else spare(pl);}});
+  else p.q.push({go:SG_SPOT()},{fn:()=>{const pl=p.ch;crewCarry(p,null);releaseTc(p);if(sgServeFood(pl))say(p,`お待たせしましたー、${ITEMS[it].name}です!`,'quiet');else spare(pl);}});}
+// 洗い場: return window → (scrape leftovers) → sink → rack
 function jobDish(p,force){if(!returns.length||(!force&&rack.length>=6))return null;
-  p.q=[{go:SPOT.ret},{wait:.35},{fn:()=>{if(!returns.length)return false;const pl=returns.shift();refreshReturns();crewCarry(p,pl);sfx.clink(.5);}},
+  p.q=[{go:SPOT.ret},{wait:.35},{fn:()=>{if(!returns.length)return false;const pl=returns.shift();refreshReturns();crewCarry(p,pl);sfx.clink(.5);
+      if(pl.food||Object.keys(pl.tops).length)p.q.unshift({go:SPOT.trash},{wait:.6,pose:'chop'},{fn:()=>{pl.food=null;pl.tops={};pl.dirt=Math.max(pl.dirt,.8);crewCarry(p,pl);sfx.trash();}});}},
     {go:SPOT.sink},{wait:2.4,pose:'chop'},{fn:()=>{p.ch.dirt=0;p.ch.food=null;p.ch.tops={};crewCarry(p,p.ch);if(p.lt<0){p.lt=40;say(p,pickL('dish'),'quiet');}}},
     {go:SPOT.rack},{until:()=>force||rack.length<6},{fn:()=>{rack.push(p.ch);crewCarry(p,null);refreshRack();sfx.clink(.8);}}];
   return true;}
-// ドリンカー: glass → tap/bottles → soda → to the customer's side
+// ドリンカー: glass → tap/bottles → soda → to the customer's side (and the student table's beers)
 function jobDrink(p){const s=seats.filter(s=>{const c=s.c;return c&&SEATED.has(c.state)&&!c.cs&&c.dOrder&&!c.dk&&c.dWait>3&&!(c.dGlass&&c.dGlass.left>.02)&&!c.wantWater;}).sort((a,b)=>b.c.dWait-a.c.dWait)[0];
-  if(!s)return null;const c=s.c,o=c.dOrder,k=o.kind;c.dk=p;p.tc=c;
+  if(!s){if(!(SG.on&&SG.needBeer-(SG.inFl||0)>0&&sgAlive().some(m=>m.sg==='seated')))return null;
+    SG.inFl=(SG.inFl||0)+1;p.sgB=1;p.tc=null;
+    p.q=[{go:SPOT.glass},{wait:.35,pose:'counter'},{fn:()=>{crewCarry(p,newGlass());sfx.clink(1.2);}},{go:SPOT.pour.beer},{wait:2.0,pose:'pour'},{fn:()=>{crewCarry(p,fillGlass({kind:'beer'}));sfx.pour('beer');}},
+      {go:SG_SPOT()},{fn:()=>{const g=p.ch;crewCarry(p,null);releaseTc(p);if(sgServeBeer(g))say(p,'生お待たせしましたー!','quiet');}}];return true;}
+  const c=s.c,o=c.dOrder,k=o.kind;c.dk=p;p.tc=c;
   p.q=[{go:SPOT.glass},{wait:.35,pose:'counter'},{fn:()=>{crewCarry(p,newGlass());sfx.clink(1.2);}},{go:SPOT.pour[k]},{wait:k==='beer'?2.0:1.2,pose:'pour'},
     ...(k==='beer'?[]:[{go:SPOT.soda},{wait:.9,pose:'counter'}]),{fn:()=>{crewCarry(p,fillGlass(o));sfx.pour(k==='beer'?'beer':'soda');}},
-    {go:SPOT.seatH(s)},{fn:()=>{const g=p.ch;crewCarry(p,null);c.dk=null;p.tc=null;
+    {go:SPOT.seatH(s)},{fn:()=>{const g=p.ch;crewCarry(p,null);releaseTc(p);
       if(s.c===c&&SEATED.has(c.state)&&c.dOrder&&!(c.dGlass&&c.dGlass.left>.02)){const d=DRINKS[c.dOrder.kind].name;crewServe(s,c,g);say(p,pickL('drinks',{n:s.i+1,d}),'quiet');}}}];
   return true;}
-// ホール: greet at the door, mop up messes, run the register if 三好 is off, otherwise walk the floor
+// a plate on the pass shelf: who should get it now
+function passTarget(sl){const pl=sl.pl;if(!pl||!pl.food)return null;
+  if(sl.seat==='sg')return SG.on&&SG.food&&SG.food.item===pl.food.item&&sgAlive().some(m=>m.sg==='seated')?'sg':null;
+  const ok=s=>s&&s.c&&s.c.state==='wait'&&!s.c.cs&&!s.plate&&s.c.order.item===pl.food.item&&!s.c.hd;
+  return ok(seats[sl.seat])?seats[sl.seat]:seats.find(ok)||null;}
+// ホール: greet, carry plates out from the pass, clear finished plates to the return window, mop up, register if 三好 is off
 function jobHall(p){
   const wi=customers.find(c=>c.state==='walkIn'&&!c.hina);
-  if(wi){wi.hina=1;wi.maxPat*=1.15;wi.pat*=1.15;p.q=[{go:SPOT.door},{fn:()=>{say(p,pickL('hall'),'quiet');setExpr(p,'happy');}},{wait:1.4}];return true;}
+  if(wi&&W.open&&!W.closed){wi.hina=1;wi.maxPat*=1.15;wi.pat*=1.15;p.q=[{go:SPOT.door},{fn:()=>{say(p,pickL('hall'),'quiet');setExpr(p,'happy');}},{wait:1.4}];return true;}
+  const sl=PASS.find(x=>x.pl&&!x.ck&&passTarget(x));
+  if(sl){sl.ck=p;p.q=[{go:[sl.x,-4.85,0]},{fn:()=>{sl.ck=null;const t=passTarget(sl);if(!t)return false;const pl=takePass(sl);crewCarry(p,pl);
+      if(t==='sg')p.q.push({go:SG_SPOT()},{fn:()=>{const pl=p.ch;crewCarry(p,null);if(sgServeFood(pl))say(p,`お待たせしましたー、${ITEMS[pl.food?pl.food.item:'karaage'].name}です!`,'quiet');else backToPass(pl);}});
+      else{t.c.hd=p;const c=t.c;p.q.push({go:SPOT.seatH(t)},{fn:()=>{const pl=p.ch;crewCarry(p,null);c.hd=null;
+        if(t.c===c&&c.state==='wait'&&!t.plate){crewServeFood(t,pl);say(p,`${t.i+1}番さん、${ITEMS[pl.food.item].name}お待たせしましたー!`,'quiet');}else backToPass(pl);}});}}}];return true;}
   if(p.does.has('reg')){const c=customers.find(c=>c.state==='payWait'&&!c.rk);if(c){c.rk=p;p.q=[{go:SPOT.reg},{wait:1.2,pose:'counter'},{fn:()=>{if(c.state==='payWait'){payNow(c,false);say(p,pickL('reg'),'quiet');}c.rk=null;}}];return true;}}
   const cl=seats.find(s=>s.c&&s.c.calling&&SEATED.has(s.c.state)&&!s.c.cs&&W.t>(s.c.hk||-1e9));
-  if(cl){const c=cl.c;c.hk=W.t+40;p.q=[{go:SPOT.seatH(cl)},{fn:()=>{if(cl.c!==c)return;c.calling=false;c.callT=15;c.pat=Math.min(c.maxPat,c.pat+c.maxPat*.12);
+  if(cl&&W.open&&!W.closed){const c=cl.c;c.hk=W.t+40;p.q=[{go:SPOT.seatH(cl)},{fn:()=>{if(cl.c!==c)return;c.calling=false;c.callT=15;c.pat=Math.min(c.maxPat,c.pat+c.maxPat*.12);
     say(p,c.state==='wait'?pick(['少々お待ちくださーい! すぐお持ちします!','ごめんなさい、今揚げてますので!']):pick(['はーい、伺いまーす!','お呼びでしょうかー?']),'quiet');}},{wait:1}];return true;}
+  // finished plates: off the counter and into the return window
+  const bs=seats.find(s=>s.plate&&!s.bk&&(!s.c||s.c.ate||!SEATED.has(s.c.state)));
+  if(bs){bs.bk=p;p.q=[{go:SPOT.seatH(bs)},{fn:()=>{bs.bk=null;if(!bs.plate)return false;const pl=bs.plate.data;pl.fresh=0;scene.remove(bs.plate.mesh);bs.plate=null;bs.ver++;crewCarry(p,pl);sfx.clink(.6);}},
+    {go:SPOT.retH},{wait:.3},{fn:()=>{returns.push(p.ch);crewCarry(p,null);refreshReturns();sfx.clink(.4);}}];return true;}
+  if(SG.clutter&&!sgAlive().length&&!SG.bk){SG.bk=p;p.q=[{go:SG_SPOT()},{until:dt=>{armTo(p,0,'chop',dt,6);armTo(p,1,'chop',dt,6);headTo(p,0,-.5,0,dt,4);if(!SG.clutter)return true;SG.clearP=(SG.clearP||0)+dt/2.4;if(R()<dt*5)sfx.clink(.9);
+      if(SG.clearP>=1){const st=sgClear();if(st)crewCarry(p,st);return true;}return false;}},
+    {fn:()=>{SG.bk=null;if(!p.ch)return;p.q.push({go:SPOT.retH},{wait:.3},{fn:()=>{returnPlates(p.ch);crewCarry(p,null);}});}}];return true;}
   const M=messes.find(M=>M.m.position.y<.3&&!M.ck);
   if(M){M.ck=p;const [x,z]=nearestWalkablePt(M.x,M.z+.45);p.q=[{go:[x,z,Math.atan2(M.x-x,M.z-z)]},
     {until:dt=>{if(messes.indexOf(M)<0)return true;armTo(p,0,'chop',dt,6);armTo(p,1,'chop',dt,6);headTo(p,0,-.6,0,dt,4);M.amt-=dt*.3;M.m.scale.setScalar(Math.max(.04,M.amt)*M.sc);if(R()<dt*5)sfx.wipe();if(M.amt<=0){removeMess(M);if(R()<.5)say(p,'はーい、きれいになりましたー','quiet');return true;}return false;}}];return true;}
   return null;}
+const backToPass=pl=>{const sl=PASS.find(x=>!x.pl);if(sl)putPass(sl,pl,null);else if(!shelf){shelf=pl;refreshShelf();}};
 function jobReg(p){const c=customers.find(c=>c.state==='payWait'&&!c.rk&&W.t-(c.pwAt||(c.pwAt=W.t))>=3);if(!c)return null;c.rk=p;
   p.q=[{go:SPOT.reg},{wait:1.4,pose:'counter'},{fn:()=>{c.rk=null;if(c.state!=='payWait')return;
     if(R()<.15){W.money+=c.payDue-500;c.payDue=500;payNow(c,false);W.conf++;say(c,c.gara?'おい、お釣り500円足りひんぞ':'…あの、お釣り500円少ないんですけど…','');say(p,'す、すみません!! …あれ、レジが合わない…','');setExpr(p,'scared');}
     else{payNow(c,false);say(p,pickL('reg'),'quiet');}}}];return true;}
 function crewWork(p){const D=t=>p.does.has(t);
   if(D('fry')&&(!rack.length&&D('dish')?jobDish(p):0))return;
-  if(D('fry')&&jobFry(p))return;if(D('drinks')&&jobDrink(p))return;if(D('dish')&&jobDish(p))return;if(D('reg')&&p.post.role==='reg'&&jobReg(p))return;if(D('hall')&&jobHall(p))return;
+  if(D('fry')&&jobFry(p))return;if(D('hall')&&(PASS.some(x=>x.pl&&!x.ck&&passTarget(x))||seats.some(s=>s.plate&&!s.bk&&(!s.c||s.plate.owner!==s.c)))&&jobHall(p))return;if(D('drinks')&&jobDrink(p))return;if(D('dish')&&jobDish(p))return;if(D('reg')&&p.post.role==='reg'&&jobReg(p))return;if(D('hall')&&jobHall(p))return;
   const h=homeOf(p),d=Math.hypot(p.g.position.x-h[0],p.g.position.z-h[1]);
   if(D('hall')&&R()<.3){const f=pick(SPOT.floor);p.q=[{go:f},{wait:1.5+R()*2.5}];return;}
   if(d>.3)p.q=[{go:h}];else p.q=[{wait:.6+R()*.8}];}
@@ -4228,12 +4286,12 @@ function crewStep(dt){if(!CREW_NOW.length)return;const mins=W.t/W.dur*180;
       if(!p.did.cq){p.did.cq=1;p.t=2;const Q=[];
         if(D('fry'))Q.push({go:SPOT.gas},{wait:2.5,pose:'chop'},{fn:()=>{if(!W.gasOff){W.gasOff=true;gasLamp.material.color.set(0x222222);say(p,'フライヤーの火、消しといたよ','quiet');}}});
         if(D('hall'))Q.push({go:[0.4,-5.4,Math.PI]},{wait:2,pose:'chop'},{go:[3.4,-5.4,Math.PI]},{wait:2,pose:'chop'},{go:[-1.6,-4.9,0]},{wait:1.5,pose:'chop'},
-          {fn:()=>{trays.forEach(T=>{CONDS.forEach(c=>T.lv[c.id]=1);showTray(T);});if(SG.clutter&&!sgAlive().length){scene.remove(SG.clutter);SG.clutter=null;}say(p,'テーブルと調味料、やっときましたー!','quiet');}});
+          {fn:()=>{trays.forEach(T=>{CONDS.forEach(c=>T.lv[c.id]=1);showTray(T);});if(SG.clutter&&!sgAlive().length){const st=sgClear();if(st)returnPlates(st);}say(p,'テーブルと調味料、やっときましたー!','quiet');}});
         if(D('drinks'))Q.push({go:SPOT.trash},{wait:1.5,pose:'chop'},{fn:()=>crewCarry(p,{type:'bag'})},{go:SPOT.back},{wait:2},{fn:()=>{crewCarry(p,null);if(!W.trashOut&&!W.bagTaken){W.trashOut=true;say(p,'ゴミ出してきましたー!','quiet');}}});
         if(D('reg'))Q.push({go:SPOT.reg},{fn:()=>{p.regT=W.t+40+(R()<.2?30:0);say(p,'レジ締めやっとくね','quiet');}});
         p.q=Q;return;}
       if(D('dish')&&(returns.length||customers.length)){if(!jobDish(p,true)&&!p.q.length)p.q=[{wait:1}];return;}
-      if(D('hall')&&messes.some(M=>M.m.position.y<.3)&&jobHall(p))return;
+      if(D('hall')&&(messes.some(M=>M.m.position.y<.3)||seats.some(s=>s.plate)||SG.clutter&&!sgAlive().length)&&jobHall(p))return;
       if(D('reg')&&p.regT){if(W.t<p.regT||customers.length)return;if(!W.regDone){W.regDone=true;sub(p.name,W.t-p.regT>1?'…よし、レジ合った!(30分数え直した)':'レジ締め、OKです','quiet');}}
       if(D('dish'))say(p,'洗い物おわり! 皿戻しといたよ','quiet');
       p.did.close=1;p.q=[{go:homeOf(p)}];return;}
@@ -5362,7 +5420,7 @@ function render(dt){
   const sc=W.store&&STORES[W.store].scene?STORES[W.store].scene:W.home&&HOME.scene?HOME.scene:(W.outside&&OUT.scene?OUT.scene:scene);if(camera.parent!==sc){sc.add(camera);camera.far=sc===scene?40:sc===OUT.scene?170:30;camera.updateProjectionMatrix();}
   drawScene(sc,dt);fpsWatch(dt);
 }
-if(window.__TEST__)window.__G={setJob,SEKKYO,GLINE,meddle,fryers,get rack(){return rack;},lineThreads,LW,JOB_NAME,setSky,NIGHT,buildOut,CREW_NOW,crewToday,MAKA,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
+if(window.__TEST__)window.__G={PASS,putPass,sgServeBeer,sgServeFood,setJob,SEKKYO,GLINE,meddle,fryers,get rack(){return rack;},lineThreads,LW,JOB_NAME,setSky,NIGHT,buildOut,CREW_NOW,crewToday,MAKA,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
 camera.position.set(0,1.62,.2);
 {const _bm=buildModel;buildModel=function(t,s){const m=_bm(t,s);if(SHADOWS)m.g.traverse(o=>{if(o.isMesh)o.castShadow=true;});m.blob=blob(m.g,0,.02,.6,.48,.012);return m;};}
 setShadows(scene);if(HQ)loadPP();
