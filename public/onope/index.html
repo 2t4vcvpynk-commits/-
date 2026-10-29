@@ -3825,7 +3825,7 @@ const DRIVE=[];ROADS.forEach(r=>DRIVE.push(r[4]==='ns'?[r[0]-SW,r[1]+SW,r[2],r[3
 DRIVE.push([-7.0,12.0,-24.5,-10.75]);   // shop lot
 const LOTS=[[44,75.5,96,106.2,'アパート駐車場'],[-7,8,96,111,'コンビニ駐車場'],[40,73.5,76.5,83.5,'体育館駐車場']];
 LOTS.forEach(l=>DRIVE.push(l.slice(0,4)));
-const WALKX=[[45,72.5,106.2,107.9],[10,27.5,96,120],[20,34,83.5,86]]; // porch, park, supermarket front
+const WALKX=[[45,72.5,106.2,107.9],[10,27.5,96,120],[20,34,83.5,86],[-37.6,-36,83.5,96],[76,77.8,83.5,96],[-24,-2.5,-82,-62]]; // porch, park, supermarket front, station / ARENA fronts, university
 const MAPB=[],MAPG=[],MAPP=[];
 const AOX=-52; // apartment block offset from its original spot
 const APT={door:[107.7+AOX,108],car:[113+AOX,101.2],h:Math.PI,lot:[96+AOX,128+AOX,96,106.2]};
@@ -3857,7 +3857,7 @@ function bldBox(S2,x0,x1,z0,z1,h,style,roofStuff=true,shopFace=null,noWin=false)
     box(w,.6,.25,lam(0x6a6a66),(x0+x1)/2,h+.3,z0+.12,S2);box(w,.6,.25,lam(0x6a6a66),(x0+x1)/2,h+.3,z1-.12,S2);}
   return m;}
 function onDrive(x,z){for(const r of DRIVE)if(x>=r[0]&&x<=r[1]&&z>=r[2]&&z<=r[3])return true;return false;}
-function drawTownMap(g,w,h,o){const X0=-42,X1=82,Z0=-68,Z1=126;const s=o.zoom?Math.min(w,h)/(w>300?110:70):Math.min(w/(X1-X0),h/(Z1-Z0));const cx=o.zoom?o.cx:(X0+X1)/2,cz=o.zoom?o.cz:(Z0+Z1)/2;
+function drawTownMap(g,w,h,o){const X0=-62,X1=102,Z0=-106,Z1=128;const s=o.zoom?Math.min(w,h)/(w>300?110:70):Math.min(w/(X1-X0),h/(Z1-Z0));const cx=o.zoom?o.cx:(X0+X1)/2,cz=o.zoom?o.cz:(Z0+Z1)/2;
   const px=x=>(x-cx)*s+w/2,pz=z=>(cz-z)*s+h/2,R=(r,c)=>{g.fillStyle=c;g.fillRect(px(r[0]),pz(r[3]),(r[1]-r[0])*s,(r[3]-r[2])*s);};
   g.fillStyle='#e9e5dc';g.fillRect(0,0,w,h);
   MAPG.forEach(r=>R(r,'#bfe0a8'));MAPB.forEach(b=>R(b,b[4]||'#d4cec2'));
@@ -3883,7 +3883,7 @@ function buildTown(S2,B,PL,ob,box,cyl){
       [x0-SW/2,x1+SW/2].forEach(x=>cut(z0,z1,holes).forEach(([a,b])=>B(SW,.12,b-a,tm,x,.06,(a+b)/2)));}
     else{const holes=ROADS.filter(r=>r[4]==='ns').map(r=>[r[0]-SW,r[1]+SW]);[z0-SW/2,z1+SW/2].forEach(z=>cut(x0,x1,holes).forEach(([a,b])=>B(b-a,.12,SW,tm,(a+b)/2,.06,z)));}});
   // ground outside the roads
-  PL(160,232,lam(0x2a2a26),24,-.02,35,-Math.PI/2);
+  PL(260,300,lam(0x2a2a26),12,-.02,10,-Math.PI/2);
   // lamps along all roads (glow heads only)
   const poleM=lam(0x5a5a5a),glow=lampMat(0xfff1d0);
   ROADS.forEach(([x0,x1,z0,z1,d],i)=>{if(d==='ns'){for(let z=z0+8;z<z1;z+=24){if(i===0&&z>-62&&z<64)continue;if(ROADS.some(r=>r[4]==='ew'&&z>r[2]-4&&z<r[3]+4))continue;const x=x1+SW-.4;cyl(.07,.09,5.2,poleM,x,2.6,z,8);B(.4,.1,.24,glow,x-.6,5.08,z);ob(x-.15,x+.15,z-.15,z+.15,'pole');}}
@@ -3979,7 +3979,52 @@ function buildTown(S2,B,PL,ob,box,cyl){
     ob(-19.2,-7.2,104.8,114.2,'house');ob(28,43,97.7,107.3,'house');}
   // ---- houses along the north road and the far east
   // outer edge: trees so the map has a border
-  for(let t=-40;t<82;t+=6){tree(t,-66,1.1);tree(t,124,1.1);}for(let t=-66;t<124;t+=6){tree(-40,t,1.1);tree(80,t,1.1);}
+  for(let t=-40;t<82;t+=6){if(t<-36||t>12)tree(t,-66,1.1);tree(t,124,1.1);}for(let t=-66;t<124;t+=6){if(t<70||t>110){tree(-40,t,1.1);tree(80,t,1.1);}}
+  // ================= the ends of the streets: no more empty edge =================
+  // ---- みなと町駅: west end of the avenue (past the salon), elevated tracks behind it
+  {bldBox(S2,-60,-38,74,106,10,2,false,null,true);const fr=phong(0xb8bcc0,90,0x888888),glass=new THREE.MeshPhongMaterial({color:0x6a8aa0,shininess:120,specular:0xffffff,transparent:true,opacity:.7}),glow=nightMat(0xfff4d8),ry=Math.PI/2;
+    PL(14,3,glow,-37.98,1.6,90,0,ry);PL(14,3,glass,-37.94,1.6,90,0,ry);for(let z=83;z<=97.1;z+=1.75)B(.1,3.1,.08,fr,-37.92,1.55,z);B(.12,.1,14.2,fr,-37.92,3.1,90);
+    B(3.4,.28,18,lam(0xe8e8e4),-36.4,3.5,90);[82.4,97.6].forEach(z=>{cyl(.12,.12,3.4,fr,-35,1.7,z,8);ob(-35.2,-34.8,z-.2,z+.2,'pole');});
+    hSign(S2,-37.9,5.4,88,ry,'みなと町駅','#1a4fa0','#fff',7,'MINATO-MACHI STATION');B(.05,.8,30,glow,-37.97,8.2,90);
+    {const ck=new THREE.Mesh(new THREE.CircleGeometry(.85,24),new THREE.MeshBasicMaterial({color:0xf8f8f4}));ck.position.set(-37.88,5.4,95.2);ck.rotation.y=ry;S2.add(ck);B(.04,.07,.6,lam(0x111111),-37.84,5.55,95.2);B(.04,.5,.07,lam(0x111111),-37.84,5.6,95.2);}
+    // tracks on a viaduct running the length of the town + a train at the platform
+    const con=lam(0x8a8880);B(6,1.1,270,con,-64,9.6,20);for(let z=-110;z<150;z+=13)B(1.2,9,1.2,con,-64,4.5,z);[-65.2,-62.8].forEach(x=>B(.12,.12,270,phong(0x9a9a9a,80),x,10.2,20));B(.3,1.2,270,con,-61.1,10.6,20);
+    {const tb=lam(0xe8eaec),bl=new THREE.MeshBasicMaterial({color:0x1a4fa0});B(3,3,48,tb,-64,11.8,90);B(3.02,.32,48.02,bl,-64,11,90);for(let i=0;i<18;i++)B(3.04,1,1.5,nightMat(0xfff4d8),-64,12.2,68+i*2.6);}
+    B(10,.25,44,lam(0xb8bcc0),-64,14.2,90);for(let z=70;z<=110;z+=10)cyl(.15,.15,3.4,fr,-60,12.4,z,8);
+    oHit(.6,2.6,4,-37.6,1.3,90,{prompt(){return'改札(今日は電車に乗る用事はない)';},press(){toast('今日は電車に乗る用事はない');}});
+    MAPB.push([-60,-38,74,106,'#9ab0d8']);label(-49,90,'みなと町駅','#1a4fa0');}
+  // ---- みなと大学: the end of the shopping street (south)
+  {const wh=lam(0xeae6dc),stone=lam(0x8a8478);
+    bldBox(S2,-36,10,-104,-84,15,3,false);bldBox(S2,-36,-24,-84,-68,10,3,false);bldBox(S2,-2.5,10,-84,-68,10,3,false);
+    B(6,11,6,wh,-13.25,20.5,-87);{const rf=cyl(0,4.4,4,lam(0x2a4a3a),-13.25,28,-87,4);rf.rotation.y=Math.PI/4;}
+    {const ck=new THREE.Mesh(new THREE.CircleGeometry(1.5,28),new THREE.MeshBasicMaterial({color:0xf8f6ee}));ck.position.set(-13.25,22,-83.96);S2.add(ck);B(.1,1.1,.04,lam(0x111111),-13.25,22.4,-83.92);B(.8,.1,.04,lam(0x111111),-12.9,22,-83.92);}
+    B(11,.6,4.2,wh,-13.25,5.3,-82);[-17.8,-15.2,-11.3,-8.7].forEach(x=>{cyl(.3,.34,5,wh,x,2.5,-80.4,12);ob(x-.4,x+.4,-80.8,-80,'pillar');});
+    PL(21.5,19,lam(0x3a5a2c),-13.25,.01,-73.5,-Math.PI/2);PL(4,19,lam(0x77716a),-13.25,.013,-73.5,-Math.PI/2);PL(30,2.2,lam(0x6a6862),-13.25,.009,-63.1,-Math.PI/2);
+    // the gate: two stone posts with the name plate, low walls either side
+    [-18.6,-7.9].forEach(x=>{B(1.2,3,1.2,stone,x,1.5,-63.4);B(1.4,.2,1.4,lam(0x6a6460),x,3.1,-63.4);ob(x-.7,x+.7,-64.1,-62.7,'gate');});
+    {const tx=ctex(96,384,(g,w,h)=>{g.fillStyle='#f4f0e6';g.fillRect(0,0,w,h);g.fillStyle='#1a1a1a';g.font='bold 58px serif';g.textAlign='center';[...'みなと大学'].forEach((c,i)=>g.fillText(c,w/2,66+i*72));});PL(.5,2,new THREE.MeshBasicMaterial({map:tx}),-18.6,1.6,-62.79);}
+    [[-36,-19.2],[-7.3,10]].forEach(([a,b])=>{B(b-a,1.1,.5,stone,(a+b)/2,.55,-63.4);ob(a,b,-63.7,-63.1,'wall');});
+    [[-22,-70],[-22,-78],[-4.5,-70],[-4.5,-78],[-19,-66.5],[-7.5,-66.5]].forEach(([x,z])=>{tree(x,z,1.15);ob(x-.35,x+.35,z-.35,z+.35,'tree');});
+    [-20.5,-6].forEach(x=>{B(1.6,.45,.5,lam(0x8a6a4a),x,.23,-74);ob(x-.8,x+.8,-74.3,-73.7,'bench');});
+    oHit(3,2.6,.6,-13.25,1.3,-81.7,{prompt(){return'校舎(今日は講義がない)';},press(){toast('今日は講義がない。テスト前に来よう…');}});
+    MAPB.push([-36,10,-104,-64,'#d8c8e0']);label(-13.25,-76,'みなと大学','#5a3a8a');}
+  // ---- ARENA: game center + pachinko at the east end of the avenue (past home)
+  {bldBox(S2,78,100,74,106,12,5,false,null,true);const ry=-Math.PI/2,pink=nightMat(0xff4fc0),cyan=nightMat(0x3fd8ff);
+    PL(24,3,nightMat(0xffe0f4),77.98,1.6,90,0,ry);PL(24,3,new THREE.MeshPhongMaterial({color:0x2a1a3a,shininess:140,specular:0xffffff,transparent:true,opacity:.45}),77.94,1.6,90,0,ry);
+    for(let z=79;z<=101.1;z+=2)B(.1,3.1,.08,lam(0x111111),77.92,1.55,z);
+    hSign(S2,77.9,6.8,90,ry,'ARENA','#14081e','#ff4fd8',11,'GAME ・ PACHINKO ・ SLOT');B(.08,.18,30,pink,77.95,4.4,90);B(.08,.18,30,cyan,77.95,9.4,90);[75,105].forEach(z=>B(.15,11,.15,z<90?cyan:pink,77.95,6,z));
+    [['新台入替','#d50000','#ff0'],['UFOキャッチャー','#1a1aa0','#fff']].forEach(([t,bg,fg],i)=>hSign(S2,77.88,3.9,i?99.5:80.5,ry,t,bg,fg,4.2));
+    [85.2,87,93,94.8].forEach((z,i)=>{B(1,1.1,1,phong([0xff5fa0,0x5fb8ff,0xffd040,0x8aff6a][i],70),77,.55,z);B(.92,.9,.92,new THREE.MeshPhongMaterial({color:0xf8f0ff,transparent:true,opacity:.35,shininess:140}),77,1.55,z);B(1,.25,1,nightMat(0xfff4f8),77,2.12,z);ob(76.4,77.6,z-.55,z+.55,'crane');});
+    oHit(.6,2.6,3.6,77.6,1.3,90,{prompt(){return'ARENA(準備中 ・ 近日オープン)';},press(){toast('「ARENA 近日グランドオープン」の貼り紙がある');}});
+    MAPB.push([78,100,74,106,'#e0b0d8']);label(88,90,'ゲーセン','#a0208a');}
+  // ---- mansions all around the town so the edge is a skyline, not a horizon
+  {const rr2=seedRand(4711),ring=(x0,x1,z0,z1,face,hMin=14,hRange=7,far=false)=>{const ax=face==='nx'||face==='px',end=ax?z1:x1;let a=ax?z0:x0;
+      while(a<end-4){const w=Math.min(end-a,13+rr2()*9),h=hMin+Math.floor(rr2()*hRange)*3,st=[1,4,1,2,0][Math.floor(rr2()*5)],r=ax?[x0,x1,a,a+w]:[a,a+w,z0,z1];
+        if(far){bldBox(S2,r[0],r[1],r[2],r[3],h,6,false,null,true);a+=w+.8+rr2()*1.6;continue;}bldBox(S2,r[0],r[1],r[2],r[3],h,st,false,null,true);const sd=seedRand(Math.round(Math.abs(a*13+h*7)));OUTB.wq.push(()=>winFace(face,r[0],r[1],r[2],r[3],h,st,0,sd));a+=w+.8+rr2()*1.6;}};
+    ring(-104,128,132,148,'nz',16,7);ring(-104,128,-130,-114,'pz',16,7,true);ring(-104,-88,-112,130,'px',16,7,true);ring(112,128,-112,130,'nx',16,7,true);
+    ring(86,104,-64,70,'nx',10,6);ring(86,104,110,128,'nx',10,5);ring(-58,-44,-64,68,'px',10,6);ring(-58,-44,110,128,'px',10,5);
+    ring(16,84,-104,-88,'pz',10,6);ring(-60,-40,-104,-88,'pz',10,5);}
+
   // traffic lights at the main crossings (visual cycle)
   OUT.sig=[];[[-13.25,89.75]].forEach(([cx,cz])=>{[[-1,-1],[1,1]].forEach(([sx,sz])=>{const px=cx+sx*6.4,pz=cz+sz*6.4;cyl(.09,.11,5.6,lam(0x6a6a66),px,2.8,pz,8);ob(px-.2,px+.2,pz-.2,pz+.2,'pole');
     const hb=box(.3,.32,1.1,lam(0x1a1a1a),px,5.2,pz-sz*.6);const vb=box(1.1,.32,.3,lam(0x1a1a1a),px-sx*.6,5.6,pz);
