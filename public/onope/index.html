@@ -3402,7 +3402,7 @@ function updateAvatars(dt){
     const lo=locOf(i),rid=lo==='out'&&q.L&&q.L.ride!=null&&players[q.L.ride],show=lo===locOf(me)&&lo!=='home'&&!(lo==='out'&&q.car&&q.car.inCar);av.g.visible=show;if(!show)return;
     if(rid){if(av.g.parent!==OUT.scene)OUT.scene.add(av.g);const K=carPose(q.L.ride),st2=seatOf(K);av.g.position.set(st2.x,-.42,st2.z);av.g.rotation.y=K.h+Math.PI;av.head.rotation.set(-q.pitch*.5,0,0,'YXZ');vis(()=>rigUpdate(av,dt));return;}
     {const sc=lo==='out'?OUT.scene:lo.startsWith('store:')?STORES[lo.slice(6)].scene:scene;if(sc&&av.g.parent!==sc)sc.add(av.g);}
-    {const ip=ipos(q);av.g.position.set(ip.x,lo==='out'&&q.bike&&q.bike.riding?.3:lo==='shop'?floorAt(ip.x,ip.z):0,ip.z);}av.g.rotation.y=q.yaw+Math.PI;if(q.moved)legsWalk(av,dt,true);
+    {const ip=ipos(q);av.g.position.set(ip.x,lo==='out'&&q.bike&&q.bike.riding?.3:lo==='shop'?floorAt(ip.x,ip.z):0,ip.z);}av.g.rotation.y=q.yaw+Math.PI;if(q.moved)legsWalk(av,dt,true);if(q.P.sit){av.g.position.y=-.36;av.forceLP='chair';}else if(av.forceLP==='chair')av.forceLP=null;
     av.head.rotation.set(-q.pitch*.7,0,0,'YXZ');
     if(q.P.atk==='punch')armTo(av,1,'punch',dt,20);else if(q.hand)armTo(av,1,'tray',dt,8);else armTo(av,1,'hang',dt,6);
     if(q.hand&&q.hand.type==='bag')armTo(av,0,'hang',dt,6);else armTo(av,0,q.hand?'tray':'hang',dt,6);
@@ -3438,7 +3438,7 @@ function staffSeen(kind){
 }
 function doAction(code){
   if(code>=40&&code<=45){guestOrder(GUEST_MENU[code-40][0]);return;}if(code===47){guestPay();return;}
-  if(code===48){P.game=true;return;}if(code===49){P.game=false;return;}if(code===62){trainGetOff();return;}
+  if(code===63){standUp();return;}if(code===48){P.game=true;return;}if(code===49){P.game=false;return;}if(code===62){trainGetOff();return;}
   if(code===60){ramenEat();return;}if(code===61){ramenGarlic();return;}
   if(code>=200000){applyLook(cur,lookDec(code));return;}
   if(code>=3000&&code<4000){if(code===3999)gymStop();else if(W.store==='gym')gymStart(code);return;}
@@ -3524,7 +3524,8 @@ function actionItems(){const q=players[me],h=me===cur?hand:q.hand,ph=q.P.phone,i
   if(h&&h.type==='shopbag')[...new Set(h.items)].slice(0,5).forEach(k=>it.push({code:100+GKEYS.indexOf(k),icon:isDrinkGood(k)?'drink':'bite',t:`${GOODS[k].n}を${isDrinkGood(k)?'飲む':'食べる'}`,s:`レジ袋から(${h.items.filter(x=>x===k).length}個) ${goodsEffect(k)}`,ok:true}));
   {const L=me===cur?W:q.L;if(inShop&&L.guest&&L.gSeat!=null){GUEST_MENU.forEach(([k],j)=>it.push({code:40+j,icon:DRINKS[k]?'drink':'bite',t:`${gName(k)}を注文する`,s:`${yen(gPrice(k))}(社割で2割引)`,ok:true}));it.push({code:47,icon:'phone',t:'お会計する',s:L.gBill?`いまの合計 ${yen(Math.round(L.gBill*.8/10)*10)}`:'まだ何も頼んでない',ok:!!L.gBill});}}
   {const r=q.P.ramen;if(locOf(me)==='store:ramen'&&r&&r.st==='bowl'){it.push({code:60,icon:'bite',t:'ラーメンを食べる',s:`残り${r.left}口${r.garlic?` ・ ニンニク${r.garlic}杯`:''}`,ok:true});it.push({code:61,icon:'bite',t:'ニンニクを入れる',s:r.garlic>=3?'体臭がどんどん臭くなる…':'無料・入れ放題(においが強くなる)',ok:true});}}
-  {const L=me===cur?W:q.L;if(STN[L.store]&&rushNow()){const S=STORES[L.store],lx=q.pos.x-S.X;if(inCarZone(lx,q.pos.z,0)||inCarZone(lx,q.pos.z,1))it.push({code:62,icon:'phone',t:'「すみません、降ります!」',s:'満員で動けない。ドアが開いている間に降りる',ok:true});}}
+  {const L=me===cur?W:q.L;if(false){const S=STORES[L.store],lx=q.pos.x-S.X;if(inCarZone(lx,q.pos.z,0)||inCarZone(lx,q.pos.z,1))it.push({code:62,icon:'phone',t:'「すみません、降ります!」',s:'満員で動けない。ドアが開いている間に降りる',ok:true});}}
+  if(q.P.sit)it.push({code:63,icon:'phone',t:'席を立つ',s:'座席から立ち上がる',ok:true});
   if(locOf(me)==='store:gym'&&GYM.mode&&gymMember(me))it.push({code:3999,icon:'ball',t:'試合をやめる',s:`${SPORTS[GYM.mode].n}を終わりにする`,ok:true});
   if(inShop)it.push({code:3,icon:'bite',t:(me===cur?W:q.L).guest?'料理を食べる':'つまみ食いする',s:isPlate(h)&&h.food?`${ITEMS[h.food.item].name} 残り${foodLeft(h.food)}個`:'料理の乗った皿を持っていない',ok:!!(isPlate(h)&&h.food)});
   return it;}
@@ -3911,7 +3912,13 @@ function buildTown(S2,B,PL,ob,box,cyl){
   const label=(x,z,t,c)=>MAPP.push([x,z,t,c]);
   // ---- downtown extension along the main street (z 64..83.5) and building masses behind
   building(S2,-7,14,64,83.5,10,'nx',61,'#ffd2ea','カラオケ館');vSign(S2,-7.45,4.5,74,'カラオケ館','#7b1fa2','#fff',3.2);MAPB.push([-7,14,64,83.5,'#c8b8c8']);
-  building(S2,-34,-19.5,64,83.5,12,'px',62,'#fff4c8','パチンコ');vSign(S2,-19.05,4.5,72,'パチンコ','#d50000','#ff0',3.4);MAPB.push([-34,-19.5,64,83.5,'#c8b8c8']);
+  {const f=facade(S2,{cx:-19.5,cz:73.75,face:'px',W:19,H:12,D:14.5,wall:'tile',tint:0xd8dce4,kind:'police',frameC:0x1a2a5a,door:{w:2.6,c:0x1a2a5a,label:'入口'},canopyC:0x1a2a5a,handleC:0xd8dce0,
+      sign:{t:'みなと警察署',sub:'MINATO POLICE STATION',bg:'#1a2a5a',fg:'#fff',w:8},planters:true,winStep:2.2,map:'#9aa8c8',
+      prompt(){return'みなと警察署(特に用はない)';},press(){toast('受付の警察官と目が合った。…用はない');}});
+    {const l=new THREE.Mesh(new THREE.SphereGeometry(.24,12,8),nightMat(0xff2a2a));l.position.set(-18.9,3.55,75.6);S2.add(l);const l2=l.clone();l2.position.z=71.9;S2.add(l2);}
+    {const em=ctex(128,128,(g,w,h)=>{g.fillStyle='#d8b84a';g.beginPath();for(let i=0;i<10;i++){const a=i/10*Math.PI*2,r=i%2?26:58;g.lineTo(w/2+Math.sin(a)*r,h/2-Math.cos(a)*r);}g.fill();g.fillStyle='#1a2a5a';g.beginPath();g.arc(w/2,h/2,16,0,7);g.fill();});
+      PL(1.1,1.1,new THREE.MeshBasicMaterial({map:em,transparent:true}),-19.38,6.9,73.75,0,Math.PI/2);}
+    cyl(.05,.05,9,lam(0xcccccc),-18.6,4.5,66.2,6);B(.02,.9,1.4,new THREE.MeshBasicMaterial({color:0xffffff}),-18.6,8.3,66.9);ob(-18.8,-18.4,66,66.4,'pole');label(-27,74,'警察署','#1a2a5a');}
   MAPB.push([-34,-19.5,-62,64,'#c8b8c8'],[-7,6,3.1,64,'#c8b8c8'],[-7,6,-62,-24.6,'#c8b8c8'],[-7,10.8,-10.6,3.1,'#e0a080'],[10.8,24,-10.6,3.1,'#c8b8c8'],[12.2,24,-24.5,-10.6,'#c8b8c8']);
   mass(6,22,10,60,11,72);mass(6,27.5,-60,-26,9,70);mass(24,27.5,-24.5,62,7,71);mass(27.5,41,-24,60,7,77);mass(27.5,41,62,64.5,5,78);mass(6,22,3.4,9.6,6,74);mass(22,27.5,-26,-24.5,5,75);
   // backs of the downtown rows along the west road: low buildings, signs, AC units
@@ -3919,14 +3926,12 @@ function buildTown(S2,B,PL,ob,box,cyl){
   // ---- みなと市民体育館 (the old station block, facing the parking lot)
   {bldBox(S2,42,64,64,76,7.5,0,false,null,true);
     {const rf=new THREE.Mesh(new THREE.CylinderGeometry(6.4,6.4,22.4,28,1,false,0,Math.PI),lam(0x5a7a92));rf.rotation.z=Math.PI/2;rf.scale.x=.32;rf.position.set(53,7.5,70);S2.add(rf);}
-    const fr=phong(0xb8bcc0,90,0x888888),glass=new THREE.MeshPhongMaterial({color:0x6a8aa0,shininess:120,specular:0xffffff,transparent:true,opacity:.75}),glow=nightMat(0xfff4d8);
-    PL(9,2.6,glow,53,1.35,76.02);PL(9,2.6,glass,53,1.35,76.06);for(let x=48.5;x<=57.6;x+=1.5)B(.08,2.7,.1,fr,x,1.35,76.08);B(9.2,.1,.12,fr,53,2.7,76.08);
-    B(10,.25,2.6,lam(0xe8e8e4),53,3.1,77.2);[48.4,57.6].forEach(x=>{cyl(.1,.1,3.0,fr,x,1.5,78.3,8);ob(x-.15,x+.15,78.15,78.45,'pole');});
-    B(20,.7,.05,glow,53,6.4,76.03);for(let x=43.5;x<63;x+=2.5)B(.1,.8,.08,fr,x,6.4,76.06);
-    hSign(S2,53,4.55,76.08,0,'市民体育館','#1f5f3a','#fff',6.6,'MINATO CITY GYMNASIUM');
+    const fr=phong(0xb8bcc0,90,0x888888),glow=nightMat(0xfff4d8);B(20,.7,.05,glow,53,6.4,76.03);for(let x=43.5;x<63;x+=2.5)B(.1,.8,.08,fr,x,6.4,76.06);
+    facade(S2,{cx:53,cz:76,face:'pz',W:14,H:5.6,D:.8,wall:'concrete',kind:'gym',frameC:0x1f5f3a,door:{w:3.2,c:0x1f5f3a,label:'正面入口'},canopyC:0x1f5f3a,handleC:0xd8dce0,
+      sign:{t:'市民体育館',sub:'MINATO CITY GYMNASIUM',bg:'#1f5f3a',fg:'#fff',w:7,y:4.4},gH:3.8,planters:true});
     B(2.2,1.4,.3,lam(0x2a5a3a),45.5,.7,77.2);B(2.1,1.2,.05,new THREE.MeshBasicMaterial({color:0xf4f4ee}),45.5,.72,77.36);ob(44.3,46.7,77,77.4,'board');
     for(let i=0;i<6;i++)B(.06,.5,.06,fr,60+i*.7,.25,77.6);B(4.2,.06,.06,fr,61.75,.5,77.6);ob(59.8,63.8,77.4,77.8,'bikes');
-    oHit(2.4,2.6,.6,53,1.3,76.3,{prompt(){return storeOpen('gym')?'体育館に<b>入る</b>(9:00〜22:00 ・ 個人開放)':'本日は閉館しました(9:00〜22:00)';},press(){if(!storeOpen('gym'))return toast('閉まっている(9:00〜22:00)');transit(()=>enterStore('gym'));}});
+    oHit(3.2,2.6,.6,53,1.3,76.45,{prompt(){return storeOpen('gym')?'体育館に<b>入る</b>(9:00〜22:00 ・ 個人開放)':'本日は閉館しました(9:00〜22:00)';},press(){if(!storeOpen('gym'))return toast('閉まっている(9:00〜22:00)');transit(()=>enterStore('gym'));}});
     MAPB.push([42,64,64,76,'#b8d8c0']);label(53,70,'市民体育館','#1f5f3a');PL(33.5,7,lam(0x5e5c58),56.75,.006,80,-Math.PI/2);}
   // ---- supermarket on the avenue, between the karaoke and the station (open 9:00–20:00)
   {bldBox(S2,14,40,64,83.5,8,1,false,'pz',true);storefront(S2,'pz',27,83.5,25.7,'スーパーまるやす');hSign(S2,27,6.6,83.56,0,'スーパーまるやす','#e65100','#fff',12);
@@ -3934,20 +3939,14 @@ function buildTown(S2,B,PL,ob,box,cyl){
     for(let i=0;i<6;i++){const cx=16+i*.62;B(.55,.9,.85,lam(0x9aa4ac),cx,.45,84.6);}ob(15.6,19.6,84.1,85.1,'cart'); // carts
     oHit(2.4,2.4,.6,37.3,1.2,84.1,{prompt(){return storeOpen('super')?'スーパーに<b>入る</b>(9:00〜20:00)':'本日の営業は終了しました(9:00〜20:00)';},press(){if(!storeOpen('super'))return toast('閉まっている(9:00〜20:00)');transit(()=>enterStore('super'));}});}
   // ---- the old shrine block: a hair salon and a select shop, side by side (open 10–20 / 11–21)
-  {const fr=phong(0x222224,90,0x888888),gold=phong(0xc8a860,120,0xffffff),glass=new THREE.MeshPhongMaterial({color:0x8aa0aa,shininess:140,specular:0xffffff,transparent:true,opacity:.55});
-    const shop=(x0,x1,col,wallTop,glowC,name,sign,sub,bg,fg,door,k,hrs)=>{bldBox(S2,x0,x1,96.6,106,6.2,2,false,null,true);const cx=(x0+x1)/2,w=x1-x0;
-      B(w,3.2,.1,lam(col),cx,1.6,96.55);B(w,3.0,.1,lam(wallTop),cx,4.7,96.55);
-      PL(w-1.2,2.2,nightMat(glowC),cx,1.3,96.48,0,Math.PI);PL(w-1.2,2.2,glass,cx,1.3,96.44,0,Math.PI);B(w-1.1,.08,.1,fr,cx,2.42,96.44);B(w-1.1,.08,.1,fr,cx,.2,96.44);
-      [x0+.55,door-.75,door+.75,x1-.55].forEach(x=>B(.08,2.3,.1,fr,x,1.25,96.44));
-      hSign(S2,cx,3.55,96.48,Math.PI,sign,bg,fg,Math.min(5.2,w-1),sub);
-      [x0+.4,x1-.4].forEach(x=>{B(.5,.5,.5,lam(0x2a2a2c),x,.25,96.1);const l=new THREE.Mesh(new THREE.IcosahedronGeometry(.32,0),lam(0x3a6a30));l.position.set(x,.75,96.1);S2.add(l);ob(x-.3,x+.3,95.8,96.4,'planter');});
-      oHit(1.4,2.4,.6,door,1.2,96.3,{prompt(){return storeOpen(k)?`${name}に<b>入る</b>(${hrs})`:`本日の営業は終了しました(${hrs})`;},press(){if(!storeOpen(k))return toast(`閉まっている(${hrs})`);transit(()=>enterStore(k));}});};
-    shop(-33.8,-27.4,0xf4efe6,0xe8e2d8,0xffe6c8,'HAIR SALON Lumière','Lumière','HAIR SALON ・ 美容院','#f4efe6','#5a3a24',-30.6,'salon','10:00〜20:00');
-    shop(-26.8,-19.8,0x141416,0x2a2a2e,0xfff0d8,'SELECT SHOP NOIR','NOIR','SELECT SHOP ・ 服屋','#111113','#f4efe6',-23.3,'boutique','11:00〜21:00');
-    // a striped awning over the select shop window, trees behind
-    for(let i=0;i<7;i++){const a=B(.86,.05,1.1,lam(i%2?0xf4efe6:0x111113),-26.3+i*.95+.4,2.75,96.0);a.rotation.x=-.25;}
+  {facade(S2,{cx:-30.6,cz:96.6,face:'nz',W:6.4,H:6.2,D:9.4,wall:'plaster',tint:0xf6efe4,kind:'salon',frameC:0xb89a5a,door:{w:1.5,c:0xb89a5a,kind:'single'},canopyC:0x5a3a24,handleC:0xe8d8a8,
+      sign:{t:'Lumière',sub:'HAIR SALON ・ 美容院',bg:'#f4efe6',fg:'#5a3a24',font:'"Noto Serif JP",serif',w:5,box:0xb89a5a},blade:{t:'美容院',bg:'#5a3a24',fg:'#f4efe6'},wins:[[-2.9,-1.5],[1.5,2.9]],winStep:2.0,map:'#e8d8c8',
+      prompt(){return storeOpen('salon')?'HAIR SALON Lumièreに<b>入る</b>(10:00〜20:00)':'本日の営業は終了しました(10:00〜20:00)';},press(){if(!storeOpen('salon'))return toast('閉まっている(10:00〜20:00)');transit(()=>enterStore('salon'));}});
+    facade(S2,{cx:-23.3,cz:96.6,face:'nz',W:7,H:6.2,D:9.4,wall:'dark',kind:'boutique',frameC:0xc8a860,door:{w:1.7,c:0xc8a860,kind:'single'},canopyC:0x111113,handleC:0x111113,awning:[0x111113,0xf4efe6],
+      sign:{t:'NOIR',sub:'SELECT SHOP ・ 服屋',bg:'#111113',fg:'#f4efe6',w:5.4,box:0xc8a860},blade:{t:'服屋',bg:'#111113',fg:'#f4efe6'},winStep:2.0,map:'#3a3a3e',
+      prompt(){return storeOpen('boutique')?'SELECT SHOP NOIRに<b>入る</b>(11:00〜21:00)':'本日の営業は終了しました(11:00〜21:00)';},press(){if(!storeOpen('boutique'))return toast('閉まっている(11:00〜21:00)');transit(()=>enterStore('boutique'));}});
     [[-32.5,109],[-27,110],[-21.5,109],[-31,116],[-23,117]].forEach(([x,z])=>tree(x,z,1.1));B(14.5,1.2,.2,lam(0x8a8478),-26.75,.6,119.8);
-    MAPB.push([-33.8,-27.4,96.6,106,'#e8d8c8'],[-26.8,-19.8,96.6,106,'#3a3a3e']);label(-30.6,101,'美容院','#8a5a3a');label(-23.3,101,'服屋','#111');}
+    label(-30.6,101,'美容院','#8a5a3a');label(-23.3,101,'服屋','#111');}
   // ---- convenience store + pocket park (north-middle block)
   {bldBox(S2,-6,8,111,120,4.2,4,false,'nz');storefront(S2,'nz',1,111,13.7,'DAILY MART');hSign(S2,1,3.6,110.84,Math.PI,'DAILY MART','#1a8a3a','#fff',8);
     MAPB.push([-6,8,111,120,'#a8d8b0']);label(1,115,'コンビニ','#1a8a3a');
@@ -3994,16 +3993,11 @@ function buildTown(S2,B,PL,ob,box,cyl){
   for(let t=-40;t<82;t+=6){if(t<-36)tree(t,-66,1.1);tree(t,124,1.1);}for(let t=-66;t<124;t+=6){if(t<70||t>110)tree(-40,t,1.1);if(t>110)tree(80,t,1.1);}
   // ================= the ends of the streets: no more empty edge =================
   // ---- みなと町駅: west end of the avenue (past the salon), elevated tracks behind it
-  {bldBox(S2,-60,-38,74,106,10,2,false,null,true);const fr=phong(0xb8bcc0,90,0x888888),glass=new THREE.MeshPhongMaterial({color:0x6a8aa0,shininess:120,specular:0xffffff,transparent:true,opacity:.7}),glow=nightMat(0xfff4d8),ry=Math.PI/2;
-    PL(14,3,glow,-37.98,1.6,90,0,ry);PL(14,3,glass,-37.94,1.6,90,0,ry);for(let z=83;z<=97.1;z+=1.75)B(.1,3.1,.08,fr,-37.92,1.55,z);B(.12,.1,14.2,fr,-37.92,3.1,90);
-    B(3.4,.28,18,lam(0xe8e8e4),-36.4,3.5,90);[82.4,97.6].forEach(z=>{cyl(.12,.12,3.4,fr,-35,1.7,z,8);ob(-35.2,-34.8,z-.2,z+.2,'pole');});
-    hSign(S2,-37.9,5.4,88,ry,'みなと町駅','#1a4fa0','#fff',7,'MINATO-MACHI STATION');B(.05,.8,30,glow,-37.97,8.2,90);
-    {const ck=new THREE.Mesh(new THREE.CircleGeometry(.85,24),new THREE.MeshBasicMaterial({color:0xf8f8f4}));ck.position.set(-37.88,5.4,95.2);ck.rotation.y=ry;S2.add(ck);B(.04,.07,.6,lam(0x111111),-37.84,5.55,95.2);B(.04,.5,.07,lam(0x111111),-37.84,5.6,95.2);}
+  {stationFront(S2,{cx:-38,cz:90,face:'px',W:32,D:22,H:11,key:'stA',name:'みなと町駅',en:'MINATO-MACHI STATION',front:2.2});const fr=phong(0xb8bcc0,90,0x888888);
     // tracks on a viaduct running the length of the town + a train at the platform
     const con=lam(0x8a8880);B(6,1.1,270,con,-64,9.6,20);for(let z=-110;z<150;z+=13)B(1.2,9,1.2,con,-64,4.5,z);[-65.2,-62.8].forEach(x=>B(.12,.12,270,phong(0x9a9a9a,80),x,10.2,20));B(.3,1.2,270,con,-61.1,10.6,20);
     
     B(10,.25,44,lam(0xb8bcc0),-64,14.2,90);for(let z=70;z<=110;z+=10)cyl(.15,.15,3.4,fr,-60,12.4,z,8);
-    oHit(.6,2.6,4,-37.6,1.3,90,{prompt(){return'みなと町駅に<b>入る</b>(みなと線)';},press(){transit(()=>enterStore('stA'));}});
     MAPB.push([-60,-38,74,106,'#9ab0d8']);label(-49,90,'みなと町駅','#1a4fa0');}
   // ---- みなと大学: the end of the shopping street (south)
   {const wh=lam(0xeae6dc),stone=lam(0x8a8478);
@@ -4021,14 +4015,14 @@ function buildTown(S2,B,PL,ob,box,cyl){
     oHit(3,2.6,.6,-13.25,1.3,-81.7,{prompt(){return'校舎(今日は講義がない)';},press(){toast('今日は講義がない。テスト前に来よう…');}});
     MAPB.push([-36,10,-104,-64,'#d8c8e0']);label(-13.25,-76,'みなと大学','#5a3a8a');}
   // ---- ARENA: game center + pachinko at the east end of the avenue (past home)
-  {bldBox(S2,78,100,74,106,12,5,false,null,true);const ry=-Math.PI/2,pink=nightMat(0xff4fc0),cyan=nightMat(0x3fd8ff);
-    PL(24,3,nightMat(0xffe0f4),77.98,1.6,90,0,ry);PL(24,3,new THREE.MeshPhongMaterial({color:0x2a1a3a,shininess:140,specular:0xffffff,transparent:true,opacity:.45}),77.94,1.6,90,0,ry);
-    for(let z=79;z<=101.1;z+=2)B(.1,3.1,.08,lam(0x111111),77.92,1.55,z);
-    hSign(S2,77.9,6.8,90,ry,'ARENA','#14081e','#ff4fd8',11,'GAME ・ PACHINKO ・ SLOT');B(.08,.18,30,pink,77.95,4.4,90);B(.08,.18,30,cyan,77.95,9.4,90);[75,105].forEach(z=>B(.15,11,.15,z<90?cyan:pink,77.95,6,z));
-    [['新台入替','#d50000','#ff0'],['UFOキャッチャー','#1a1aa0','#fff']].forEach(([t,bg,fg],i)=>hSign(S2,77.88,3.9,i?99.5:80.5,ry,t,bg,fg,4.2));
-    [85.2,87,93,94.8].forEach((z,i)=>{B(1,1.1,1,phong([0xff5fa0,0x5fb8ff,0xffd040,0x8aff6a][i],70),77,.55,z);B(.92,.9,.92,new THREE.MeshPhongMaterial({color:0xf8f0ff,transparent:true,opacity:.35,shininess:140}),77,1.55,z);B(1,.25,1,nightMat(0xfff4f8),77,2.12,z);ob(76.4,77.6,z-.55,z+.55,'crane');});
-    oHit(.6,2.6,3.6,77.6,1.3,90,{prompt(){return'ARENA(準備中 ・ 近日オープン)';},press(){toast('「ARENA 近日グランドオープン」の貼り紙がある');}});
-    MAPB.push([78,100,74,106,'#e0b0d8']);label(88,90,'ゲーセン','#a0208a');}
+  {const pink=nightMat(0xff4fc0),cyan=nightMat(0x3fd8ff);
+    facade(S2,{cx:78,cz:90,face:'nx',W:32,H:12,D:22,wall:'dark',kind:'arena',frameC:0xff4fd8,door:{w:3.4,c:0xff4fd8,label:'ENTRANCE'},canopyC:0x14081e,handleC:0x3fd8ff,baseC:0x14081e,
+      sign:{t:'ARENA',sub:'GAME ・ PACHINKO ・ SLOT',bg:'#14081e',fg:'#ff4fd8',w:12,y:6.6,box:0x3fd8ff},blade:{t:'ゲーセン',bg:'#14081e',fg:'#3fd8ff'},winStep:3.2,map:'#e0b0d8',
+      prompt(){return'ARENA(準備中 ・ 近日オープン)';},press(){toast('「ARENA 近日グランドオープン」の貼り紙がある');}});
+    B(.08,.18,30,pink,77.95,4.5,90);B(.08,.18,30,cyan,77.95,9.6,90);[75,105].forEach(z=>B(.15,11,.15,z<90?cyan:pink,77.95,6,z));
+    [['新台入替','#d50000','#ff0'],['UFOキャッチャー','#1a1aa0','#fff']].forEach(([t,bg,fg],i)=>hSign(S2,77.82,4.1,i?101:79,-Math.PI/2,t,bg,fg,4.2));
+    [83.6,85.4,94.6,96.4].forEach((z,i)=>{B(1,1.1,1,phong([0xff5fa0,0x5fb8ff,0xffd040,0x8aff6a][i],70),77,.55,z);B(.92,.9,.92,new THREE.MeshPhongMaterial({color:0xf8f0ff,transparent:true,opacity:.35,shininess:140}),77,1.55,z);B(1,.25,1,nightMat(0xfff4f8),77,2.12,z);ob(76.4,77.6,z-.55,z+.55,'crane');});
+    label(88,90,'ゲーセン','#a0208a');}
   // ---- mansions all around the town so the edge is a skyline, not a horizon
   {const rr2=seedRand(4711),ring=(x0,x1,z0,z1,face,hMin=14,hRange=7,far=false)=>{const ax=face==='nx'||face==='px',end=ax?z1:x1;let a=ax?z0:x0;
       while(a<end-4){const w=Math.min(end-a,13+rr2()*9),h=hMin+Math.floor(rr2()*hRange)*3,st=[1,4,1,2,0][Math.floor(rr2()*5)],r=ax?[x0,x1,a,a+w]:[a,a+w,z0,z1];
@@ -4042,9 +4036,7 @@ function buildTown(S2,B,PL,ob,box,cyl){
     B(136,1.1,6,con,1,9.6,-108);[-1.2,1.2].forEach(o=>B(136,.12,.12,rail,1,10.2,-108+o));B(136,1.2,.3,con,1,10.6,-105.1);for(let x=-58;x<66;x+=13)B(1.2,9,1.2,con,x,4.5,-108);
     B(6,1.1,58,con,66,9.6,-80);[-1.2,1.2].forEach(o=>B(.12,.12,58,rail,66+o,10.2,-80));for(let z=-100;z<-56;z+=13)B(1.2,9,1.2,con,66,4.5,z);}
   // ---- みなと大学前駅 (east of the university) and its plaza
-  {bldBox(S2,14,42,-114,-98,8,2,false,null,true);const fr=phong(0xb8bcc0,90,0x888888),glass=new THREE.MeshPhongMaterial({color:0x6a8aa0,shininess:120,specular:0xffffff,transparent:true,opacity:.7}),glow=nightMat(0xfff4d8);
-    PL(12,3,glow,28,1.6,-97.98);PL(12,3,glass,28,1.6,-97.94);for(let x=22;x<=34.1;x+=1.5)B(.1,3.1,.08,fr,x,1.55,-97.92);B(14,.28,3,lam(0xe8e8e4),28,3.5,-96.6);
-    hSign(S2,28,5.6,-97.9,0,'みなと大学前駅','#1a5fc0','#fff',7,'MINATO DAIGAKU-MAE STATION');B(28,.25,8,lam(0xb8bcc0),28,13.4,-108);for(let x=18;x<=38;x+=5)cyl(.15,.15,3,fr,x,11.8,-105,8);
+  {stationFront(S2,{cx:28,cz:-98,face:'pz',W:28,D:16,H:8.4,key:'stU',name:'みなと大学前駅',en:'MINATO DAIGAKU-MAE STATION',front:2.5});const fr=phong(0xb8bcc0,90,0x888888);B(28,.25,8,lam(0xb8bcc0),28,13.4,-108);for(let x=18;x<=38;x+=5)cyl(.15,.15,3,fr,x,11.8,-105,8);
     // the station square, and the university's east (back) gate right across it, joined by a covered walkway
     {const pave=ctex(256,256,(g,w,h)=>{g.fillStyle='#b8b0a0';g.fillRect(0,0,w,h);g.strokeStyle='#9a9282';g.lineWidth=2;for(let y=0;y<=h;y+=32){g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke();for(let x=(y/32)%2*32;x<=w;x+=64){g.beginPath();g.moveTo(x,y);g.lineTo(x,y+32);g.stroke();}}},[8,9]);
       PL(34,36,new THREE.MeshLambertMaterial({map:pave}),29,.008,-81,-Math.PI/2);PL(14.6,12,new THREE.MeshLambertMaterial({map:pave}),4.8,.009,-70,-Math.PI/2);}
@@ -4064,54 +4056,75 @@ function buildTown(S2,B,PL,ob,box,cyl){
     {const roof=lam(0xd8dcde),post=phong(0x8a8e94,80);B(3.2,.16,26.6,roof,28,3.0,-84.4);B(16,.16,3.2,roof,20,3.0,-71);[[26.5,-96],[29.5,-96]].forEach(()=>{});
       for(let z=-95;z<=-73;z+=4.4)[26.5,29.5].forEach(x=>{cyl(.08,.08,3,post,x,1.5,z,8);ob(x-.12,x+.12,z-.12,z+.12,'pole');});for(let x=13.5;x<=26;x+=4.2)[-72.5,-69.5].forEach(z=>{cyl(.08,.08,3,post,x,1.5,z,8);ob(x-.12,x+.12,z-.12,z+.12,'pole');});
       for(let z=-95;z<=-74;z+=6){const l=new THREE.Mesh(new THREE.BoxGeometry(.8,.05,.2),nightMat(0xfff4d8));l.position.set(28,2.9,z);S2.add(l);}
-      {const tx=ctex(512,96,(g,w,h)=>{g.fillStyle='#1a5fc0';g.fillRect(0,0,w,h);g.fillStyle='#fff';g.font='800 40px "Noto Sans JP",sans-serif';g.textAlign='center';g.fillText('← みなと大学 東門  徒歩1分',w/2,62);});PL(3,.56,new THREE.MeshBasicMaterial({map:tx}),28,2.6,-95.5);}}
+      {const tx=ctex(512,96,(g,w,h)=>{g.fillStyle='#1a5fc0';g.fillRect(0,0,w,h);g.fillStyle='#fff';g.font='800 40px "Noto Sans JP",sans-serif';g.textAlign='center';g.fillText('← みなと大学 東門  徒歩1分',w/2,62);});PL(3,.56,new THREE.MeshBasicMaterial({map:tx}),28,2.65,-93);}}
     // student bike parking, a bus stop, trees
     {const bk=lam(0x2a2a2e),cols=[0xd83a3a,0x2a6ad8,0xf4f4f0,0x3aa84a,0x1a1a1a,0xf2c21b];B(8,.12,3,lam(0xb8bcc0),38.5,2.4,-82);[34.6,42.4].forEach(x=>[-83.3,-80.7].forEach(z=>cyl(.06,.06,2.4,phong(0x8a8e94,80),x,1.2,z,6)));
       for(let i=0;i<14;i++){const x=35+i*.55,c=cols[i%6];B(.04,.04,1.4,lam(c),x,.62,-82);cyl(.32,.32,.04,bk,x,.36,-82.6,12).rotation.z=Math.PI/2;cyl(.32,.32,.04,bk,x,.36,-81.4,12).rotation.z=Math.PI/2;B(.04,.3,.04,lam(c),x,.75,-82.4);}ob(34.6,42.4,-83.5,-80.5,'bikes');
       {const tx=ctex(256,256,(g,w,h)=>{g.fillStyle='#fff';g.beginPath();g.arc(128,128,120,0,7);g.fill();g.fillStyle='#2a6ad8';g.font='900 40px "Noto Sans JP",sans-serif';g.textAlign='center';g.fillText('バス停',128,110);g.fillStyle='#1a1a1a';g.font='700 26px "Noto Sans JP",sans-serif';g.fillText('みなと大学前',128,160);});
         cyl(.05,.05,2.4,lam(0x8a8e94),40.5,1.2,-66,6);const p=PL(.7,.7,new THREE.MeshBasicMaterial({map:tx,side:THREE.DoubleSide}),40.5,2.3,-66);B(2.2,.45,.5,lam(0x8a6a4a),38.6,.23,-65.4);ob(37.5,40.8,-66.2,-65,'bus');}
       [[15,-90],[15,-80],[42,-92],[42,-72],[22,-65],[33,-65]].forEach(([x,z])=>{tree(x,z,1.1);ob(x-.35,x+.35,z-.35,z+.35,'tree');});}
-    oHit(2.4,2.6,.6,28,1.3,-97.7,{prompt(){return'みなと大学前駅に<b>入る</b>(みなと線)';},press(){transit(()=>enterStore('stU'));}});
     MAPB.push([14,42,-114,-98,'#9ab0d8'],[12.3,46,-98,-64,'#d8d4cc']);label(28,-106,'みなと大学前駅','#1a5fc0');label(14,-71,'東門','#5a3a8a');}
-  // ---- 東みなと: station, a fountain plaza, the police, a hospital, a cafe and two towers along a boulevard (behind the gym)
-  {const fr=phong(0xb8bcc0,90,0x888888),glass=new THREE.MeshPhongMaterial({color:0x6a8aa0,shininess:120,specular:0xffffff,transparent:true,opacity:.7}),glow=nightMat(0xfff4d8),pave=ctex(256,256,(g,w,h)=>{g.fillStyle='#c8bca8';g.fillRect(0,0,w,h);g.strokeStyle='#a89c88';g.lineWidth=3;for(let i=0;i<=8;i++){g.beginPath();g.moveTo(i*32,0);g.lineTo(i*32,h);g.moveTo(0,i*32);g.lineTo(w,i*32);g.stroke();}g.strokeStyle='#8a7e6a';g.lineWidth=6;g.beginPath();g.arc(w/2,h/2,90,0,7);g.stroke();},[1,1]);
-    // station (front faces the plaza, north)
-    bldBox(S2,50,82,-64,-48,8,4,false,null,true);PL(14,3,glow,66,1.6,-47.98);PL(14,3,glass,66,1.6,-47.94);for(let x=59;x<=73.1;x+=1.75)B(.1,3.1,.08,fr,x,1.55,-47.92);B(16,.28,3,lam(0xe8e8e4),66,3.5,-46.6);
-    hSign(S2,66,5.6,-47.9,0,'東みなと駅','#1a5fc0','#fff',7,'HIGASHI-MINATO STATION');B(24,.25,10,lam(0xb8bcc0),66,13.4,-60);
-    oHit(2.4,2.6,.6,66,1.3,-47.7,{prompt(){return'東みなと駅に<b>入る</b>(みなと線)';},press(){transit(()=>enterStore('stE'));}});
-    // plaza with a fountain
-    {const p=PL(40,20,new THREE.MeshLambertMaterial({map:pave}),64,.008,-38,-Math.PI/2);}
-    cyl(3.2,3.4,.5,lam(0xd8d4cc),64,.25,-38,28);cyl(2.9,2.9,.06,new THREE.MeshPhongMaterial({color:0x5a9ad8,shininess:140,specular:0xffffff,transparent:true,opacity:.85}),64,.48,-38,28);cyl(.4,.6,1.4,lam(0xd8d4cc),64,1,-38,14);cyl(.9,.9,.12,lam(0xd8d4cc),64,1.7,-38,16);
-    for(let i=0;i<8;i++){const a=i/8*Math.PI*2,j=cyl(.03,.06,1.0,new THREE.MeshBasicMaterial({color:0xcfe8ff,transparent:true,opacity:.7}),64+Math.cos(a)*1.6,.95,-38+Math.sin(a)*1.6,6);j.rotation.set(Math.sin(a)*.4,0,-Math.cos(a)*.4);}
-    ob(60.6,67.4,-41.4,-34.6,'fountain');
-    [[48,-44],[80,-44],[48,-31],[80,-31],[56,-30],[72,-30]].forEach(([x,z])=>{tree(x,z,1.15);ob(x-.35,x+.35,z-.35,z+.35,'tree');});
-    [[56,-38,Math.PI/2],[72,-38,-Math.PI/2],[64,-44.5,0],[64,-31.5,Math.PI]].forEach(([x,z,r])=>{const b=B(r%Math.PI?.5:2.2,.45,r%Math.PI?2.2:.5,lam(0x8a6a4a),x,.23,z);ob(x-(r%Math.PI?.3:1.1),x+(r%Math.PI?.3:1.1),z-(r%Math.PI?1.1:.3),z+(r%Math.PI?1.1:.3),'bench');});
-    [[52,-36],[76,-36],[52,-46],[76,-46]].forEach(([x,z])=>{cyl(.07,.09,4,lam(0x2a2a2a),x,2,z,8);B(.5,.25,.5,nightMat(0xfff1d0),x,4.1,z);ob(x-.15,x+.15,z-.15,z+.15,'pole');});
-    {const tx=ctex(256,256,(g,w,h)=>{g.fillStyle='#fff';g.beginPath();g.arc(128,128,120,0,7);g.fill();g.strokeStyle='#1a1a1a';g.lineWidth=8;g.stroke();g.lineWidth=10;g.beginPath();g.moveTo(128,128);g.lineTo(128,48);g.moveTo(128,128);g.lineTo(186,140);g.stroke();});
-      cyl(.08,.08,3.6,lam(0x2a2a2a),70,1.8,-28.6,8);const c=PL(.9,.9,new THREE.MeshBasicMaterial({map:tx,transparent:true}),70,3.9,-28.55);const c2=PL(.9,.9,new THREE.MeshBasicMaterial({map:tx,transparent:true}),70,3.9,-28.65,0,Math.PI);ob(69.8,70.2,-28.8,-28.4,'pole');}
-    // the boulevard north to the gym's back lot
-    PL(8,90,lam(0x6a6862),64,.006,16,-Math.PI/2);PL(7.5,20,lam(0x6a6862),68.25,.007,66,-Math.PI/2);for(let z=-24;z<58;z+=8){[60.6,67.4].forEach(x=>{tree(x,z,.9);ob(x-.3,x+.3,z-.3,z+.3,'tree');});}
-    // police station (west side, door on the boulevard)
-    bldBox(S2,44,60,-26,-6,10,5,false,null,true);B(.1,3,6,glass,60.02,1.5,-15);B(.1,3,6.4,glow,59.98,1.5,-15);B(2.4,.25,7,lam(0xe8e8e4),61.1,3.3,-15);
-    hSign(S2,60.08,5.4,-15,Math.PI/2,'みなと警察署','#1a2a5a','#fff',6,'MINATO POLICE STATION');{const l=new THREE.Mesh(new THREE.SphereGeometry(.22,10,8),nightMat(0xff2a2a));l.position.set(60.3,3.8,-11.4);S2.add(l);}
-    [[-22,0x1a1a1a],[-9,0x1a1a1a]].forEach(([z])=>simpleCar(S2,57.4,z,0,0xf4f4f4,true));cyl(.05,.05,7,lam(0xcccccc),58.8,3.5,-25,6);B(1.2,.8,.02,new THREE.MeshBasicMaterial({color:0xffffff}),59.4,6.4,-25);
-    oHit(.6,2.6,3,60.4,1.3,-15,{prompt(){return'みなと警察署(特に用はない)';},press(){toast('受付の警察官と目が合った。…用はない');}});
-    // cafe with a terrace
-    bldBox(S2,44,58,-2,10,7,4,false,null,true);B(.1,2.6,10,glow,57.98,1.4,4);B(.1,2.6,10,glass,58.02,1.4,4);
-    for(let i=0;i<6;i++){const a=B(1.2,.05,1.7,lam(i%2?0xf4f0e6:0x2a5a3a),58.6,2.9,-.4+i*1.75);a.rotation.z=-.25;}hSign(S2,58.08,4.8,4,Math.PI/2,'CAFE marée','#2a5a3a','#f4f0e6',5,'COFFEE & SWEETS');
-    [-0.5,3,6.5].forEach(z=>{cyl(.4,.4,.05,lam(0xf4f0e6),59.3,.75,z,14);cyl(.04,.04,.75,lam(0x2a2a2a),59.3,.38,z,6);cyl(.03,.03,2.2,lam(0x8a6a4a),59.3,1.1,z,6);const u=cyl(0,1.2,.5,lam(z>2&&z<4?0xc8361c:0xf4f0e6),59.3,2.3,z,10);ob(58.8,59.8,z-.5,z+.5,'table');});
-    oHit(.6,2.6,3,58.4,1.3,4,{prompt(){return'CAFE marée(今日は満席みたい)';},press(){toast('店内は満席だった。またにしよう');}});
-    // hospital (east side)
-    bldBox(S2,68,84,-26,10,14,4,false,null,true);B(.1,3,8,glow,67.98,1.5,-8);B(.1,3,8,glass,67.94,1.5,-8);B(3,.3,9,lam(0xe8e8e4),66.6,3.4,-8);
-    hSign(S2,67.9,5.6,-8,-Math.PI/2,'東みなと総合病院','#1a8a5a','#fff',7.5,'HIGASHI-MINATO GENERAL HOSPITAL');
-    {const tx=ctex(128,128,(g,w,h)=>{g.fillStyle='#1a8a5a';g.fillRect(0,0,w,h);g.fillStyle='#fff';g.font='900 100px "Noto Sans JP",sans-serif';g.textAlign='center';g.fillText('H',w/2,100);});const p=PL(2,2,new THREE.MeshBasicMaterial({map:tx}),67.9,11.5,-8,0,-Math.PI/2);}
-    simpleCar(S2,70.6,-20,Math.PI,0xf4f4f4,true);B(2.1,.3,4.4,new THREE.MeshBasicMaterial({color:0xd82020}),70.6,1.05,-20);
-    oHit(.6,2.6,3,67.6,1.3,-8,{prompt(){return'東みなと総合病院(今日はどこも悪くない)';},press(){toast('受付は混んでいる。今日はどこも悪くない');}});
-    // two residential towers
-    bldBox(S2,44,60,14,56,30,1,false,null,true);OUTB.wq.push(()=>winFace('px',44,60,14,56,30,1,3.2,seedRand(911)));B(.2,3,6,glow,60.05,1.5,34);hSign(S2,60.1,3.6,34,Math.PI/2,'ミナトパークタワー','#3a3a3e','#e8d8b0',4.5);
-    bldBox(S2,68,84,14,56,34,1,false,null,true);OUTB.wq.push(()=>winFace('nx',68,84,14,56,34,1,3.2,seedRand(912)));B(.2,3,6,glow,67.95,1.5,34);hSign(S2,67.9,3.6,34,-Math.PI/2,'ザ・東みなとレジデンス','#3a3a3e','#e8d8b0',5);
-    MAPB.push([50,82,-64,-48,'#9ab0d8'],[44,84,-48,-28,'#e8dcc8'],[60,68,-28,60,'#d8d4cc'],[44,60,-26,-6,'#9aa8c8'],[44,58,-2,10,'#c8d8b8'],[68,84,-26,10,'#c8e0d0'],[44,60,14,56,'#cfc8bb'],[68,84,14,56,'#cfc8bb']);
-    label(66,-56,'東みなと駅','#1a5fc0');label(52,-16,'警察署','#1a2a5a');label(51,4,'カフェ','#2a5a3a');label(76,-8,'病院','#1a8a5a');label(64,-38,'噴水広場','#8a6a3a');}
+  // ---- みなと大学病院 (beside the university, facing the 大学前 square)
+  {facade(S2,{cx:46,cz:-82,face:'nx',W:30,H:14,D:16,wall:'tile',tint:0xf4f6f4,kind:'hospital',frameC:0x1a8a5a,door:{w:3.4,c:0x1a8a5a,label:'正面玄関'},canopyC:0x1a8a5a,handleC:0xd8dce0,
+      sign:{t:'みなと大学病院',sub:'MINATO UNIVERSITY HOSPITAL',bg:'#1a8a5a',fg:'#fff',w:10},winStep:2.2,map:'#c8e0d0',
+      prompt(){return'みなと大学病院(今日はどこも悪くない)';},press(){toast('外来の受付は混んでいる。今日はどこも悪くない');}});
+    const tx=ctex(128,128,(g,w,h)=>{g.fillStyle='#1a8a5a';g.fillRect(0,0,w,h);g.fillStyle='#fff';g.font='900 100px "Noto Sans JP",sans-serif';g.textAlign='center';g.fillText('H',w/2,100);});PL(2,2,new THREE.MeshBasicMaterial({map:tx}),45.9,12,-90,0,-Math.PI/2);
+    label(54,-82,'大学病院','#1a8a5a');}
+  // ================= 東みなと: a garden-place square under a glass arcade, and a tree-lined street of small shops (think Ebisu / Daikanyama) =================
+  {const pave=ctex(256,256,(g,w,h)=>{g.fillStyle='#b88a6a';g.fillRect(0,0,w,h);const rr=seedRand(21);for(let y=0;y<h;y+=16)for(let x=(y/16)%2*16-16;x<w;x+=32){const v=rr();g.fillStyle=v<.33?'#a87a5a':v<.66?'#c8987a':'#b4866a';g.fillRect(x+1,y+1,30,14);}},[12,10]);
+    const pm=new THREE.MeshLambertMaterial({map:pave}),grass=lam(0x4a7a3a),stone=lam(0xd8d4cc),iron=lam(0x1e1e22),glassM=new THREE.MeshPhongMaterial({color:0xcfe4ee,transparent:true,opacity:.28,shininess:170,specular:0xffffff,side:THREE.DoubleSide});
+    // station
+    stationFront(S2,{cx:66,cz:-48,face:'pz',W:32,D:16,H:8.4,key:'stE',name:'東みなと駅',en:'HIGASHI-MINATO STATION',front:2});B(24,.25,10,lam(0xb8bcc0),66,13.4,-60);
+    // the square: brick paving, lawns with feature trees, the glass arcade over the middle walk, a fountain
+    PL(40,22,pm,64,.008,-37,-Math.PI/2);{const t2=pave.clone();t2.needsUpdate=true;t2.repeat.set(2.4,26);const t3=pave.clone();t3.needsUpdate=true;t3.repeat.set(2.2,6);PL(8,86,new THREE.MeshLambertMaterial({map:t2}),64,.007,17,-Math.PI/2);PL(7.5,20,new THREE.MeshLambertMaterial({map:t3}),68.25,.006,66,-Math.PI/2);}
+    [[51,-37],[77,-37]].forEach(([x,z])=>{PL(11,12,grass,x,.012,z,-Math.PI/2);B(11.3,.25,.25,stone,x,.12,z-6.1);B(11.3,.25,.25,stone,x,.12,z+6.1);B(.25,.25,12.4,stone,x-5.65,.12,z);B(.25,.25,12.4,stone,x+5.65,.12,z);
+      tree(x,z,1.5);ob(x-.5,x+.5,z-.5,z+.5,'tree');for(let k=0;k<10;k++){const fl=new THREE.Mesh(new THREE.SphereGeometry(.18,6,4),lam([0xe84a6a,0xf4d040,0xf4f4f4,0xd86ad8][k%4]));fl.position.set(x-4+k*.9,.2,z+(k%2?5.2:-5.2));S2.add(fl);}});
+    // arcade: arched steel ribs every 4 m with glass between (z -46..-10)
+    {const R0=4.4,cxA=64,base=3.2,seg=10;for(let z=-46;z<=-10;z+=4){for(let k=0;k<seg;k++){const a0=Math.PI*k/seg,a1=Math.PI*(k+1)/seg,x0=cxA+Math.cos(a0)*R0,y0=base+Math.sin(a0)*R0*.55,x1=cxA+Math.cos(a1)*R0,y1=base+Math.sin(a1)*R0*.55,L=Math.hypot(x1-x0,y1-y0);
+          const b=new THREE.Mesh(new THREE.BoxGeometry(L,.14,.14),iron);b.position.set((x0+x1)/2,(y0+y1)/2,z);b.rotation.z=Math.atan2(y1-y0,x1-x0);S2.add(b);
+          if(z<-10){const gpl=new THREE.Mesh(new THREE.PlaneGeometry(L,4),glassM);gpl.position.set((x0+x1)/2,(y0+y1)/2,z+2);gpl.rotation.set(-Math.PI/2,0,0);gpl.rotateOnWorldAxis(new THREE.Vector3(0,0,1),Math.atan2(y1-y0,x1-x0));S2.add(gpl);}}
+        [cxA-R0,cxA+R0].forEach(x=>{B(.22,base,.22,iron,x,base/2,z);ob(x-.15,x+.15,z-.15,z+.15,'pole');});const l=new THREE.Mesh(new THREE.SphereGeometry(.12,8,6),nightMat(0xfff0c8));l.position.set(cxA,base+R0*.55-.3,z);S2.add(l);}
+      [cxA-R0,cxA+R0].forEach(x=>B(.16,.16,36,iron,x,base,-28));}
+    cyl(2.6,2.8,.45,stone,64,.22,-37,32);cyl(2.4,2.4,.06,new THREE.MeshPhongMaterial({color:0x5a9ad8,shininess:150,specular:0xffffff,transparent:true,opacity:.85}),64,.42,-37,32);cyl(.35,.5,1.2,stone,64,.8,-37,16);cyl(.8,.8,.1,stone,64,1.45,-37,20);ob(61.2,66.8,-39.8,-34.2,'fountain');
+    for(let i=0;i<10;i++){const a=i/10*Math.PI*2,j=cyl(.025,.05,1.1,new THREE.MeshBasicMaterial({color:0xcfe8ff,transparent:true,opacity:.6}),64+Math.cos(a)*1.3,.95,-37+Math.sin(a)*1.3,6);j.rotation.set(Math.sin(a)*.35,0,-Math.cos(a)*.35);}
+    // a big round clock on a pillar, benches and lamps around the square
+    {const ck=ctex(256,256,(g,w,h)=>{g.fillStyle='#f8f6ee';g.beginPath();g.arc(128,128,120,0,7);g.fill();g.strokeStyle='#2a2a2a';g.lineWidth=10;g.stroke();g.fillStyle='#1a1a1a';g.font='700 26px "Noto Serif JP",serif';g.textAlign='center';['XII','III','VI','IX'].forEach((t,i)=>{const a=i*Math.PI/2;g.fillText(t,128+Math.sin(a)*90,138-Math.cos(a)*90);});g.lineWidth=8;g.beginPath();g.moveTo(128,128);g.lineTo(128,58);g.moveTo(128,128);g.lineTo(178,150);g.stroke();});
+      cyl(.18,.24,4.2,iron,72,2.1,-29,10);[0,Math.PI].forEach(r=>PL(1.2,1.2,new THREE.MeshBasicMaterial({map:ck,transparent:true}),72,4.4,-29+(r?-.05:.05),0,r));ob(71.8,72.2,-29.2,-28.8,'pole');}
+    [[50,-30,0],[78,-30,0],[50,-44,Math.PI],[78,-44,Math.PI]].forEach(([x,z,r])=>{B(2.2,.45,.6,lam(0x8a6a4a),x,.23,z);B(2.2,.5,.08,lam(0x8a6a4a),x,.6,z+(r?-.28:.28));ob(x-1.1,x+1.1,z-.35,z+.35,'bench');});
+    const lamp=(x,z)=>{cyl(.06,.09,3.6,iron,x,1.8,z,8);const h=new THREE.Mesh(new THREE.CylinderGeometry(.18,.12,.4,6),nightMat(0xfff1d0));h.position.set(x,3.8,z);S2.add(h);cyl(.22,.22,.06,iron,x,4.03,z,6);ob(x-.12,x+.12,z-.12,z+.12,'pole');};
+    [[46,-27],[82,-27],[46,-47],[82,-47]].forEach(([x,z])=>lamp(x,z));
+    // the street: trees both sides, lamps, festoon lights between the trees
+    for(let z=-24;z<58;z+=8){[60.7,67.3].forEach(x=>{tree(x,z,.95);B(1,.3,1,stone,x,.15,z);ob(x-.5,x+.5,z-.5,z+.5,'tree');});lamp(60.7,z+4);lamp(67.3,z+4);
+      for(let k=1;k<8;k++){const t=k/8,x=60.7+6.6*t,y=3.6-Math.sin(t*Math.PI)*.6;const b=new THREE.Mesh(new THREE.SphereGeometry(.07,6,4),nightMat(0xffe0a0));b.position.set(x,y,z+4*((k%2)?.5:0));S2.add(b);}}
+    // shops: west side faces the street (+x), east side faces back (−x)
+    const shop=(o)=>facade(S2,{H:8,D:12,planters:true,winStep:2.2,...o,prompt:o.prompt||(()=>`${o.nm}(今日は外から眺めるだけ)`),press:o.press||(()=>toast(o.msg||`${o.nm}…今日はやめておこう`))});
+    shop({cx:60,cz:-20,face:'px',W:9.5,nm:'Boulangerie Lune',wall:'plaster',tint:0xf6ecd8,kind:'bakery',frameC:0x2a4a3a,door:{w:1.6,c:0x2a4a3a,kind:'single'},canopy:false,awning:[0x2a4a3a,0xf4f0e6],
+      sign:{t:'Boulangerie Lune',sub:'パン屋',bg:'#2a4a3a',fg:'#f4f0e6',font:'"Noto Serif JP",serif',w:7},blade:{t:'パン',bg:'#2a4a3a',fg:'#f4f0e6'},stand:'焼きたて\nクロワッサン\n¥280',map:'#e8d8c0',msg:'パンのいい匂いがする…'});
+    shop({cx:60,cz:-7,face:'px',W:11.5,nm:'CAFE marée',wall:'wood',kind:'cafe',frameC:0x1e3a2a,door:{w:1.8,c:0x1e3a2a},canopy:false,awning:[0x2a5a3a,0xf4f0e6],
+      sign:{t:'CAFE marée',sub:'COFFEE & SWEETS',bg:'#2a5a3a',fg:'#f4f0e6',w:7},blade:{t:'カフェ',bg:'#2a5a3a',fg:'#f4f0e6'},stand:'本日の\nタルト\n¥680',map:'#c8d8b8',msg:'満席だった。またにしよう',prompt:()=>'CAFE marée(今日は満席みたい)'});
+    [-11,-3].forEach(z=>{cyl(.38,.38,.05,lam(0xf4f0e6),61.4,.75,z,14);cyl(.04,.04,.75,iron,61.4,.38,z,6);cyl(.03,.03,2.2,lam(0x8a6a4a),61.4,1.1,z,6);cyl(0,1.2,.5,lam(0xf4f0e6),61.4,2.3,z,10);[-.6,.6].forEach(o=>{B(.4,.45,.4,iron,61.4,.23,z+o);});ob(60.9,61.9,z-.9,z+.9,'table');});
+    shop({cx:60,cz:6,face:'px',W:9.5,nm:'BOOKS 港',wall:'concrete',kind:'books',frameC:0x1a1a1a,door:{w:1.7,c:0x1a1a1a,kind:'single'},canopyC:0x6a4a2a,
+      sign:{t:'BOOKS 港',sub:'BOOK & COFFEE',bg:'#f4f0e6',fg:'#1a1a1a',w:6,box:0x6a4a2a},blade:{t:'本屋',bg:'#1a1a1a',fg:'#f4f0e6'},map:'#d8d4cc',msg:'雑誌を少し立ち読みした'});
+    shop({cx:60,cz:17,face:'px',W:7.5,nm:'Vin Rouge',wall:'brick',kind:'wine',frameC:0x3a1018,door:{w:1.4,c:0x3a1018,kind:'single'},canopyC:0x3a1018,handleC:0xd8b84a,
+      sign:{t:'Vin Rouge',sub:'WINE BAR',bg:'#3a1018',fg:'#e8d8a8',font:'"Noto Serif JP",serif',w:5},blade:{t:'ワイン',bg:'#3a1018',fg:'#e8d8a8'},map:'#b88a7a',msg:'まだ開店前だった(18:00〜)'});
+    shop({cx:60,cz:26.5,face:'px',W:7,nm:'Fleur',wall:'plaster',kind:'flower',frameC:0x3a6a3a,door:{w:1.4,c:0x3a6a3a,kind:'single'},canopy:false,awning:[0x3a6a3a,0xf4f4ee],
+      sign:{t:'Fleur',sub:'FLOWER SHOP',bg:'#f4f4ee',fg:'#3a6a3a',font:'"Noto Serif JP",serif',w:5},blade:{t:'花屋',bg:'#3a6a3a',fg:'#fff'},map:'#d8e8c8',msg:'花の香りがする。誰かにあげる予定は…ない'});
+    for(let i=0;i<6;i++){const z=24.4+i*.75;B(.5,.4,.5,lam(0x8a8a86),61.1,.2,z);for(let k=0;k<5;k++){const fl=new THREE.Mesh(new THREE.SphereGeometry(.11,6,4),lam([0xe84a6a,0xf4d040,0xf4f4f4,0xd86ad8,0xf08a3a][(i+k)%5]));fl.position.set(61.0+(k%2)*.2,.5+k*.06,z-.15+k*.07);S2.add(fl);}}ob(60.8,61.4,24.1,28.6,'flowers');
+    shop({cx:60,cz:45,face:'px',W:22,H:30,D:16,nm:'東みなと ガーデンタワー',wall:'concrete',tint:0xd8d8d4,kind:'gallery',frameC:0x2a2a2e,door:{w:3,c:0x2a2a2e,label:'GARDEN TOWER'},canopyC:0x2a2a2e,winStep:2.4,
+      sign:{t:'GARDEN TOWER',sub:'東みなと ガーデンタワー',bg:'#2a2a2e',fg:'#e8d8b0',w:8},map:'#cfc8bb',msg:'オフィスと住居のタワー。エントランスには警備員がいる'});
+    shop({cx:68,cz:-20,face:'nx',W:9.5,nm:'GALLERY 白',wall:'concrete',kind:'gallery',frameC:0x1a1a1a,door:{w:1.6,c:0x1a1a1a,kind:'single'},canopy:false,
+      sign:{t:'GALLERY 白',sub:'CONTEMPORARY ART',bg:'#fafaf8',fg:'#1a1a1a',w:6},map:'#e8e8e4',msg:'現代アートの展示中。よくわからないけど、なんかいい'});
+    shop({cx:68,cz:-7.5,face:'nx',W:10,nm:'atelier',wall:'wood',kind:'select',frameC:0x2a2a2e,door:{w:1.6,c:0x2a2a2e,kind:'single'},canopyC:0x5a4a3a,
+      sign:{t:'atelier',sub:'SELECT SHOP',bg:'#f2efe8',fg:'#2a2a2e',font:'"Noto Serif JP",serif',w:6,box:0x5a4a3a},blade:{t:'セレクト',bg:'#2a2a2e',fg:'#f2efe8'},map:'#d8ccb8',msg:'値札を見て、そっと戻した'});
+    shop({cx:68,cz:4.5,face:'nx',W:9.5,nm:'Pâtisserie Sucre',wall:'plaster',tint:0xfbeff2,kind:'patis',frameC:0xc86a8a,door:{w:1.6,c:0xc86a8a,kind:'single'},canopy:false,awning:[0xd88aa0,0xfbf0f2],
+      sign:{t:'Pâtisserie Sucre',sub:'ケーキ・焼き菓子',bg:'#fbf0f2',fg:'#c86a8a',font:'"Noto Serif JP",serif',w:7},blade:{t:'ケーキ',bg:'#c86a8a',fg:'#fff'},map:'#f2d8e0',msg:'ショーケースのケーキがきれいすぎる'});
+    shop({cx:68,cz:17,face:'nx',W:11.5,nm:'Trattoria Porto',wall:'brick',kind:'trattoria',frameC:0x1a3a1a,door:{w:1.8,c:0x1a3a1a},canopy:false,awning:[0xb8321a,0xf4f0e6],
+      sign:{t:'Trattoria Porto',sub:'ITALIAN',bg:'#1a3a1a',fg:'#f4f0e6',font:'"Noto Serif JP",serif',w:7},blade:{t:'イタリアン',bg:'#b8321a',fg:'#fff'},stand:'PRANZO\nランチ\n¥1,200',map:'#c89878',msg:'ランチは行列ができている'});
+    [12.5,21.5].forEach(z=>{cyl(.38,.38,.05,lam(0xf4f0e6),66.6,.75,z,14);cyl(.04,.04,.75,iron,66.6,.38,z,6);cyl(.03,.03,2.2,lam(0x8a6a4a),66.6,1.1,z,6);cyl(0,1.2,.5,lam(0xb8321a),66.6,2.3,z,10);ob(66.1,67.1,z-.9,z+.9,'table');});
+    shop({cx:68,cz:42,face:'nx',W:28,H:34,D:16,nm:'ザ・東みなとレジデンス',wall:'tile',tint:0xe8e4dc,kind:'select',frameC:0x3a3a3e,door:{w:3,c:0x3a3a3e,label:'RESIDENCE'},canopyC:0x3a3a3e,winStep:2.4,balcony:true,
+      sign:{t:'THE RESIDENCE',sub:'ザ・東みなとレジデンス',bg:'#3a3a3e',fg:'#e8d8b0',w:8},map:'#cfc8bb',msg:'オートロックだ。住人じゃないので入れない'});
+    label(66,-56,'東みなと駅','#1a5fc0');label(64,-37,'ガーデンプレイス','#8a6a3a');label(64,18,'ガーデン通り','#8a6a3a');}
+
   // traffic lights at the main crossings (visual cycle)
   OUT.sig=[];[[-13.25,89.75]].forEach(([cx,cz])=>{[[-1,-1],[1,1]].forEach(([sx,sz])=>{const px=cx+sx*6.4,pz=cz+sz*6.4;cyl(.09,.11,5.6,lam(0x6a6a66),px,2.8,pz,8);ob(px-.2,px+.2,pz-.2,pz+.2,'pole');
     const hb=box(.3,.32,1.1,lam(0x1a1a1a),px,5.2,pz-sz*.6);const vb=box(1.1,.32,.3,lam(0x1a1a1a),px-sx*.6,5.6,pz);
@@ -5289,7 +5302,7 @@ function guideText(){
   if(W.slept)return MP.on&&!DAY.choosing?'おやすみなさい… <b>相方の帰宅</b>を待っています':'おやすみなさい…';
   if(soccerMode())return'⚽ 触れてドリブル / <b>使う</b>を長押し→離してシュート'+(isTouch?'':'(F:ダブルタッチ G:タックル V:ループ)');
   if(W.store==='salon')return`鏡の前の椅子で<b>カット・カラー</b>(残高 ${yen(BANK.bal)})`;if(W.store==='boutique')return`服を選んで<b>買う・着替える</b>(残高 ${yen(BANK.bal)})`;
-  if(W.store==='police')return'';if(W.store&&W.store.startsWith('trn'))return crushed()?'満員電車…身動きがとれない':'電車で移動中…(アナウンスを待とう)';
+  if(P.sit&&W.store)return'座っている(アクションから<b>席を立つ</b>)';if(W.store==='police')return'';if(W.store&&W.store.startsWith('trn'))return crushed()?'満員電車…身動きがとれない':'電車で移動中…(アナウンスを待とう)';
   if(STN[W.store]){const lx=player.x-STORES[W.store].X;if(player.z>100)return player.z>114?`改札を通ってホームへ(全線 ${yen(FARE)})`:'階段で<b>ホームへ</b>';
     if(inCarZone(lx,player.z,0)||inCarZone(lx,player.z,1))return crushed()?'満員で動けない…(アクションから降りる)':'ドアが閉まると発車します';
     const d=nextDeps(W.store,90)[0];return d?`次の電車 <b>${clockOfGm(d.gm)}</b> ${STN[d.to].n}行(${trackOf(W.store,d.dir)?2:1}番線)`:'本日の運転は終了しました';}
@@ -5544,7 +5557,7 @@ function dayWrap(){const i=cur;if(!DAY.notes)DAY.notes=[];
   if(!W.offDay&&!W.clockedIn&&isWorkDay(DAY.n))DAY.notes.push(['権田(店長)',`${newbie(i)}、昨日来なかったよね…? 連絡くらいはしてほしい。今度ちゃんと話そう`]);}
 // staying up too late: at 2:00 you drop wherever you are and wake up at home
 const closeOverlays=()=>{['#rpgUI','#lookUI','#gymUI'].forEach(k=>{const e=$(k);if(e)e.hidden=true;});PREVIEW=null;};
-function forceSleep(){if(W.slept)return;cancelTransit();if(cur===me)closeOverlays();if(W.guest){if(W.gSeat!=null)guestStand();guestPay();W.guest=false;}if(W.store==='gym')gymLeft(cur);P.ramen=null;P.onTrain=null;P.jail=null;P.game=false;if(W.store)W.store=null;CAR.inCar=false;BIKE.riding=false;W.ride=null;W.sekkyoNow=false;W.makaSeat=false;
+function forceSleep(){if(W.slept)return;cancelTransit();if(cur===me)closeOverlays();if(W.guest){if(W.gSeat!=null)guestStand();guestPay();W.guest=false;}if(W.store==='gym')gymLeft(cur);P.ramen=null;P.onTrain=null;P.jail=null;P.game=false;P.sit=null;if(cur===me)rideHum(0);if(W.store)W.store=null;CAR.inCar=false;BIKE.riding=false;W.ride=null;W.sekkyoNow=false;W.makaSeat=false;
   goHome('walk');dayWrap();W.slept=true;allSleptCheck();if(cur===me)toast('…限界。気づいたら家のベッドで寝ていた');}
 function openSleepAsk(){const el=$('#sleepAsk');$('#saSub').textContent=`今日はここで終わりにして、${dayLabel(DAY.n+1)} に進みます`;el.hidden=false;if(document.exitPointerLock&&locked())document.exitPointerLock();}
 function goHome(how){if(!HOME.built)buildHome();HOME.mode='end';HOME.endHow=how;W.home=true;W.outside=false;player.x=HX-.8;player.z=1.5;yaw=0;pitch=-.05;if(cur===me){view.yaw=0;view.pitch=-.05;}HOME.lightOn=false;HOME.tvOn=false;
@@ -6023,7 +6036,7 @@ const clockOfGm=gm=>{const m=Math.round(gm),h=18+Math.floor(m/60),mm=((m%60)+60)
 // ---- moving people between the platform, the train and the next station (sim, per player)
 const inCarZone=(lx,z,tr)=>lx>=-15.5&&lx<=15.5&&Math.abs(z-TRK[tr])<=.9;
 const inDoorBand=(z,tr)=>Math.abs(z)>1.45&&Math.abs(z)<2.9&&Math.sign(z)===Math.sign(TRK[tr]);
-function crushed(){if(!rushNow())return false;const s=W.store;if(!s)return false;if(s.startsWith('trn'))return true;if(STN[s]){const lx=player.x-STORES[s].X;return inCarZone(lx,player.z,0)||inCarZone(lx,player.z,1);}return false;}
+function crushed(){return false;if(!rushNow())return false;const s=W.store;if(!s)return false;if(s.startsWith('trn'))return true;if(STN[s]){const lx=player.x-STORES[s].X;return inCarZone(lx,player.z,0)||inCarZone(lx,player.z,1);}return false;}
 function trainStep(){const s=W.store;if(!s)return;
   if(STN[s]){const S=STORES[s],lx=player.x-S.X;
     for(let tr=0;tr<2;tr++){const t=stTrain(s,tr),docked=t&&t.x===0;
@@ -6134,11 +6147,17 @@ function buildTrain(par){const g=new THREE.Group();par.add(g);const L=15.6,Wd=1.
   U.setDoors=(side,o)=>U.doors.forEach(D=>{D.l.position.x=D.x0+(D.sd===side?D.h*.62*o:0);});
   flushBatch(Bt,g,false);
   // passengers (shown according to the time of day)
+  {const n=SEAT_SLOTS.length,bodyG=new THREE.CylinderGeometry(.14,.19,.58,10),legG=new THREE.BoxGeometry(.3,.13,.46),hairG=new THREE.SphereGeometry(.112,10,6,0,Math.PI*2,0,Math.PI*.55);bodyG.scale(1,1,.72);
+    U.fillB=new THREE.InstancedMesh(bodyG,lam(0xffffff),n);U.fillL=new THREE.InstancedMesh(legG,lam(0xffffff),n);U.fillH=new THREE.InstancedMesh(new THREE.SphereGeometry(.1,10,8),lam(0xe0b490),n);U.fillR=new THREE.InstancedMesh(hairG,lam(0xffffff),n);const cl=new THREE.Color();
+    for(let i=0;i<n;i++){cl.setHex([0x2a3040,0x5a4a3a,0x8a8a90,0x3a5a7a,0x6a2a2a,0xd8d4cc,0x2a2a2e,0x4a6a4a][i%8]);U.fillB.setColorAt(i,cl);cl.setHex([0x22222a,0x3a4a6a,0x2a2a2e,0x5a5a60][i%4]);U.fillL.setColorAt(i,cl);cl.setHex([0x1a1410,0x3a2416,0x6a4024,0x1a1410,0x8a8a86][i%5]);U.fillR.setColorAt(i,cl);}
+    U.fills=[U.fillB,U.fillL,U.fillH,U.fillR];U.fills.forEach(m=>{m.count=0;g.add(m);});}
   U.pax=[];const pool=NORMAL_TYPES.filter(t=>!t.glam);for(let i=0;i<16;i++){const ty=pool[i*5%pool.length],m=buildModel(ty,ty.skin||'#e8c4a2');Object.assign(m,{type:ty,skin:ty.skin||'#e8c4a2',ctx:m.fc.getContext('2d'),expr:'',hy:0,hp:0,hr:0,walkT:0,bac:0,lv:0});setExpr(m,'normal');m.g.visible=false;g.add(m.g);U.pax.push(m);}
   return g;}
-function placePax(g,seed,rush,dt){const rr=seedRand(Math.abs(seed)*7+11);g.userData.pax.forEach((m,i)=>{const on=rush?true:i<4;m.g.visible=on;if(!on)return;
-  if(rush){const d=DOORX[i%5],x=d+(rr()-.5)*4.6;m.g.position.set(clamp(x,-15,15),0,(rr()-.5)*1.5);m.g.rotation.y=rr()*6.3;m.forceLP=null;armTo(m,0,rr()<.6?'tray':'hang',dt,4);armTo(m,1,'hang',dt,4);}
-  else{const sd=rr()<.5?-1:1;m.g.position.set(-13+rr()*26,-.36,sd*1.08);m.g.rotation.y=sd>0?Math.PI:0;m.forceLP='chair';armTo(m,0,rr()<.5?'tray':'hang',dt,4);armTo(m,1,'hang',dt,4);}vis(()=>rigUpdate(m,dt));});}
+function placePax(g,k,n,dt){const U=g.userData,seats=paxSeats(k,n),rush=(()=>{const h=hourOf(n*CYC+OFS*k);return(h>=7&&h<9.5)||(h>=17.5&&h<19.5);})(),M4=placePax.m||(placePax.m=new THREE.Matrix4());
+  U.pax.forEach((m,i)=>{if(i<12&&i<seats.length){const sl=SEAT_SLOTS[seats[i]];m.g.visible=true;m.g.position.set(sl.x,-.36,sl.sd*1.05);m.g.rotation.y=sl.sd>0?Math.PI:0;m.forceLP='chair';armTo(m,0,i%3?'hang':'tray',dt,4);armTo(m,1,'hang',dt,4);vis(()=>rigUpdate(m,dt));}
+    else if(rush&&i>=12){const d=DOORX[i%5];m.g.visible=true;m.g.position.set(d+(i%2?.5:-.5),0,(i%3-1)*.45);m.g.rotation.y=i*1.7;m.forceLP=null;armTo(m,0,'tray',dt,4);armTo(m,1,'hang',dt,4);vis(()=>rigUpdate(m,dt));}else m.g.visible=false;});
+  let c=0;seats.slice(12).forEach(si=>{const sl=SEAT_SLOTS[si],sd=sl.sd;M4.makeTranslation(sl.x,.8,sd*1.14);U.fillB.setMatrixAt(c,M4);M4.makeTranslation(sl.x,.5,sd*.92);U.fillL.setMatrixAt(c,M4);M4.makeTranslation(sl.x,1.2,sd*1.13);U.fillH.setMatrixAt(c,M4);M4.makeTranslation(sl.x,1.22,sd*1.15);U.fillR.setMatrixAt(c,M4);c++;});
+  U.fills.forEach(m=>{m.count=c;m.instanceMatrix.needsUpdate=true;});}
 function trainText(g,dest,lcd){const U=g.userData;U.dest.forEach(D=>{if(D.t===dest)return;D.t=dest;const c=D.cv.getContext('2d');c.fillStyle='#0a0a0a';c.fillRect(0,0,256,48);c.font=JF(800,28);c.fillStyle='#ffb02a';c.textAlign='center';c.fillText(dest,128,36);D.tx.needsUpdate=true;});
   if(U.lcd.t!==lcd.join('|')){U.lcd.t=lcd.join('|');const c=U.lcd.cv.getContext('2d');c.fillStyle='#0e1a2e';c.fillRect(0,0,256,96);c.fillStyle='#1a5fc0';c.fillRect(0,0,256,24);c.fillStyle='#fff';c.font=JF(700,14);c.textAlign='left';c.fillText(lcd[0],8,17);
     c.font=JF(900,34);c.textAlign='center';c.fillText(lcd[1],128,64);c.font=JF(500,13);c.fillStyle='#bcd';c.fillText(lcd[2]||'',128,88);U.lcd.tx.needsUpdate=true;}}
@@ -6258,15 +6277,18 @@ function buildStation(S,G,B,C,PL,hit){const key=S.kind,Bt=newBatch(),bb=(w,h,d,c
   // a few people around (more at rush hour)
   S.crowd=[];{const pool=NORMAL_TYPES.filter(t=>!t.glam);for(let i=0;i<10;i++){const ty=pool[(i*7+key.length)%pool.length],m=buildModel(ty,ty.skin||'#e8c4a2');Object.assign(m,{type:ty,skin:ty.skin||'#e8c4a2',ctx:m.fc.getContext('2d'),expr:'',hy:0,hp:0,hr:0,walkT:0,bac:0,lv:0});setExpr(m,'normal');G.add(m.g);S.crowd.push(m);}}
   flushBatch(Bt,G,false);
-  S.trains=TRK.map(z=>{const g=buildTrain(G);g.position.set(0,0,z);g.visible=false;return g;});}
+  S.trains=TRK.map(z=>{const g=buildTrain(G);g.position.set(0,0,z);g.visible=false;return g;});
+  TRK.forEach((z,tr)=>seatHits(hit,0,z,()=>{const t=stTrain(key,tr);return t&&t.x===0;}));
+  S.walkers=[];{const pool=NORMAL_TYPES.filter(t=>!t.glam);for(let i=0;i<6;i++){const ty=pool[(i*11+3)%pool.length],m=buildModel(ty,ty.skin||'#e8c4a2');Object.assign(m,{type:ty,skin:ty.skin||'#e8c4a2',ctx:m.fc.getContext('2d'),expr:'',hy:0,hp:0,hr:0,walkT:0,bac:0,lv:0});setExpr(m,'normal');m.g.visible=false;G.add(m.g);S.walkers.push({m,path:null});}}}
 const CROWD_SPOTS=[[-12,.6,0],[-6.6,-.7,0],[-.4,.7,Math.PI],[5.4,-.75,0],[8.2,.7,Math.PI],[-15,-.5,0],[2.4,-.4,0],[-9.5,.5,Math.PI],[3.4,117.5,Math.PI/2],[-3.6,119.8,Math.PI]];
-function drawStation(S,dt){const key=S.kind,gm=gmNow();updSceneSky(S);setClocks(S);const rush=rushNow();
-  S.crowd.forEach((m,i)=>{const on=i<(rush?10:5);m.g.visible=on;if(!on)return;const[x,z,r]=CROWD_SPOTS[i];m.g.position.set(x,0,z);m.g.rotation.y=r;armTo(m,0,i%3===0?'tray':'hang',dt,4);armTo(m,1,'hang',dt,4);vis(()=>rigUpdate(m,dt));});
+function drawStation(S,dt){const key=S.kind,gm=gmNow();updSceneSky(S);setClocks(S);const rush=rushNow();rideHum(0);S.t=(S.t||0)+dt;walkersStep(S,dt);if(S.board)walkersStep({walkers:S.board},dt);
+  S.crowd.forEach((m,i)=>{const on=i<(rush?10:5);if(!on){m.g.visible=false;return;}if(m.boarding){if(!S.board.find(w=>w.m===m&&w.path)){m.boarding=false;}else return;}if(m.boarded&&S.t<m.boarded){m.g.visible=false;return;}m.boarded=0;m.g.visible=true;const[x,z,r]=CROWD_SPOTS[i];m.g.position.set(x,0,z);m.g.rotation.y=r;armTo(m,0,i%3===0?'tray':'hang',dt,4);armTo(m,1,'hang',dt,4);vis(()=>rigUpdate(m,dt));});
   S.trains.forEach((g,tr)=>{const t=stTrain(key,tr);g.visible=!!t;if(!t)return;g.position.x=t.x;g.userData.setDoors(tr?-1:1,t.doors);
     const{n,seg}=trainSeg(t.k),nd=t.next!=null?t.next:seg.dir,dest=STN[nd>0?'stE':'stA'].n;trainText(g,dest+' 行',t.x===0?['みなと線 '+dest+'行',STN[key].n,'ドアが開きます']:['みなと線 '+dest+'行','まもなく '+STN[key].n,'']);
-    placePax(g,n*2+t.k,rush,dt);
-    const was=S['st'+tr]||'',now=t.x===0?(t.left<1.1?'closing':t.doors>.95?'open':'stand'):'move';
-    if(was!==now&&locOf(me)==='store:'+key){if(now==='open')sfx.chime();if(now==='closing'){[784,659,784,988,784].forEach((f,i)=>tone(f,.16,'triangle',.05,null,i*.18));sub('駅アナウンス','ドアが閉まります。ご注意ください','quiet');}
+    placePax(g,t.k,n,dt);
+    const was=S['st'+tr]||'',now=t.x===0?(t.left<1.1?'closing':t.doors>.95?'open':'stand'):'move';platformFlow(S,tr,now,was,rush);
+    if(now==='closing'&&t.doors<.98&&!S['ch'+tr]&&locOf(me)==='store:'+key){S['ch'+tr]=1;sfx.doorChime();}if(now!=='closing')S['ch'+tr]=0;
+    if(was!==now&&locOf(me)==='store:'+key){if(now==='open'){sfx.doorChime();sub('駅アナウンス',`${STN[key].n}、${STN[key].n}です`,'quiet');}if(now==='closing'){sfx.depMelody();sub('駅アナウンス','ドアが閉まります。ご注意ください','quiet');}
       if(was==='move'&&now==='stand')sub('駅アナウンス',`${tr?'2':'1'}番線、${STN[t.next>0?'stE':'stA'].n}行きが到着です`,'quiet');}S['st'+tr]=now;});
   const ledDraw=(L,list)=>{const m=Math.floor(gm);if(L.m===m)return;L.m=m;const g=L.cv.getContext('2d'),w=512,h=128,d=list.slice(0,2);g.fillStyle='#0a0a0a';g.fillRect(0,0,w,h);
     g.font=JF(700,30);g.textAlign='left';d.forEach((x,i)=>{g.fillStyle='#ff9a2a';g.fillText(i?'次発':'先発',14,48+i*52);g.fillStyle='#7cf07c';g.fillText(clockOfGm(x.gm),110,48+i*52);g.fillStyle='#f4f4f4';g.fillText(STN[x.to].n+'行',220,48+i*52);g.fillStyle='#ffcf3a';g.fillText(trackOf(key,x.dir)?'2番線':'1番線',400,48+i*52);});
@@ -6279,33 +6301,212 @@ function drawStation(S,dt){const key=S.kind,gm=gmNow();updSceneSky(S);setClocks(
       byH[hh].forEach((x,i)=>{g.fillStyle=x.to==='stE'?'#1a5fc0':'#c8361c';g.fillText(String(((Math.round(x.gm)%60)+60)%60).padStart(2,'0')+(x.to==='stE'?'東':'町'),96+(i%6)*68,y+(i>5?34:0));});y+=byH[hh].length>6?120:86;});
     g.fillStyle='#555';g.font=JF(500,18);g.fillText('東=東みなと行 町=みなと町行  始発5:30 終電24:20頃',16,H-20);T.tx.needsUpdate=true;}}}
 // ---- the ride (one scene per train): the car, the sky of the hour, and the town going past in the right direction
-function buildRide(S,G,B,C,PL,hit){sceneSky(S);const g=buildTrain(G);S.car=g;const Bt=newBatch();
+function buildRide(S,G,B,C,PL,hit){sceneSky(S);const g=buildTrain(G);S.car=g;seatHits(hit,0,0,null);const Bt=newBatch();
   S.near=[];for(let i=0;i<10;i++){const m=new THREE.Group();[-1,1].forEach(sd=>{const p=new THREE.Mesh(new THREE.BoxGeometry(.3,6.4,.3),lam(0x7a7e86));p.position.set(0,1.9,sd*4.2);m.add(p);const a=new THREE.Mesh(new THREE.BoxGeometry(.1,.1,2.6),lam(0x7a7e86));a.position.set(0,4.9,sd*3.0);m.add(a);});m.position.x=-100+i*20;G.add(m);S.near.push(m);}
   [-1,1].forEach(sd=>{const w=new THREE.Mesh(new THREE.BoxGeometry(240,1.0,.2),lam(0xa8a49c));w.position.set(0,-.65,sd*3.4);G.add(w);});
   S.rail=stx('rideBallast',()=>{const t=ctex(128,64,(c,w,h)=>{c.fillStyle='#6a645c';c.fillRect(0,0,w,h);const rr=seedRand(5);for(let i=0;i<600;i++){const v=70+rr()*80|0;c.fillStyle=`rgb(${v},${v-6},${v-14})`;c.fillRect(rr()*w,rr()*h,3,2);}for(let x=0;x<w;x+=16){c.fillStyle='#9a968e';c.fillRect(x,8,7,h-16);}c.fillStyle='#a8acb0';c.fillRect(0,22,w,3);c.fillStyle='#a8acb0';c.fillRect(0,40,w,3);});t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(30,1);return t;});
   {const p=new THREE.Mesh(new THREE.PlaneGeometry(240,6.4),new THREE.MeshLambertMaterial({map:S.rail}));p.rotation.x=-Math.PI/2;p.position.y=-1.15;G.add(p);}
   S.far=cityBlocks(S,G,cityList(91,16,80,180),-12);S.farX=S.far.map(m=>m.position.x);
   {const pl=new THREE.PointLight(0xffffff,.4,30,1.5);pl.position.set(0,2.2,0);G.add(pl);}}
-function drawRide(S,dt){updSceneSky(S);const k=+S.kind.slice(3),{seg,u,n}=trainSeg(k),g=S.car;g.userData.setDoors(1,0);placePax(g,n*2+k,rushNow(),dt);
+function drawRide(S,dt){updSceneSky(S);const k=+S.kind.slice(3),{seg,u,n}=trainSeg(k),g=S.car;g.userData.setDoors(1,0);placePax(g,k,n,dt);
   let v=0,fwd=-1;if(seg.run){const f=(u-seg.a)/(seg.b-seg.a);v=Math.min(1,f*4,(1-f)*4);
     // which way is "forward" in this car: the way it left the last platform
     fwd=-(seg.run[0]==='stE'?-1:1)*seg.dir;
     const to=seg.run[1],dest=STN[to==='stU'?(seg.dir>0?'stE':'stA'):to].n;trainText(g,dest+' 行',['みなと線 '+dest+'行','次は '+STN[to].n,STN[to].ro]);
     const key=k+'-'+n+'-'+seg.a;if(S.ann!==key&&f>.15){S.ann=key;sub('車内アナウンス',`次は、${STN[to].n}、${STN[to].n}です`,'quiet');}
-    S.clk=(S.clk||0)+dt*v*2.6;if(S.clk>1){S.clk=0;sfx.thud&&sfx.thud();}}
+    S.dist=(S.dist||0)+v*22*dt;if(S.dist>16){S.dist-=16;if(locOf(me)==='store:'+S.kind)sfx.railJoint(v);}}
+  if(locOf(me)==='store:'+S.kind)rideHum(v);
   // the outside slides past the opposite way to where we're heading; nearer things faster
   const sp=v*22*dt;S.near.forEach(m=>{m.position.x-=fwd*sp;if(m.position.x<-100)m.position.x+=200;if(m.position.x>100)m.position.x-=200;});
   S.far.forEach(m=>{m.position.x-=fwd*sp*.35;if(m.position.x<-180)m.position.x+=360;if(m.position.x>180)m.position.x-=360;});
   S.rail.offset.x+=fwd*sp/8;}
+/* ================= facades: one kit for every shop / facility front, so the way in is always obvious
+   (recessed doorway with its own frame colour, a small canopy and lamps over it, a mat, an OPEN plate, a blade sign).
+   Local coords: x along the front, +z out to the street, y up; the body goes back into -z. ================= */
+const FX={};const fxT=(k,f)=>FX[k]||(FX[k]=f());
+function wallTex(kind){return fxT('w'+kind,()=>{const t=ctex(256,256,(g,w,h)=>{const rr=seedRand(kind.length*13+5);
+  if(kind==='brick'){g.fillStyle='#8a4a34';g.fillRect(0,0,w,h);for(let y=0;y<h;y+=16)for(let x=(y/16)%2*16-16;x<w;x+=32){const v=rr();g.fillStyle=v<.3?'#9a5a40':v<.6?'#7a3e2c':'#a45e44';g.fillRect(x+1,y+1,30,14);}}
+  else if(kind==='wood'){g.fillStyle='#b88a5a';g.fillRect(0,0,w,h);for(let x=0;x<w;x+=16){g.fillStyle=`rgba(90,55,25,${.15+rr()*.2})`;g.fillRect(x,0,2,h);for(let k=0;k<5;k++){g.fillStyle='rgba(120,75,35,.2)';g.fillRect(x+4+rr()*8,rr()*h,1,20+rr()*40);}}}
+  else if(kind==='concrete'){g.fillStyle='#a8a6a0';g.fillRect(0,0,w,h);for(let i=0;i<1600;i++){const v=150+rr()*40|0;g.fillStyle=`rgba(${v},${v},${v-4},.5)`;g.fillRect(rr()*w,rr()*h,2,2);}g.strokeStyle='rgba(90,90,85,.5)';g.lineWidth=2;g.strokeRect(1,1,w-2,h/2-2);g.strokeRect(1,h/2+1,w-2,h/2-2);
+    g.fillStyle='rgba(70,70,65,.6)';[[32,32],[224,32],[32,96],[224,96],[32,160],[224,160],[32,224],[224,224]].forEach(([x,y])=>{g.beginPath();g.arc(x,y,4,0,7);g.fill();});}
+  else if(kind==='tile'){g.fillStyle='#e4dccc';g.fillRect(0,0,w,h);for(let y=0;y<h;y+=32)for(let x=0;x<w;x+=64){g.fillStyle=rr()<.5?'#ddd4c2':'#e8e0d0';g.fillRect(x+1,y+1,62,30);}}
+  else if(kind==='dark'){g.fillStyle='#2a2a2e';g.fillRect(0,0,w,h);for(let x=0;x<w;x+=32){g.fillStyle='rgba(255,255,255,.05)';g.fillRect(x,0,2,h);}}
+  else{g.fillStyle='#f2f0ea';g.fillRect(0,0,w,h);for(let i=0;i<1400;i++){g.fillStyle=`rgba(0,0,0,${rr()*.04})`;g.fillRect(rr()*w,rr()*h,3,3);}}});t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;});}
+// what you see through the shop window (one per kind, drawn once)
+function interiorView(kind){return fxT('in'+kind,()=>ctex(256,160,(g,w,h)=>{const rr=seedRand(kind.length*7+1),pal={bakery:['#f4e6c8','#c8904a'],cafe:['#e8d4b4','#6a4a2a'],books:['#efe6d4','#7a5a3a'],wine:['#3a2018','#8a1a2a'],flower:['#f2f4ee','#4a8a3a'],gallery:['#fafaf8','#2a2a2a'],
+    select:['#f0eee8','#3a3a3e'],patis:['#fbf0f2','#d88aa0'],trattoria:['#f4e8d4','#b8321a'],salon:['#f6f2ea','#b89a5a'],boutique:['#e8e6e2','#1a1a1c'],arena:['#1a0a2a','#ff4fd8'],police:['#e8ecf0','#2a4a7a'],hospital:['#eef6f4','#1a8a5a'],gym:['#e8d8b8','#2a5a3a']}[kind]||['#eee','#555'];
+  const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,pal[0]);gr.addColorStop(1,'#00000030');g.fillStyle=pal[0];g.fillRect(0,0,w,h);g.fillStyle=gr;g.fillRect(0,0,w,h);
+  for(let i=0;i<5;i++){g.fillStyle='rgba(255,240,200,.55)';g.beginPath();g.arc(30+i*50,10,10,0,7);g.fill();}
+  const C=pal[1];g.fillStyle=C;
+  if(kind==='bakery'||kind==='patis'){g.fillStyle='#8a6a4a';g.fillRect(10,100,w-20,8);for(let r=0;r<2;r++)for(let x=16;x<w-16;x+=18){g.fillStyle=kind==='patis'?['#f4c8d4','#f2e6c8','#c86a6a','#fff'][Math.floor(rr()*4)]:['#d89a4a','#c8803a','#e8b870'][Math.floor(rr()*3)];g.beginPath();g.ellipse(x,90-r*34,8,6,0,0,7);g.fill();}g.fillStyle='rgba(200,220,230,.4)';g.fillRect(10,60,w-20,50);}
+  else if(kind==='books'){for(let r=0;r<3;r++)for(let x=8;x<w-8;x+=4+rr()*5){g.fillStyle=['#7a2a2a','#2a4a7a','#d8b84a','#3a6a3a','#e8e0d0','#4a3a5a'][Math.floor(rr()*6)];g.fillRect(x,30+r*40,4,30);}g.fillStyle='#6a4a2a';for(let r=0;r<3;r++)g.fillRect(4,60+r*40,w-8,4);}
+  else if(kind==='wine'){for(let r=0;r<3;r++)for(let x=12;x<w-10;x+=10){g.fillStyle=rr()<.6?'#3a0a14':'#c8b878';g.fillRect(x,28+r*40,6,26);g.fillRect(x+2,22+r*40,2,6);}g.fillStyle='#d8a85a';g.fillRect(0,140,w,20);}
+  else if(kind==='flower'){for(let i=0;i<14;i++){const x=12+i*17,y=80+rr()*30;g.fillStyle='#8a8a86';g.fillRect(x-6,y+20,14,30);for(let k=0;k<6;k++){g.fillStyle=['#e84a6a','#f4d040','#f4f4f4','#d86ad8','#f08a3a'][Math.floor(rr()*5)];g.beginPath();g.arc(x+rr()*10-3,y+rr()*16,5,0,7);g.fill();}g.fillStyle='#3a7a2a';g.fillRect(x,y+10,2,14);}}
+  else if(kind==='gallery'){g.fillStyle='#fafaf8';g.fillRect(0,0,w,h);[[20,40,60,50],[100,30,50,70],[170,45,66,44]].forEach(([x,y,a,b],i)=>{g.fillStyle='#1a1a1a';g.fillRect(x-3,y-3,a+6,b+6);g.fillStyle=['#2a4a8a','#d8a83a','#c84a3a'][i];g.fillRect(x,y,a,b);g.fillStyle='#f4f0e6';g.fillRect(x+a*.3,y+b*.3,a*.4,b*.4);});}
+  else if(kind==='select'||kind==='boutique'){g.fillStyle='#b8a070';g.fillRect(10,40,w-20,4);for(let x=16;x<w-14;x+=11){g.fillStyle=['#1a1a1c','#f2f2ee','#b8a07a','#4a6a9a','#8a2a2a','#5a6a3a'][Math.floor(rr()*6)];g.fillRect(x,44,9,48+rr()*20);}g.fillStyle='#d8d4cc';g.fillRect(60,120,140,16);}
+  else if(kind==='trattoria'||kind==='cafe'){for(let i=0;i<4;i++){const x=30+i*60;g.fillStyle=kind==='trattoria'?'#e8e4dc':'#8a6a4a';g.fillRect(x-20,100,40,6);g.fillStyle=kind==='trattoria'?'#c83a2a':'#6a4a2a';g.fillRect(x-20,96,40,4);g.fillStyle='#4a3a2a';g.fillRect(x-2,106,4,30);g.fillStyle='#2a2a2a';g.beginPath();g.arc(x-16,80,9,0,7);g.arc(x+18,82,9,0,7);g.fill();}g.fillStyle=C;g.fillRect(0,40,w,6);}
+  else if(kind==='salon'){for(let i=0;i<3;i++){const x=40+i*80;g.fillStyle='#cfdde2';g.fillRect(x-24,24,48,60);g.strokeStyle='#d8c08a';g.lineWidth=3;g.strokeRect(x-24,24,48,60);g.fillStyle='#2a2a2e';g.fillRect(x-14,96,28,30);}}
+  else if(kind==='arena'){for(let i=0;i<6;i++){const x=20+i*40;g.fillStyle=['#ff4fd8','#3fd8ff','#ffd02a','#7aff4a'][i%4];g.fillRect(x-14,50,28,80);g.fillStyle='#fff';g.fillRect(x-10,56,20,22);g.fillStyle='#14081e';g.fillRect(x-10,84,20,6);}g.fillStyle='rgba(255,79,216,.35)';g.fillRect(0,0,w,20);}
+  else if(kind==='police'||kind==='hospital'){g.fillStyle='#c8ccd2';g.fillRect(20,100,w-40,26);g.fillStyle=C;g.fillRect(20,96,w-40,6);for(let i=0;i<4;i++){g.fillStyle='#4a5a6a';g.fillRect(40+i*50,60,8,36);}g.fillStyle=C;g.font=JF(800,16);g.textAlign='center';g.fillText(kind==='police'?'受付':'総合受付',w/2,40);}
+  else{g.fillStyle='rgba(0,0,0,.2)';g.fillRect(0,110,w,50);}}));}
+const FACE_R={nx:-Math.PI/2,px:Math.PI/2,pz:0,nz:Math.PI};
+function facade(S2,o){const W=o.W,H=o.H||8,D=o.D||8,g=new THREE.Group();g.position.set(o.cx,0,o.cz);g.rotation.y=FACE_R[o.face];S2.add(g);g.updateMatrix();const M=g.matrix.clone();
+  const Bt=newBatch(),bb=(w,h,d,c,x,y,z,ry=0)=>bBox(Bt,w,h,d,c,x,y,z,ry,M),toW=(x,z)=>{const v=new THREE.Vector3(x,0,z).applyMatrix4(M);return[v.x,v.z];};
+  const P=(w,h,m,x,y,z,ry=0)=>{const p=new THREE.Mesh(new THREE.PlaneGeometry(w,h),m);p.position.set(x,y,z);p.rotation.y=ry;g.add(p);return p;};
+  const wt=wallTex(o.wall||'plaster'),wm=new THREE.MeshLambertMaterial({map:wt,color:o.tint||0xffffff});
+  // the body (front face is drawn piecewise around the openings)
+  {const geo=bldGeo(W,H,D,4,4),side=new THREE.MeshLambertMaterial({map:wt,color:o.tint||0xffffff}),body=new THREE.Mesh(geo,[side,side,lam(0x5a5c60),lam(0x5a5c60),new THREE.MeshBasicMaterial({visible:false}),side]);body.position.set(0,H/2,-D/2-.02);g.add(body);}
+  const gH=o.gH||3.4,dw=o.door.w||1.8,dx=o.door.x||0,shop=o.win!==false,frame=o.frameC!=null?o.frameC:0x2a2a2c,doorC=o.door.c!=null?o.door.c:0x14141a;
+  // ground floor: wall piers + show windows with a view inside
+  const openings=[[dx-dw/2-.25,dx+dw/2+.25]];if(shop)(o.wins||[[-W/2+.6,dx-dw/2-.7],[dx+dw/2+.7,W/2-.6]]).forEach(r=>{if(r[1]-r[0]>.6)openings.push(r);});openings.sort((a,b)=>a[0]-b[0]);
+  {let x0=-W/2;[...openings,[W/2,W/2]].forEach(([a,b])=>{if(a>x0+.01){const p=new THREE.Mesh(bldGeo(a-x0,gH,.12,1.5,1.5),wm);p.position.set((a+x0)/2,gH/2,.06);g.add(p);}x0=Math.max(x0,b);});
+    {const p=new THREE.Mesh(bldGeo(W,H-gH,.12,1.5,1.5),wm);p.position.set(0,gH+(H-gH)/2,.06);g.add(p);}}
+  const inner=new THREE.MeshBasicMaterial({map:interiorView(o.kind||'shop')}),glass=new THREE.MeshPhongMaterial({color:0x9ab4c4,transparent:true,opacity:.28,shininess:160,specular:0xffffff});
+  openings.slice().forEach(([a,b])=>{if(Math.abs((a+b)/2-dx)<.01)return;const w=b-a,c=(a+b)/2,y0=.45,y1=gH-.35;bb(w,y0,.3,o.baseC||0x4a4a4e,c,y0/2,.08);
+    P(w,y1-y0,inner,c,(y0+y1)/2,-.25);P(w,y1-y0,glass,c,(y0+y1)/2,.1);bb(w+.08,.08,.12,frame,c,y1+.04,.12);bb(w+.08,.06,.14,frame,c,y0,.12);[a,b].forEach(x=>bb(.08,y1-y0,.12,frame,x,(y0+y1)/2,.12));
+    for(let x=a+1.6;x<b-.4;x+=1.6)bb(.05,y1-y0,.1,frame,x,(y0+y1)/2,.12);
+    if(o.awning){const n=Math.max(2,Math.round(w/.6)),aw=new THREE.Group();aw.position.set(c,y1+.35,.75);aw.rotation.x=.38;g.add(aw);for(let i=0;i<n;i++){const s=new THREE.Mesh(new THREE.BoxGeometry(w/n,.04,1.4),lam(i%2?o.awning[0]:o.awning[1]));s.position.x=-w/2+(i+.5)*w/n;aw.add(s);}}
+    for(let k=0;k<Math.floor(w/2.5);k++){const lx=a+1.25+k*2.5;bb(.18,.05,.18,0x2a2a2a,lx,y1+.02,-.1);}});
+  // the entrance: recessed, its own frame colour, double glass doors, push bars, OPEN plate, mat, step, canopy + two lamps
+  {const y1=Math.min(gH-.15,2.75),rec=.9;[-1,1].forEach(s=>bb(.26,y1+.2,.22,doorC,dx+s*(dw/2+.13),(y1+.2)/2,.12));bb(dw+.7,.3,.3,doorC,dx,y1+.15,.14);
+    P(dw,y1,new THREE.MeshBasicMaterial({color:0x14161a}),dx,y1/2,-rec);[-1,1].forEach(s=>{const sw=new THREE.Mesh(new THREE.BoxGeometry(.06,y1,rec),wm);sw.position.set(dx+s*dw/2,y1/2,-rec/2);g.add(sw);});
+    const ceil=new THREE.Mesh(new THREE.BoxGeometry(dw,.05,rec),lam(0xe8e4dc));ceil.position.set(dx,y1-.02,-rec/2);g.add(ceil);
+    P(dw-.05,y1-.1,inner,dx,(y1-.1)/2,-rec+.02);
+    const dl=o.door.kind==='single'?1:2,lw=(dw-.1)/dl;for(let i=0;i<dl;i++){const x=dx-dw/2+.05+lw*(i+.5);P(lw-.08,y1-.18,glass,x,(y1-.1)/2,-rec+.12);bb(lw,.08,.06,doorC,x,y1-.12,-rec+.13);bb(lw,.1,.06,doorC,x,.05,-rec+.13);[x-lw/2+.03,x+lw/2-.03].forEach(xx=>bb(.06,y1-.1,.06,doorC,xx,(y1-.1)/2,-rec+.13));
+      bb(.03,.9,.05,o.handleC||0xc8a860,x+(dl===2?(i?-lw/2+.14:lw/2-.14):lw/2-.18),1.05,-rec+.2);}
+    const open=new THREE.Mesh(new THREE.PlaneGeometry(.34,.12),new THREE.MeshBasicMaterial({map:fxT('open',()=>ctex(128,48,(c,w,h)=>{c.fillStyle='#1a1a1a';c.fillRect(0,0,w,h);c.fillStyle='#f4f0e6';c.font=JF(900,26);c.textAlign='center';c.fillText('OPEN',w/2,34);}))}));open.position.set(dx,1.45,-rec+.17);g.add(open);
+    bb(dw+.3,.03,1.0,0x2a2a26,dx,.015,.65);bb(dw+.6,.12,.5,0x8a8680,dx,.06,.25);
+    if(o.canopy!==false){bb(dw+1.6,.12,1.6,o.canopyC||doorC,dx,y1+.55,.85);bb(dw+1.6,.05,.05,o.handleC||0xc8a860,dx,y1+.48,1.62);const dlm=new THREE.Mesh(new THREE.BoxGeometry(.3,.02,.3),nightMat(0xfff1d0));dlm.position.set(dx,y1+.48,.85);g.add(dlm);}
+    [-1,1].forEach(s=>{bb(.12,.3,.12,0x1a1a1a,dx+s*(dw/2+.45),y1-.35,.22);const l=new THREE.Mesh(new THREE.BoxGeometry(.1,.2,.08),nightMat(0xffe0a0));l.position.set(dx+s*(dw/2+.45),y1-.35,.3);g.add(l);});
+    if(o.door.label){const t=new THREE.Mesh(new THREE.PlaneGeometry(1.2,.22),new THREE.MeshBasicMaterial({map:stSignTex(o.door.label,'#1a1a1a','#f4f0e6',256,48,22)}));t.position.set(dx,y1+.75,1.66);g.add(t);}}
+  // fascia sign + blade sign
+  if(o.sign){const s=o.sign,sw=s.w||Math.min(W-1,7),sy=s.y||gH+.55;bb(sw+.3,.9,.18,s.box!=null?s.box:0x1a1a1c,0,sy,.15);const tx=ctex(512,96,(c,w,h)=>{c.fillStyle=s.bg;c.fillRect(0,0,w,h);c.fillStyle=s.fg;c.textAlign='center';c.font=`${s.wt||800} ${s.sub?44:54}px ${s.font||'"Noto Sans JP",sans-serif'}`;c.fillText(s.t,w/2,s.sub?52:66);if(s.sub){c.font=JF(600,20);c.globalAlpha=.85;c.fillText(s.sub,w/2,84);}});
+    P(sw,.78,new THREE.MeshBasicMaterial({map:tx}),0,sy,.25);}
+  if(o.blade){const b=o.blade,bx=dx+(dx>0?-1:1)*(dw/2+1.0),tx=ctex(64,256,(c,w,h)=>{c.fillStyle=b.bg;c.fillRect(0,0,w,h);c.fillStyle=b.fg;c.font=JF(900,36);c.textAlign='center';[...b.t].slice(0,6).forEach((ch,i)=>c.fillText(ch,w/2,42+i*40));});
+    const bg=new THREE.Group();bg.position.set(bx,gH+.2,.6);g.add(bg);const bm=new THREE.MeshBasicMaterial({map:tx});[1,-1].forEach(s=>{const p=new THREE.Mesh(new THREE.PlaneGeometry(.42,1.5),bm);p.position.x=s*.035;p.rotation.y=s*Math.PI/2;bg.add(p);});bb(.06,1.55,.45,0x1a1a1a,bx,gH+.2,.6);bb(.04,.04,.6,0x1a1a1a,bx,gH+.98,.35);}
+  // upper floors: framed windows (lit at night), optional balconies
+  if(H-gH>2.5){const fl=Math.floor((H-gH-.6)/3);for(let f=0;f<fl;f++){const y=gH+1.6+f*3;for(let x=-W/2+1.2;x<=W/2-1.2;x+=o.winStep||2.4){bb(1.5,1.5,.1,0x2a2a2e,x,y,.11);const wl=new THREE.Mesh(new THREE.PlaneGeometry(1.36,1.36),nightMat([0xfff0d0,0xe8f0ff,0xffe8c0][(f+Math.round(x))&1?1:0]));wl.position.set(x,y,.17);g.add(wl);bb(.04,1.36,.04,0x8a8e94,x,y,.18);bb(1.36,.04,.04,0x8a8e94,x,y,.18);}
+      if(o.balcony)bb(W-.6,.08,1.0,0xd8d6d0,0,y-.95,.55),bb(W-.6,.9,.03,0x8a8e94,0,y-.5,1.04);}}
+  // planters, menu stand
+  if(o.planters!==false)[-1,1].forEach(s=>{const x=dx+s*(dw/2+.75);bb(.55,.5,.5,0x3a3a3c,x,.25,.55);const l=new THREE.Mesh(new THREE.IcosahedronGeometry(.36,1),lam(0x3a7a30));l.position.set(...(()=>{const v=new THREE.Vector3(x,.85,.55).applyMatrix4(M);return[v.x,v.y,v.z];})());S2.add(l);OOBST.push({r:(()=>{const a=toW(x-.3,.25),c=toW(x+.3,.85);return[Math.min(a[0],c[0]),Math.max(a[0],c[0]),Math.min(a[1],c[1]),Math.max(a[1],c[1])];})(),k:'planter'});});
+  if(o.stand){const sx=dx+(dw/2+1.7)*(dx>0?-1:1);bb(.5,.8,.06,0x2a2a2a,sx,.45,1.1,.3);const tx=ctex(96,128,(c,w,h)=>{c.fillStyle='#1a2a1a';c.fillRect(0,0,w,h);c.fillStyle='#f4f0e6';c.font=JF(800,16);c.textAlign='center';o.stand.split('\n').forEach((t,i)=>c.fillText(t,w/2,30+i*24));});
+    const p=P(.44,.7,new THREE.MeshBasicMaterial({map:tx}),sx,.48,1.14,0);p.rotation.y=.3;}
+  flushBatch(Bt,S2,false);
+  const[hx,hz]=toW(dx,.45);if(o.prompt)oHit(...(o.face==='px'||o.face==='nx'?[.6,2.6,dw]:[dw,2.6,.6]),hx,1.3,hz,{prompt:o.prompt,press:o.press});
+  if(o.map)MAPB.push([...(()=>{const a=toW(-W/2,0),b=toW(W/2,-D);return[Math.min(a[0],b[0]),Math.max(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[1],b[1])];})(),o.map]);
+  return{g,door:toW(dx,1.2)};}
+
+/* ---- station buildings (outside): a white folded roof on timber, a glass wall with timber fins, and one obvious way in */
+function foldRoofGeo(W,D,n,amp){const p=[],uv=[],idx=[];const xs=[];for(let i=0;i<=n;i++)xs.push(-W/2+W*i/n);
+  // a zig-zag across the width; every ridge also tilts front-to-back a little so it reads as folded paper
+  xs.forEach((x,i)=>{const up=i%2?amp:0;p.push(x,up,D*.5+.0, x,up*.6,-D*.5);uv.push(i/n,1,i/n,0);});
+  for(let i=0;i<n;i++){const a=i*2,b=a+1,c=a+2,d=a+3;idx.push(a,b,c,c,b,d);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();return g;}
+function stationFront(S2,o){const W=o.W,D=o.D,H=o.H||11,g=new THREE.Group();g.position.set(o.cx,0,o.cz);g.rotation.y=FACE_R[o.face];S2.add(g);g.updateMatrix();const M=g.matrix.clone();
+  const Bt=newBatch(),bb=(w,h,d,c,x,y,z,ry=0)=>bBox(Bt,w,h,d,c,x,y,z,ry,M),toW=(x,z)=>{const v=new THREE.Vector3(x,0,z).applyMatrix4(M);return[v.x,v.z];};
+  const wood=0xc89a62,woodD=0x9a7044,white=0xf4f4f0,steel=0x5a5e66;
+  // plinth and the hall behind the glass (back + sides in light panels)
+  bb(W+2,.3,D+4,0xb8b4ac,0,.15,-D/2+1.4);const side=new THREE.MeshLambertMaterial({map:wallTex('plaster'),color:0xe8e8e4});
+  {const body=new THREE.Mesh(bldGeo(W,H-1.2,D,4,4),[side,side,lam(0x6a6c70),lam(0x6a6c70),new THREE.MeshBasicMaterial({visible:false}),side]);body.position.set(0,(H-1.2)/2,-D/2-.6);g.add(body);}
+  // the glass wall: a lit atrium seen through it (escalators, timber columns, people), glass, timber fins
+  const atr=fxT('atrium'+o.key,()=>ctex(512,256,(c,w,h)=>{const gr=c.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#f4ead8');gr.addColorStop(1,'#d8c8a8');c.fillStyle=gr;c.fillRect(0,0,w,h);
+    c.fillStyle='#b8885a';for(let x=20;x<w;x+=60)c.fillRect(x,0,8,h);c.fillStyle='#e8dcc4';for(let y=40;y<h;y+=60)c.fillRect(0,y,w,3);
+    c.fillStyle='#6a6e74';c.save();c.translate(w*.3,h);c.rotate(-.5);c.fillRect(0,-10,180,22);c.restore();c.save();c.translate(w*.62,h);c.rotate(-.5);c.fillRect(0,-10,180,22);c.restore();
+    c.fillStyle='#1a5fc0';c.fillRect(w*.42,h*.42,w*.16,26);c.fillStyle='#fff';c.font=JF(800,18);c.textAlign='center';c.fillText('改札  Ticket Gates',w*.5,h*.42+19);
+    const rr=seedRand(o.key.length*5);for(let i=0;i<14;i++){const x=rr()*w,y=h-30-rr()*20;c.fillStyle=['#2a2a3a','#4a3a3a','#3a4a5a'][i%3];c.fillRect(x,y,8,26);c.beginPath();c.arc(x+4,y-5,5,0,7);c.fill();}}));
+  const gH=H-1.6;{const p=new THREE.Mesh(new THREE.PlaneGeometry(W-.4,gH),new THREE.MeshBasicMaterial({map:atr}));p.position.set(0,gH/2+.3,-1.2);g.add(p);
+    const gl=new THREE.Mesh(new THREE.PlaneGeometry(W,gH),new THREE.MeshPhongMaterial({color:0xa8c4d4,transparent:true,opacity:.3,shininess:170,specular:0xffffff}));gl.position.set(0,gH/2+.3,.02);g.add(gl);}
+  for(let x=-W/2;x<=W/2+.01;x+=1.6){bb(.14,gH,.6,wood,x,gH/2+.3,-.2);}for(let y=3.4;y<gH;y+=3.2)bb(W,.12,.25,wood,0,y,-.05);bb(W+.2,.3,.6,woodD,0,.45,-.1);
+  // the folded roof: white on top, timber underneath, oversailing the front
+  {const n=Math.round(W/3),geo=foldRoofGeo(W+4,D+6,n%2?n+1:n,1.6),top=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color:white,side:THREE.DoubleSide}));top.position.set(0,H,-D/2+1.4);g.add(top);
+    const und=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color:wood,side:THREE.DoubleSide}));und.position.set(0,H-.12,-D/2+1.4);g.add(und);
+    for(let x=-W/2;x<=W/2;x+=W/6){bb(.35,H-.2,.35,0xe8e8e4,x,(H-.2)/2,2.6);}bb(W+4,.35,.4,white,0,H-.1,1.4+3);
+    for(let x=-W/2+1;x<W/2;x+=3){const l=new THREE.Mesh(new THREE.BoxGeometry(1.2,.04,.18),nightMat(0xfff2d8));l.position.set(x,H-.3,2.4);g.add(l);}}
+  // name on the roof edge
+  {const tx=ctex(1024,128,(c,w,h)=>{c.clearRect(0,0,w,h);c.fillStyle='#1a3a6a';c.font=JF(900,70);c.textAlign='center';c.fillText(o.name,w/2,76);c.font=JF(600,26);c.fillStyle='#4a5a6a';c.fillText(o.en,w/2,116);});
+    const p=new THREE.Mesh(new THREE.PlaneGeometry(Math.min(W-2,14),1.75),new THREE.MeshBasicMaterial({map:tx,transparent:true}));p.position.set(0,H-1.4,.4);g.add(p);bb(Math.min(W-2,14)+.4,1.9,.12,0xf8f8f4,0,H-1.4,.3);}
+  // the entrance: a dark portal that steps forward out of the glass, with its own canopy, sign and lights
+  const ew=o.ew||6.4,eh=3.6;bb(ew+.8,eh+.5,1.6,0x2a2c30,0,(eh+.5)/2,.9);bb(ew+1.6,.25,3.4,0x2a2c30,0,eh+.6,1.8);
+  {const p=new THREE.Mesh(new THREE.PlaneGeometry(ew,eh-.2),new THREE.MeshBasicMaterial({map:atr}));p.position.set(0,(eh-.2)/2,.3);g.add(p);
+    const gl=new THREE.MeshPhongMaterial({color:0x9ab4c4,transparent:true,opacity:.3,shininess:160,specular:0xffffff});[-1,1].forEach(s=>{for(let k=0;k<2;k++){const x=s*(ew/4)+(k-.5)*ew/4;const d=new THREE.Mesh(new THREE.PlaneGeometry(ew/4-.08,eh-.35),gl);d.position.set(x,(eh-.35)/2+.05,1.72);g.add(d);bb(.06,eh-.35,.06,0x8a8e94,x-ew/8+.03,(eh-.35)/2+.05,1.73);}});
+    bb(ew,.12,.1,0x8a8e94,0,eh-.25,1.72);}
+  for(let x=-ew/2+.5;x<ew/2;x+=1.0){const l=new THREE.Mesh(new THREE.BoxGeometry(.4,.03,.4),nightMat(0xfff4e0));l.position.set(x,eh+.46,2.4);g.add(l);}
+  {const tx=ctex(512,96,(c,w,h)=>{c.fillStyle='#1a1a1a';c.fillRect(0,0,w,h);c.fillStyle='#f2c21b';c.font=JF(900,46);c.textAlign='center';c.fillText('入口  改札口 ▶',w/2,48);c.fillStyle='#fff';c.font=JF(600,22);c.fillText('Entrance / Ticket Gates',w/2,82);});
+    const p=new THREE.Mesh(new THREE.PlaneGeometry(4,.75),new THREE.MeshBasicMaterial({map:tx}));p.position.set(0,eh+.62,3.51);g.add(p);}
+  [-1,1].forEach(s=>{bb(.5,2.6,.5,0x2a2c30,s*(ew/2+.8),1.3,3.0);const l=new THREE.Mesh(new THREE.BoxGeometry(.12,1.8,.52),nightMat(0xfff4e0));l.position.set(s*(ew/2+.8),1.5,3.0);g.add(l);});
+  // the square in front: paving that leads to the door, tactile line, benches, trees, bike racks, bollards
+  {const pave=fxT('spave',()=>{const t=ctex(256,256,(c,w,h)=>{c.fillStyle='#c8c0b0';c.fillRect(0,0,w,h);const rr=seedRand(2);for(let y=0;y<h;y+=32)for(let x=0;x<w;x+=64){const v=190+rr()*25|0;c.fillStyle=`rgb(${v},${v-6},${v-16})`;c.fillRect(x+1,y+1,62,30);}});t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(6,3);return t;});
+    const pv=new THREE.Mesh(new THREE.PlaneGeometry(W+2,o.front||8),new THREE.MeshLambertMaterial({map:pave}));pv.rotation.x=-Math.PI/2;pv.position.set(0,.012,(o.front||8)/2+.2);g.add(pv);
+    const tl=new THREE.Mesh(new THREE.PlaneGeometry(.3,(o.front||8)-1.7),new THREE.MeshLambertMaterial({color:0xe8b818}));tl.rotation.x=-Math.PI/2;tl.position.set(0,.016,1.7+((o.front||8)-1.7)/2);g.add(tl);}
+  [-1,1].forEach(s=>{bb(2.2,.45,.5,0x9a7044,s*(ew/2+3.2),.23,4.2);const[x,z]=toW(s*(ew/2+3.2),4.2);OOBST.push({r:[x-1.2,x+1.2,z-1.2,z+1.2].map((v,i)=>v),k:'bench'});});
+  for(let x=-W/2+1.5;x<W/2-1;x+=2.2){if(Math.abs(x)<ew/2+1.6)continue;bc2(Bt,.1,.8,0x3a3a3c,x,.4,6.6,M);}
+  flushBatch(Bt,S2,false);
+  const[hx,hz]=toW(0,2.1);oHit(...(o.face==='px'||o.face==='nx'?[.6,3,ew-1]:[ew-1,3,.6]),hx,1.3,hz,{prompt(){return`${o.name}に<b>入る</b>(みなと線)`;},press(){transit(()=>enterStore(o.key));}});
+  return{g,toW};}
+const bc2=(Bt,r,h,c,x,y,z,M)=>bAdd(Bt,'cyl8',r*2,h,r*2,c,x,y,z,0,0,0,M);
+
+// ---- seats: fixed slots along the long benches; who sits where is decided per train run (seeded), so it's the same for both players
+const SEAT_SEGS=(()=>{const L=15.6,out=[];let x0=-L+.15;[...DOORX,L+.65].forEach(d=>{const a=x0,b=d-.68;if(b>a+.05)out.push([a+.2,b-.2]);x0=d+.68;});return out;})();
+const SEAT_SLOTS=(()=>{const s=[];[-1,1].forEach(sd=>SEAT_SEGS.forEach(([a,b],j)=>{const n=Math.floor((b-a)/.5);for(let i=0;i<n;i++)s.push({x:a+.25+i*(b-a-.5)/Math.max(1,n-1),sd,seg:j});}));return s;})();
+// the seats taken by other passengers on this run of train k (n = the loop number); busier at rush hour
+function paxSeats(k,n){const rr=seedRand(Math.abs(n*2+k)*7+11),h=hourOf(n*CYC+OFS*k),busy=(h>=7&&h<9.5)||(h>=17.5&&h<19.5),cnt=busy?SEAT_SLOTS.length-2-Math.floor(rr()*3):6+Math.floor(rr()*6),idx=[];
+  const all=SEAT_SLOTS.map((_,i)=>i);for(let i=0;i<cnt&&all.length;i++)idx.push(all.splice(Math.floor(rr()*all.length),1)[0]);return idx;}
+const SIT_Z=.86;
+function seatFree(k,n,i){if(paxSeats(k,n).includes(i))return false;return!players.some((q,j)=>j!==cur&&q.P.sit&&q.P.sit.i===i&&q.P.sit.k===k&&locOf(j)===locOf(cur));}
+// the car the player is standing in right now: {k, n, X0 (car centre x), zc}
+function curCar(){const s=W.store;if(!s)return null;if(s.startsWith('trn')){const k=+s.slice(3),{n}=trainSeg(k);return{k,n,X0:STORES[s].X,zc:0};}
+  if(STN[s]){const S=STORES[s],lx=player.x-S.X;for(let tr=0;tr<2;tr++){if(!inCarZone(lx,player.z,tr))continue;const t=stTrain(s,tr);if(!t||t.x!==0)return null;const{n}=trainSeg(t.k);return{k:t.k,n,X0:S.X,zc:TRK[tr]};}}return null;}
+function sitDown(sd,seg){const c=curCar();if(!c){if(cur===me)toast('電車の中で座ろう');return;}const lx=player.x-c.X0;let best=-1,bd=1e9;
+  SEAT_SLOTS.forEach((sl,i)=>{if(sl.sd!==sd||(seg!=null&&sl.seg!==seg))return;if(!seatFree(c.k,c.n,i))return;const d=Math.abs(sl.x-lx);if(d<bd){bd=d;best=i;}});
+  if(best<0){if(cur===me)toast('空いている席がない…');return;}const sl=SEAT_SLOTS[best];P.sit={i:best,k:c.k};player.x=c.X0+sl.x;player.z=c.zc+sd*SIT_Z;yaw=sd>0?0:Math.PI;if(cur===me){view.yaw=yaw;view.pitch=-.12;toast('空いている席に座った');}sfx.clink(.3);}
+function standUp(){if(!P.sit)return;const sd=Math.sign(player.z-(W.store&&STN[W.store]?TRK[player.z>0?1:0]:0))||1;P.sit=null;player.z-=sd*.4;if(cur===me)toast('席を立った');}
+function seatStep(){if(!P.sit)return;const c=curCar();if(!c){P.sit=null;return;}const sl=SEAT_SLOTS[P.sit.i];player.x=c.X0+sl.x;player.z=c.zc+sl.sd*SIT_Z;}
+// one seat-bench hit per segment and side, on a car whose centre is (x0, zc) in scene coords; the train must be standing (or it's the ride)
+function seatHits(hit,x0,zc,docked){[-1,1].forEach(sd=>SEAT_SEGS.forEach(([a,b],j)=>{hit(b-a,.9,.5,x0+(a+b)/2,.5,zc+sd*1.15,{prompt(){if(docked&&!docked())return'';
+    if(P.sit)return'席を<b>立つ</b>';const c=curCar();if(!c)return'';return SEAT_SLOTS.some((sl,i)=>sl.sd===sd&&sl.seg===j&&seatFree(c.k,c.n,i))?'空いている席に<b>座る</b>':'(この列は満席)';},
+    press(){if(P.sit)standUp();else sitDown(sd,j);}},{optional:true});}));}
+// ---- people getting on and off at the platform (looks only)
+function walkersStep(S,dt){(S.walkers||[]).forEach(w=>{if(!w.path)return;const m=w.m,p=m.g.position,[tx,tz]=w.path[0],dx=tx-p.x,dz=tz-p.z,d=Math.hypot(dx,dz);
+  if(d<.08){w.path.shift();if(!w.path.length){w.path=null;m.g.visible=false;if(w.done)w.done();}return;}const s=Math.min(d,1.25*dt);p.x+=dx/d*s;p.z+=dz/d*s;m.g.rotation.y=Math.atan2(dx,dz);legsWalk(m,dt,true);armTo(m,0,'hang',dt,6);armTo(m,1,'hang',dt,6);vis(()=>rigUpdate(m,dt));});}
+function platformFlow(S,tr,now,was,rush){const zc=TRK[tr],sz=Math.sign(zc),edge=sz*1.1,inside=zc;
+  if(now==='open'&&was!=='open'){// some get off first...
+    const n=rush?5:2+(S.flowN=(S.flowN||0)+1)%3;let k=0;(S.walkers||[]).forEach(w=>{if(w.path||k>=n)return;const d=DOORX[(k*2+tr)%5];const m=w.m;m.g.position.set(d+(k%2?.3:-.3),0,inside);m.g.visible=true;w.path=[[d,edge],[d+(k%2?1:-1)*.6,sz*.4],[12.2,sz*.3]];w.done=null;k++;});
+    // ...then the people waiting on that side get on
+    S.crowd.forEach((m,i)=>{if(i>=8||!m.g.visible)return;const sp=CROWD_SPOTS[i];if(Math.sign(sp[1])!==sz)return;const d=DOORX.reduce((a,b)=>Math.abs(b-sp[0])<Math.abs(a-sp[0])?b:a);const w=(S.board=S.board||[]).find(x=>x.m===m)||(S.board.push({m}),S.board[S.board.length-1]);
+      w.path=[[d,edge],[d,inside]];w.done=()=>{m.boarded=S.t+18;};m.boarding=true;});}}
+// ---- sounds: the departure melody, door chimes, and the rhythm of the rails + motor hum while riding
+Object.assign(sfx,{depMelody(){const n=[[659,.18],[784,.18],[988,.36],[880,.18],[784,.18],[659,.36],[587,.18],[659,.18],[784,.54]];let t=0;n.forEach(([f,d])=>{tone(f,d*.95,'triangle',.05,null,t);tone(f*2,d*.6,'sine',.015,null,t);t+=d;});},
+  doorChime(){[[1318,0],[1046,.32],[1318,.64],[1046,.96]].forEach(([f,t])=>{tone(f,.28,'sine',.06,null,t);});},
+  railJoint(v){const g=.05+v*.09;[0,.11].forEach(t=>{burst(.07,170,g,'lowpass',t);tone(62,.09,'sine',g*.8,null,t);});}});
+const RIDE_AUDIO={o:null,g:null};
+function rideHum(v){if(!AC)return;const R2=RIDE_AUDIO;if(!R2.o&&v>0){R2.o=AC.createOscillator();R2.o.type='sawtooth';R2.g=AC.createGain();R2.g.gain.value=0;const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=900;R2.o.connect(f).connect(R2.g).connect(AC.destination);R2.o.start();}
+  if(!R2.o)return;const t=AC.currentTime;R2.o.frequency.setTargetAtTime(90+v*520,t,.3);R2.g.gain.setTargetAtTime(v>0?.012+v*.02:0,t,.2);}
+
 // ---- the town: trains running along the viaduct (looks only; follows the same timetable)
 const ROUTE=[[-64,90],[-64,-108],[28,-108],[66,-108],[66,-56]];const RSTOP={stA:0,stU:2,stE:4};
 function routeAt(s){let acc=0;for(let i=1;i<ROUTE.length;i++){const a=ROUTE[i-1],b=ROUTE[i],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(s<=acc+L||i===ROUTE.length-1){const f=clamp((s-acc)/L,0,1);return[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,Math.atan2(b[0]-a[0],b[1]-a[1])];}acc+=L;}}
 const routeS=(()=>{const s=[0];for(let i=1;i<ROUTE.length;i++)s.push(s[i-1]+Math.hypot(ROUTE[i][0]-ROUTE[i-1][0],ROUTE[i][1]-ROUTE[i-1][1]));return s;})();
-function trainsOut(){if(!OUT.trains){OUT.trains=[0,1].map(()=>{const g=new THREE.Group(),tb=lam(0xe8eaec),bl=new THREE.MeshBasicMaterial({color:0x1a5fc0});[[0,3,3,tb,0],[0,.32,3.02,bl,-.8]].forEach(([_,h,w,m,y])=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,30),m);o.position.y=y;g.add(o);});
-      for(let i=0;i<10;i++){const o=new THREE.Mesh(new THREE.BoxGeometry(3.04,.9,1.5),nightMat(0xfff4d8));o.position.set(0,.4,-13+i*2.9);g.add(o);}OUT.scene.add(g);return g;});}
-  OUT.trains.forEach((g,k)=>{const{seg,u,svc}=trainSeg(k);g.visible=svc;if(!svc)return;let s;
+// two cars per train, each placed on the route on its own so the train bends round the corners
+function outCar(){const g=new THREE.Group(),Bt=newBatch(),bb=(w,h,d,c,x,y,z)=>bBox(Bt,w,h,d,c,x,y,z);
+  const side=new THREE.MeshPhongMaterial({map:stx('ribs',()=>{const t=ctex(64,64,(c,w,h)=>{c.fillStyle='#d4d8dc';c.fillRect(0,0,w,h);for(let x=0;x<w;x+=8){c.fillStyle='rgba(255,255,255,.55)';c.fillRect(x,0,2,h);c.fillStyle='rgba(60,70,80,.22)';c.fillRect(x+4,0,2,h);}});t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;}),shininess:90,specular:0x999999});
+  const body=new THREE.Mesh(bldGeo(2.9,2.6,15.4,.5,1),side);body.position.y=.4;g.add(body);
+  [-1,1].forEach(sd=>{const x=sd*1.46;bb(.04,.14,15.4,0x1a5fc0,x,.25,0);bb(.04,.04,15.4,0xf2c21b,x,.35,0);bb(.03,.05,15.4,0x2a2a2e,x,1.5,0);
+    [-6,-3,0,3,6].forEach(z=>{bb(.045,1.9,1.2,0x2a2a2e,x,.55,z);});});
+  bb(3.0,.12,15.6,0xb8bcc0,0,1.75,0);[-4,4].forEach(z=>bb(1.6,.36,2.8,0x8a9098,0,1.98,z));for(let z=-6;z<7;z+=1.6)bb(2.4,.3,1.2,0x2a2c30,0,-1.05,z);[-5.6,5.6].forEach(z=>{bb(2.2,.3,2.2,0x2a2a2e,0,-1.3,z);});
+  flushBatch(Bt,g,false);
+  const win=nightMat(0xfff4d8);[-1,1].forEach(sd=>{for(let z=-7;z<7.2;z+=1.4){if([-6,-3,0,3,6].some(d=>Math.abs(z-d)<.5))continue;const w=new THREE.Mesh(new THREE.PlaneGeometry(1.0,.8),win);w.position.set(sd*1.47,.95,z);w.rotation.y=sd*Math.PI/2;g.add(w);}});
+  return g;}
+function outCab(g,front){const sgn=front?1:-1,z=sgn*7.75,m=new THREE.Mesh(new THREE.BoxGeometry(2.9,1.0,.08),new THREE.MeshPhongMaterial({color:0x0a0e14,shininess:140,specular:0xffffff}));m.position.set(0,1.0,z);g.add(m);
+  [-.9,.9].forEach(x=>{const l=new THREE.Mesh(new THREE.CircleGeometry(.12,10),new THREE.MeshBasicMaterial({color:front?0xfff6e0:0xd82020}));l.position.set(x,-.1,z+sgn*.05);l.rotation.y=front?0:Math.PI;g.add(l);});
+  const d=new THREE.Mesh(new THREE.PlaneGeometry(1.3,.26),new THREE.MeshBasicMaterial({color:0xffb02a}));d.position.set(0,1.6,z+sgn*.05);d.rotation.y=front?0:Math.PI;g.add(d);}
+function trainsOut(){if(!OUT.trains){OUT.trains=[0,1].map(()=>{const cars=[outCar(),outCar()];outCab(cars[0],true);outCab(cars[1],false);cars.forEach(c=>OUT.scene.add(c));
+      // a pantograph on the second car
+      const pg=new THREE.Group(),pc=lam(0x4a4e56);[[0,.7,.6],[0,.7,-.6]].forEach(([x,y,z])=>{const r=new THREE.Mesh(new THREE.BoxGeometry(.05,1.2,.05),pc);r.position.set(x,2.5,z);r.rotation.x=z>0?-.5:.5;pg.add(r);});const h=new THREE.Mesh(new THREE.BoxGeometry(1.9,.06,.1),lam(0x1a1a1a));h.position.y=3.05;pg.add(h);cars[1].add(pg);
+      return cars;});}
+  OUT.trains.forEach((cars,k)=>{const{seg,u,svc}=trainSeg(k);cars.forEach(c=>c.visible=svc);if(!svc)return;let s,dir=seg.dir;
     if(seg.at)s=routeS[RSTOP[seg.at]];else{const f=(u-seg.a)/(seg.b-seg.a),e=f<.5?2*f*f:1-2*(1-f)*(1-f),a=routeS[RSTOP[seg.run[0]]],b=routeS[RSTOP[seg.run[1]]];s=a+(b-a)*e;}
-    const[x,z,h]=routeAt(s);g.position.set(x,11.6,z);g.rotation.y=h;});}
+    // car 0 leads in the direction of travel
+    cars.forEach((c,i)=>{const ss=s+(i?-1:1)*dir*8,[x,z,h]=routeAt(clamp(ss,0,routeS[routeS.length-1]));c.position.set(x,11.6,z);c.rotation.y=h+(dir<0?Math.PI:0);});});}
 
 /* ================= no more game over for assault / accidents / checkpoints: you're taken to みなと警察署, questioned, fined, and let go ================= */
 const ARREST={'公務執行妨害':{fine:100000,why:'警察官に手を出した',pay:'罰金'},'傷害':{fine:50000,why:'店でお客さんに手を出して、通報された',pay:'示談金'},
@@ -6314,7 +6515,7 @@ const ARREST={'公務執行妨害':{fine:100000,why:'警察官に手を出した
 function arrest(kind,note){if(!W.running||P.jail)return;const A=ARREST[kind]||{fine:50000,why:note||kind,pay:'罰金'};
   if(W.outside&&CAR.inCar){CAR.inCar=false;CAR.v=0;CAR.engine=false;CAR.doorOpen=false;}if(W.outside&&BIKE.riding){BIKE.riding=false;BIKE.v=0;}
   if(W.guest){if(W.gSeat!=null)guestStand();W.guest=false;}if(W.makaSeat){W.makaSeat=false;const j=MAKA.joined.indexOf(cur);if(j>=0)MAKA.joined.splice(j,1);}if(CARRY.c)dropCarry();if(W.store==='gym')gymLeft(cur);
-  setHand(null);P.phone=false;P.game=false;P.ramen=null;P.onTrain=null;W.sekkyoNow=false;
+  setHand(null);P.phone=false;P.game=false;P.ramen=null;P.onTrain=null;P.sit=null;W.sekkyoNow=false;
   const m=Math.floor(W.t/W.dur*180);W.arrest={m,kind,fine:A.fine,onShift:!W.offDay&&!W.clockedOut&&!W.home};if(W.arrest.onShift){W.clockedOut=true;W.outMins=m;}
   P.jail={t:0,kind,step:0};if(cur===me)toast(`🚓 ${kind}で警察署に連行された…`);
   cancelTransit();transit(()=>{W.home=false;W.outside=false;W.store=null;enterStore('police');player.x=STORES.police.X;player.z=.9;yaw=0;pitch=-.1;if(cur===me){view.yaw=0;view.pitch=-.1;}});}
@@ -6437,17 +6638,17 @@ const STORES={
   salon:{kind:'salon',name:'HAIR SALON Lumière',X:4500,hid:550000,rect:[-3.75,3.75,-4.25,4.25],spawn:[0,3.7,0],out:[-30.6,95.3,0],open:[10,20],obst:[[-3.4,-1.8,-4.5,-2.75],[-.8,.8,-4.5,-2.75],[1.8,3.4,-4.5,-2.75],[2.6,4.2,-3.2,-1.2],[-4.2,-1.7,2.2,4.5],[1.7,3.5,3.0,4.5],[-4.2,-3.3,-1.5,-.9],[3.3,4.2,.9,1.5]],clerks:[],shoppers:[]},
   boutique:{kind:'boutique',name:'SELECT SHOP NOIR',X:5000,hid:500000,rect:[-3.75,3.75,-4.75,4.75],spawn:[-1.8,4.1,0],out:[-23.3,95.3,0],open:[11,21],obst:[[-4.2,-3.1,-4.0,4.2],[3.1,4.2,-4.0,1.9],[-1.6,-.8,-1.6,-.8],[.8,1.6,-1.6,-.8],[-.9,.9,.7,1.7],[1.6,3.2,3.3,5.2],[-1.0,-.84,-5.2,-3.5],[.84,1.0,-5.2,-3.5]],clerks:[],shoppers:[]},
   ramen:{kind:'ramen',name:'ラーメン豚吉',X:5500,hid:400000,rect:[-3.3,3.3,-.55,2.8],spawn:[-2.4,2.3,0],out:[-8.0,-26.05,Math.PI/2],open:[11,26],obst:[[2.75,3.5,1.7,2.5]],clerks:[],shoppers:[]},
-  stA:{kind:'stA',name:'みなと町駅',X:8000,hid:350000,rect:[-90,90,-12,125],spawn:[0,120.6,0],out:[-36.6,90,-Math.PI/2],obst:[],clerks:[],shoppers:[],walk:stationWalk('stA')},
-  stU:{kind:'stU',name:'みなと大学前駅',X:8300,hid:340000,rect:[-90,90,-12,125],spawn:[0,120.6,0],out:[28,-96.6,Math.PI],obst:[],clerks:[],shoppers:[],walk:stationWalk('stU')},
-  stE:{kind:'stE',name:'東みなと駅',X:8600,hid:330000,rect:[-90,90,-12,125],spawn:[0,120.6,0],out:[66,-46.6,Math.PI],obst:[],clerks:[],shoppers:[],walk:stationWalk('stE')},
+  stA:{kind:'stA',name:'みなと町駅',X:8000,hid:350000,rect:[-90,90,-12,125],spawn:[0,120.6,0],out:[-35.4,90,-Math.PI/2],obst:[],clerks:[],shoppers:[],walk:stationWalk('stA')},
+  stU:{kind:'stU',name:'みなと大学前駅',X:8300,hid:340000,rect:[-90,90,-12,125],spawn:[0,120.6,0],out:[28,-95.4,Math.PI],obst:[],clerks:[],shoppers:[],walk:stationWalk('stU')},
+  stE:{kind:'stE',name:'東みなと駅',X:8600,hid:330000,rect:[-90,90,-12,125],spawn:[0,120.6,0],out:[66,-45.4,Math.PI],obst:[],clerks:[],shoppers:[],walk:stationWalk('stE')},
   trn0:{kind:'trn0',name:'みなと線',X:8900,hid:320000,rect:[-20,20,-3,3],spawn:[0,0,0],out:[-36.6,90,-Math.PI/2],obst:[],clerks:[],shoppers:[],walk:rideWalk},
   trn1:{kind:'trn1',name:'みなと線',X:9100,hid:310000,rect:[-20,20,-3,3],spawn:[0,0,0],out:[-36.6,90,-Math.PI/2],obst:[],clerks:[],shoppers:[],walk:rideWalk},
-  police:{kind:'police',name:'みなと警察署',X:9300,hid:300000,rect:[-2.7,2.7,-2.7,2.7],spawn:[0,1.8,0],out:[61.6,-15,-Math.PI/2],obst:[[-.9,.9,-.5,.5],[-.35,.35,-1.6,-.95]],clerks:[],shoppers:[]},
+  police:{kind:'police',name:'みなと警察署',X:9300,hid:300000,rect:[-2.7,2.7,-2.7,2.7],spawn:[0,1.8,0],out:[-18.2,73.75,-Math.PI/2],obst:[[-.9,.9,-.5,.5],[-.35,.35,-1.6,-.95]],clerks:[],shoppers:[]},
   gym:{kind:'gym',name:'みなと市民体育館',X:GYMX,hid:450000,rect:[-8.6,8.6,-13.6,13.6],spawn:[-6.5,12.6,0],out:[53,77.7,Math.PI],open:[9,22],obst:[[-8.8,-7.9,-11.2,11.2],[7.9,8.8,-11.2,11.2],[5.8,8.8,12.45,13.8]],clerks:[],shoppers:[]}};
 function storeOpen(k){const S=STORES[k];if(!S.open)return true;const c=gameClock(),h=c.h+c.m/60;return h>=S.open[0]&&h<S.open[1];}
 function storeWalk(x,z){const S=STORES[W.store];if(!S)return false;const lx=x-S.X;if(S.walk)return S.walk(lx,z);if(lx<S.rect[0]||lx>S.rect[1]||z<S.rect[2]||z>S.rect[3])return false;return!S.obst.some(o=>lx>o[0]-.12&&lx<o[1]+.12&&z>o[2]-.12&&z<o[3]+.12);}
 function enterStore(k){const S=STORES[k];if(!S.built)buildStore(k);W.outside=false;W.store=k;player.x=S.X+S.spawn[0];player.z=S.spawn[1];yaw=S.spawn[2];pitch=-.05;if(cur===me){view.yaw=yaw;view.pitch=-.05;}sfx.chime();}
-function exitStore(){const S=STORES[W.store];if(!S){W.store=null;return;}if(W.store==='gym')gymLeft(cur);P.onTrain=null;if(P.ramen){if(P.ramen.st==='ticket')toast('食券を使わずに出てしまった…');P.ramen=null;}if(cur===me){PREVIEW=null;['#lookUI','#gymUI'].forEach(k=>$(k).hidden=true);}if(hand&&(hand.type==='basket'||(hand.type==='goods'&&!hand.paid)))setHand(null);W.store=null;W.outside=true;player.x=S.out[0];player.z=S.out[1];yaw=S.out[2];pitch=-.05;if(cur===me){view.yaw=yaw;view.pitch=-.05;}sfx.chime();}
+function exitStore(){const S=STORES[W.store];if(!S){W.store=null;return;}if(W.store==='gym')gymLeft(cur);P.onTrain=null;P.sit=null;if(cur===me)rideHum(0);if(P.ramen){if(P.ramen.st==='ticket')toast('食券を使わずに出てしまった…');P.ramen=null;}if(cur===me){PREVIEW=null;['#lookUI','#gymUI'].forEach(k=>$(k).hidden=true);}if(hand&&(hand.type==='basket'||(hand.type==='goods'&&!hand.paid)))setHand(null);W.store=null;W.outside=true;player.x=S.out[0];player.z=S.out[1];yaw=S.out[2];pitch=-.05;if(cur===me){view.yaw=yaw;view.pitch=-.05;}sfx.chime();}
 const basketTotal=h=>h.items.reduce((s,k)=>s+GOODS[k].p,0);
 function dueAt(h){if(!h)return 0;if(h.type==='goods'&&!h.paid)return GOODS[h.g].p;if(h.type==='basket')return basketTotal(h);return 0;}
 
@@ -6653,7 +6854,7 @@ function applyInput(q,inp,dt){
   if(W.ball&&(!onFootOut()||Math.hypot(W.ball.x-player.x,W.ball.z-player.z)>25)){W.ball=null;if(cur===me&&W.outside)toast('ボールをしまった');} // back in the bag when I drive off or walk away
   const ox=player.x,oz=player.z,bm=soccerMode();
   P.bac=Math.max(0,(P.bac||0)-dt*(q.moved?.25:.04));
-  const riding=W.outside&&W.ride!=null;let mx=inp.mx,mz=inp.mz;if(W.transit||riding||(q.sk&&q.sk.t>0)||W.makaSeat||W.sekkyoNow||W.gSeat!=null||(P.ramen&&P.ramen.seat!=null)||(P.jail&&W.store==='police')||crushed()){mx=0;mz=0;}
+  const riding=W.outside&&W.ride!=null;let mx=inp.mx,mz=inp.mz;if(W.transit||riding||(q.sk&&q.sk.t>0)||W.makaSeat||W.sekkyoNow||W.gSeat!=null||(P.ramen&&P.ramen.seat!=null)||(P.jail&&W.store==='police')||P.sit){mx=0;mz=0;}
   const inCarNow=W.outside&&CAR.inCar;
   if(inCarNow){carStep({mx,mz},dt);mx=0;mz=0;}
   else if(W.outside&&BIKE.riding){bikeStep({mx,mz},dt);mx=0;mz=0;}
@@ -6669,7 +6870,7 @@ function applyInput(q,inp,dt){
   }
   if(q.sk&&q.sk.t>0){q.sk.t-=dt;let nx,nz;if(q.sk.curve){const u=Math.min(1,1-q.sk.t/q.sk.d);[nx,nz]=bez(q.sk,u);}else{nx=player.x+q.sk.dx*dt;nz=player.z+q.sk.dz*dt;}if(W.outside&&walkOut(nx,nz)){player.x=nx;player.z=nz;}q.moved=true;}
   q.vx=(player.x-ox)/dt;q.vz=(player.z-oz)/dt;
-  if(W.running)healthTick(q,dt);if(W.store==='ramen'||P.ramen)ramenTick(dt);if(W.store)trainStep();if(P.jail)jailStep(dt);awayStep(dt);
+  if(W.running)healthTick(q,dt);if(W.store==='ramen'||P.ramen)ramenTick(dt);if(W.store){trainStep();seatStep();}else P.sit=null;if(P.jail)jailStep(dt);awayStep(dt);
   if(W.store&&STORES[W.store].open&&!storeOpen(W.store)&&!W.transit){if(cur===me)toast(W.store==='gym'?'閉館時間になりました':'閉店時間になりました');if(W.store==='super')sub('店内放送','本日はご来店ありがとうございました。まもなく閉店いたします','quiet');transit(exitStore);}
   if(riding){const rc=rideCar();if(rc){const st2=seatOf(rc);player.x=st2.x;player.z=st2.z;}q.moved=false;}
   else if(W.outside&&!inCarNow)footOutStep();
@@ -6745,7 +6946,7 @@ function simWorldIn(dt){
     if(!DAY.notes)DAY.notes=[];DAY.notes.push(['権田(店長)',`${newbie(i)}、昨日24時まで残ってたでしょ… 無理しないでね`]);});});
 }
 function camPose(){if(W.outside&&W.ride!=null&&players[W.ride]){const K=carPose(W.ride),e=seatOf(K,-.38,-.02);return[e.x,1.14,e.z,K.h+view.yaw];}
-  if(W.outside&&CAR.inCar){const K=carPose(me)||CAR,c=Math.cos(K.h),s=Math.sin(K.h);if(CAR.cam){const yw=K.h+view.yaw,d=5.8;return[K.x+Math.sin(yw)*d,1.9,K.z+Math.cos(yw)*d,yw,-.17];}const lx=.38,lz=-.02;return[K.x+c*lx+s*lz,1.14,K.z-s*lx+c*lz,K.h+view.yaw];}const p=players[me]?(MP.on&&PRED.ok?PRED:ipos(players[me])):player;return[p.x,(W.outside&&BIKE.riding?1.78:1.62)+(W.outside||W.home||W.store?0:camFloor),p.z,view.yaw];}
+  if(W.outside&&CAR.inCar){const K=carPose(me)||CAR,c=Math.cos(K.h),s=Math.sin(K.h);if(CAR.cam){const yw=K.h+view.yaw,d=5.8;return[K.x+Math.sin(yw)*d,1.9,K.z+Math.cos(yw)*d,yw,-.17];}const lx=.38,lz=-.02;return[K.x+c*lx+s*lz,1.14,K.z-s*lx+c*lz,K.h+view.yaw];}const p=players[me]?(MP.on&&PRED.ok?PRED:ipos(players[me])):player;return[p.x,(W.outside&&BIKE.riding?1.78:players[me]&&players[me].P.sit?1.16:1.62)+(W.outside||W.home||W.store?0:camFloor),p.z,view.yaw];}
 let camFloor=0,onTatami=false;
 const MATE_VEH={prompt(){return'相方の乗り物';},press(){}};
 function viewUpdate(dt){
