@@ -467,8 +467,9 @@ const DETAILN=(()=>{const N=128,c=document.createElement('canvas');c.width=c.hei
     im.data[i*4]=(-dx/l*.5+.5)*255;im.data[i*4+1]=(-dy/l*.5+.5)*255;im.data[i*4+2]=(1/l*.5+.5)*255;im.data[i*4+3]=255;}
   g.putImageData(im,0,0);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;})();
 // every Lambert/Phong material becomes a physically based one (rough plaster, varnished wood, brushed steel...)
+const LamOrig=THREE.MeshLambertMaterial,PhoOrig=THREE.MeshPhongMaterial;let MAT_LITE=false; // the big outdoor town uses plain (per-vertex) Lambert: half the shading cost
 (()=>{const Std=THREE.MeshStandardMaterial;if(!Std)return;
-  const mk=o=>{const p=Object.assign({},o||{});const sh=p.shininess,sp=p.specular;delete p.shininess;delete p.specular;
+  const mk=o=>{const p=Object.assign({},o||{});const sh=p.shininess,sp=p.specular;delete p.shininess;delete p.specular;if(MAT_LITE)return new LamOrig(p);
     const rough=sh!=null?Math.max(.16,1-sh/150):.88;let metal=0;
     if(sp!=null&&sh>=60){const s=new THREE.Color(sp),c=new THREE.Color(p.color!=null?p.color:0xffffff);const sat=Math.max(c.r,c.g,c.b)-Math.min(c.r,c.g,c.b);if((s.r+s.g+s.b)/3>.42&&sat<.1&&(c.r+c.g+c.b)/3>.3&&(c.r+c.g+c.b)/3<.85)metal=.6;}
     const m=new Std(Object.assign({roughness:rough,metalness:metal,envMapIntensity:.8},p));
@@ -479,6 +480,59 @@ function makeEnv(draw){try{if(!THREE.PMREMGenerator)return null;const c=document
   const pm=new THREE.PMREMGenerator(renderer);const rt=pm.fromEquirectangular(t);pm.dispose&&pm.dispose();return rt&&rt.texture;}catch(e){return null;}}
 function setShadows(sc){if(!SHADOWS)return;const p=new THREE.Vector3();sc.traverse(o=>{if(!o.isMesh)return;const m=Array.isArray(o.material)?o.material[0]:o.material;if(!m||m.colorWrite===false||(m.transparent&&m.opacity<.6))return;
   o.receiveShadow=true;if(m.isMeshBasicMaterial)return;o.getWorldPosition(p);if(p.y<2.45)o.castShadow=true;});}
+// ---- performance: merge everything that never moves into a few big meshes per 24 m cell (per material), so the town costs
+// a few hundred draw calls instead of thousands, and far cells still get culled. Anything the game keeps a handle on stays live.
+function liveSet(roots,depth=3){const s=new Set(),seen=new Set();const walk=(v,d)=>{if(!v||typeof v!=='object'||seen.has(v))return;seen.add(v);
+    if(v.isObject3D){s.add(v);return;}if(v.isMaterial||v.isTexture||v.isBufferGeometry||ArrayBuffer.isView(v))return;if(d<=0)return;
+    if(Array.isArray(v))v.forEach(x=>walk(x,d-1));else if(v instanceof Map)v.forEach(x=>walk(x,d-1));else Object.keys(v).forEach(k=>walk(v[k],d-1));};roots.forEach(r=>walk(r,depth));return s;}
+function liveMats(roots){const s=new Set(),seen=new Set();const walk=(v,d)=>{if(!v||typeof v!=='object'||seen.has(v)||d<0)return;seen.add(v);if(v.isMaterial){s.add(v);return;}if(v.isObject3D||v.isTexture||ArrayBuffer.isView(v))return;
+    if(Array.isArray(v))v.forEach(x=>walk(x,d-1));else Object.keys(v).forEach(k=>walk(v[k],d-1));};roots.forEach(r=>walk(r,7));return s;}
+const FROZEN=[];
+function freezeStatic(S,live,keepMats,CELL=32,DCELL=16){S.updateMatrixWorld(true);const cand=[];
+  const ok=o=>{if(!o.isMesh||o.isInstancedMesh||o.isSkinnedMesh||o.renderOrder||o.onBeforeRender!==THREE.Object3D.prototype.onBeforeRender||o.userData.dyn||o.userData.st)return false;
+    const ms=[].concat(o.material);return ms.every(m=>m&&(!m.transparent||(!m.map&&m.opacity<=.5))&&m.visible!==false&&m.colorWrite!==false&&!m.isShaderMaterial&&!m.isMeshDepthMaterial)&&!!o.geometry.attributes.position&&!o.geometry.morphAttributes.position;};
+  const visit=(o)=>{if(live.has(o)||o.visible===false||o.isLight||o.isCamera)return;if(o.isMesh&&o.children.length===0&&ok(o))cand.push(o);o.children.forEach(visit);};S.children.forEach(visit);
+  // materials that look the same are one material (the town makes a new one per box); the ones the game recolours keep their identity
+  // plain-coloured materials share one vertex-coloured material per surface type (the colour moves into the vertices);
+  // the night-lit ones (colour × day dimmer) share one too, registered with the day/night switch
+  const nightC=new Map();NIGHT.wins.forEach(([m,c])=>nightC.set(m,c));
+  const c=v=>v&&v.getHexString?v.getHexString():'',plain=m=>!m.map&&!m.alphaMap&&!m.emissiveMap&&(!m.emissive||m.emissive.getHex()===0);
+  const mkey=m=>{if(keepMats.has(m))return m.uuid;if(nightC.has(m)&&m.isMeshBasicMaterial&&plain(m))return'NVC';
+    const base=[m.type,m.roughness,m.metalness,m.side,m.fog,m.envMapIntensity,m.shininess,c(m.specular),m.alphaTest,m.flatShading,m.transparent,m.opacity,m.depthWrite,m.normalMap?m.normalMap.uuid:''];
+    return plain(m)?'VC|'+base.join('|'):[c(m.color),c(m.emissive),m.map?m.map.uuid:'',m.vertexColors,...base].join('|');};
+  const vcMat=(k,m)=>{const v=m.clone();v.vertexColors=true;v.color=new THREE.Color(0xffffff);if(k==='NVC'){NIGHT.wins.push([v,0xffffff]);if(NIGHT.md==='day')v.color.set(0x3c4a58);}return v;};
+  const tint=(m,k)=>k==='NVC'?new THREE.Color(nightC.get(m)):k.startsWith('VC|')?m.color:null;
+  const canon=new Map(),B=new Map(),v3=new THREE.Vector3(),nm=new THREE.Matrix3();
+  cand.forEach(o=>{const g=o.geometry,P=g.attributes.position,N=g.attributes.normal,U=g.attributes.uv,C=g.attributes.color,idx=g.index,M=o.matrixWorld;nm.getNormalMatrix(M);const flip=M.determinant()<0;
+    const ms=[].concat(o.material),tri=idx?idx.count/3:P.count/3,grp=g.groups.length?g.groups:[{start:0,count:tri*3,materialIndex:0}];
+    const wp=new Float32Array(P.count*3);for(let i=0;i<P.count;i++){v3.fromBufferAttribute(P,i).applyMatrix4(M);wp[i*3]=v3.x;wp[i*3+1]=v3.y;wp[i*3+2]=v3.z;}
+    const remap=new Map();
+    grp.forEach(gr=>{const mat=ms[gr.materialIndex||0]||ms[0];const mk=mkey(mat),tc=tint(mat,mk);if(!canon.has(mk))canon.set(mk,tc?vcMat(mk,mat):mat);const sig=tc?'vc':(N?'n':'')+(U?'u':'')+(C?'c':'');
+      for(let t=gr.start/3;t<(gr.start+gr.count)/3&&t<tri;t++){const a=idx?idx.getX(t*3):t*3,b=idx?idx.getX(t*3+1):t*3+1,c=idx?idx.getX(t*3+2):t*3+2;
+        const cx=(wp[a*3]+wp[b*3]+wp[c*3])/3,cz=(wp[a*3+2]+wp[b*3+2]+wp[c*3+2])/3,e2=(i,j)=>(wp[i*3]-wp[j*3])**2+(wp[i*3+1]-wp[j*3+1])**2+(wp[i*3+2]-wp[j*3+2])**2;
+        // small parts (sills, frames, AC units, bolts...) go to their own chunks that are only drawn up close
+        const det=Math.max(e2(a,b),e2(b,c),e2(c,a))<.5,cs=det?DCELL:CELL,key=mk+'#'+sig+'#'+(det?'d':'')+Math.floor(cx/cs)+','+Math.floor(cz/cs);
+        let bk=B.get(key);if(!bk){bk={mat:canon.get(mk),det,p:[],n:tc||N?[]:null,u:tc?null:U?[]:null,c:tc||C?[]:null,i:[],vc:0};B.set(key,bk);}
+        let rm=remap.get(bk);if(!rm){rm=new Map();remap.set(bk,rm);}
+        const vid=(s)=>{let j=rm.get(s);if(j!==undefined)return j;j=bk.vc++;rm.set(s,j);bk.p.push(wp[s*3],wp[s*3+1],wp[s*3+2]);
+          if(bk.n){if(N)v3.fromBufferAttribute(N,s).applyMatrix3(nm).normalize();else v3.set(0,1,0);bk.n.push(v3.x,v3.y,v3.z);}if(bk.u)bk.u.push(U.getX(s),U.getY(s));
+          if(bk.c){const r=C?C.getX(s):1,g2=C?C.getY(s):1,b2=C?C.getZ(s):1;if(tc)bk.c.push(r*tc.r,g2*tc.g,b2*tc.b);else bk.c.push(r,g2,b2);}return j;};
+        const A=vid(a),Bv=vid(b),Cv=vid(c);if(flip)bk.i.push(A,Cv,Bv);else bk.i.push(A,Bv,Cv);}});
+    o.parent.remove(o);FROZEN.push(o);});
+  const out=[];B.forEach(bk=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(bk.p,3));if(bk.n)g.setAttribute('normal',new THREE.Float32BufferAttribute(bk.n,3));else g.computeVertexNormals();
+    if(bk.u)g.setAttribute('uv',new THREE.Float32BufferAttribute(bk.u,2));if(bk.c)g.setAttribute('color',new THREE.Float32BufferAttribute(bk.c,3));g.setIndex(bk.vc>65535?new THREE.Uint32BufferAttribute(bk.i,1):new THREE.Uint16BufferAttribute(bk.i,1));
+    g.computeBoundingSphere();const m=new THREE.Mesh(g,bk.mat);m.matrixAutoUpdate=false;m.userData.noOcc=true;S.add(m);out.push(m);if(bk.det)(S.userData.detail=S.userData.detail||[]).push(m);});
+  if(window.__TEST__)FROZEN.forEach(o=>{o.userData.snap=[o.position.toArray().join(),o.quaternion.toArray().join(),o.scale.toArray().join(),o.visible,[].concat(o.material).map(m=>m.color&&!nightC.has(m)&&!keepMats.has(m)&&!NIGHT.lamps.some(l=>l[0]===m)?m.color.getHexString():'').join()];});
+  return{before:cand.length,after:out.length};}
+// draw the small-detail chunks only near the camera (cheap: a distance check per chunk, a few times a second)
+function detailCull(S,cam,R=52){const L=S.userData.detail;if(!L)return;const t=performance.now();if(t-(S.userData.dT||0)<200)return;S.userData.dT=t;const p=cam.getWorldPosition(new THREE.Vector3());
+  L.forEach(m=>{const b=m.geometry.boundingSphere;m.visible=b.center.distanceTo(p)-b.radius<R;});}
+// every point light costs every pixel in the scene: only the N nearest lit ones are on (always exactly N, so shaders never rebuild)
+function lightCap(S,cam,N=4){const L=S.userData.pl||(S.userData.pl=(()=>{const a=[];S.traverse(o=>{if(o.isPointLight&&!(OUT.lights||[]).includes(o))a.push(o);});return a;})());if(L.length<=N)return;
+  const t=performance.now();if(t-(S.userData.lT||0)<250)return;S.userData.lT=t;const p=cam.getWorldPosition(new THREE.Vector3()),w=new THREE.Vector3();
+  L.map(l=>{l.getWorldPosition(w);const d=w.distanceTo(p);return[l,(l.intensity>0?0:1e6)+d-(l.distance||30)*.5];}).sort((a,b)=>a[1]-b[1]).forEach(([l],i)=>{l.visible=i<N;});}
+function frozenCheck(){return FROZEN.filter(o=>{const s=o.userData.snap;return s&&(s[0]!==o.position.toArray().join()||s[1]!==o.quaternion.toArray().join()||s[2]!==o.scale.toArray().join()||s[3]!==o.visible||s[4]!==[].concat(o.material).map((m,i)=>s[4].split(',')[i]===''?'':m.color?m.color.getHexString():'').join());})
+  .map(o=>o.geometry.type+'@'+new THREE.Vector3().setFromMatrixPosition(o.matrixWorld).toArray().map(v=>v.toFixed(1)).join(',')+' col '+[].concat(o.material).map(m=>m.color&&m.color.getHexString()).join());}
 // bloom (neon, lanterns, lamps) via three's post-processing scripts; falls back silently
 const PP={comp:null,rp:null,bloom:null,ok:false};
 function loadPP(){const base='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/',list=['shaders/CopyShader.js','shaders/LuminosityHighPassShader.js','postprocessing/EffectComposer.js','postprocessing/RenderPass.js','postprocessing/ShaderPass.js','postprocessing/UnrealBloomPass.js'];
@@ -1131,7 +1185,7 @@ function faceAt(x,y){const dy=Math.max(-1,Math.min(1,y/FACE.H)),dx=x/(FACE.W*jaw
 // head-local (x,y) on the face -> pixel on the 512x256 face canvas (sphere uv)
 function faceUV(x,y){const dy=Math.max(-1,Math.min(1,y/FACE.H)),dx=x/(FACE.W*jawF(dy)),dz=Math.sqrt(Math.max(0,1-dx*dx-dy*dy)),l=Math.hypot(dx,dy,dz)||1;
   return[512*Math.atan2(dz/l,-dx/l)/(2*Math.PI),256*Math.acos(dy/l)/Math.PI];}
-function glamHeadGeo(){return cgeo('glamHead',()=>{const g=new THREE.SphereGeometry(1,128,96),P=g.attributes.position,v=new THREE.Vector3();
+function glamHeadGeo(){return cgeo('glamHead',()=>{const g=new THREE.SphereGeometry(1,72,54),P=g.attributes.position,v=new THREE.Vector3();
   for(let i=0;i<P.count;i++){faceShape(P.getX(i),P.getY(i),P.getZ(i),v);P.setXYZ(i,v.x,v.y,v.z);}g.computeVertexNormals();return g;});}
 function lipGeo(lower){return cgeo('lip'+(lower?'L':'U'),()=>{const F=FACE,g=new THREE.SphereGeometry(1,40,18),P=g.attributes.position,col=[],c=new THREE.Color(),dk=new THREE.Color(0x9a2434),lt=new THREE.Color(0xc87078);
   for(let i=0;i<P.count;i++){let x=P.getX(i),y=P.getY(i),z=P.getZ(i);const ax=Math.abs(x);
@@ -1174,7 +1228,7 @@ function glamCapGeo(){return cgeo('glamCap',()=>{const F=FACE,g=new THREE.Sphere
   for(let i=0;i<P.count;i++){v.set(P.getX(i),P.getY(i),P.getZ(i)).applyEuler(e);const dy=v.y,w=dy>0?1+F.temple*dy*(1-dy):1;P.setXYZ(i,v.x*F.W*1.07*w,F.cy+.002+v.y*F.H*1.04*(dy>0?1-.06*dy*dy:1),v.z*F.D*1.06-.004);}g.computeVertexNormals();return g;});}
 // eyes: ball, iris, pupil, cornea, catchlights, upper/lower lids (skin shells), liner + lashes riding on the upper lid
 function glamEye(parent,s,skinStd){const F=FACE,r=F.eyeR,q=faceAt(s*F.eyeSep,F.eyeY),G=new THREE.Group();G.position.set(s*F.eyeSep,F.cy+F.eyeY,q.z-.0046);G.rotation.set(0,s*.08,s*F.eyeTilt);parent.add(G);
-  const ball=new THREE.Mesh(cgeo('eyeBall',()=>new THREE.SphereGeometry(r,28,20)),EYE_MATS.white);G.add(ball);
+  const ball=new THREE.Mesh(cgeo('eyeBall',()=>new THREE.SphereGeometry(r,18,12)),EYE_MATS.white);G.add(ball);
   const cap=(k,rad,ang,m)=>{const o=new THREE.Mesh(cgeo(k,()=>new THREE.SphereGeometry(rad,32,8,0,Math.PI*2,0,ang)),m);o.rotation.x=Math.PI/2;G.add(o);return o;};
   const ia=Math.asin(F.irisR);cap('iris',r*1.003,ia,EYE_MATS.iris);cap('pupil',r*1.005,Math.asin(F.irisR*F.pupil),EYE_MATS.pupil);cap('cornea',r*1.014,ia+.18,EYE_MATS.cornea);
   [[.0021,.32,.36],[.0011,-.26,-.3]].forEach(([cr,cx,cy2])=>{const c=new THREE.Mesh(cgeo('catch'+cr,()=>new THREE.CircleGeometry(cr,12)),EYE_MATS.catch);c.position.set(s*cx*r,cy2*r,r*Math.sqrt(1-cx*cx-cy2*cy2)*1.016);G.add(c);});
@@ -1272,7 +1326,7 @@ function buildModel(type,skin){
   mesh(cgeo('neckG',()=>{const c=new THREE.CylinderGeometry(.048,.056,.1,10);c.translate(0,.04,0);return c;}),sk,neck);
   const headJ=new THREE.Group();headJ.position.y=.08;neck.add(headJ);
   const fc=document.createElement('canvas');fc.width=512;fc.height=256;const tex=new THREE.CanvasTexture(fc);
-  let face3d=null;if(T.glam)face3d=buildGlamHead(T,headJ,tex);else{const hm=mesh(cgeo('headG',()=>new THREE.SphereGeometry(.108,26,18)),new THREE.MeshPhongMaterial({map:tex,shininess:10,specular:0x221a14}),headJ,0,.11,.008);hm.scale.set(.93,1.13,1.0);}
+  let face3d=null;if(T.glam)face3d=buildGlamHead(T,headJ,tex);else{const hm=mesh(cgeo('headG',()=>new THREE.SphereGeometry(.108,20,14)),new THREE.MeshPhongMaterial({map:tex,shininess:10,specular:0x221a14}),headJ,0,.11,.008);hm.scale.set(.93,1.13,1.0);}
   if(!T.glam){const nose=mesh(cgeo('nose',()=>{const b=new THREE.CylinderGeometry(.006,.016,.04,6);return b;}),sk,headJ,0,.098,.112);nose.rotation.x=-.35;}
   [-1,1].forEach(s=>{const e=mesh(ballGeo(.024,8,6),sk,headJ,s*(T.glam?.08:.1),.11,0);e.scale.set(.45,1,.75);});
   const hair=clothMat(T.hair,T.hs==='slick'?110:28);
@@ -5093,7 +5147,7 @@ function building(S2,x0,x1,z0,z1,h,face,seed,shop,name){const m=bldBox(S2,x0,x1,
 function vSign(S2,x,y,z,txt,bg,fg,h=2.6){const m=new THREE.MeshBasicMaterial({map:oSignTex(txt,bg,fg,true)}),dm=lam(0x111111);const s=new THREE.Mesh(new THREE.BoxGeometry(.18,h,.62),[dm,dm,dm,dm,m,m]);s.position.set(x,y,z);S2.add(s);return s;}
 function hSign(S2,x,y,z,ry,txt,bg,fg,w=3,sub){const p=new THREE.Mesh(new THREE.PlaneGeometry(w,w/4),new THREE.MeshBasicMaterial({map:oSignTex(txt,bg,fg,false,sub)}));p.position.set(x,y,z);p.rotation.y=ry;S2.add(p);return p;}
 
-function buildOut(){vis(()=>{
+function buildOut(){MAT_LITE=true;try{vis(()=>{
   const S2=new THREE.Scene();OUT.scene=S2;OUTB.boxes=[[-7,10.8,-10.6,3.1,6.3]];OUTB.wq=[];OUTB.f=newBatch();OUTB.l=newBatch();OUTB.w=newBatch();OUTB.i=newBatch();OUTB.i.shade=true;OUT.nightL=[];
   const box=(w,h,d,m,x,y,z,pp=S2)=>BOXG(w,h,d,m,x,y,z,pp),cyl=(rt,rb,h,m,x,y,z,seg=16,pp=S2)=>CYLG(rt,rb,h,m,x,y,z,seg,pp);S2.background=new THREE.Color(0x0a0c16);S2.fog=new THREE.Fog(0x14121e,28,150);
   OUT.hemi=new THREE.HemisphereLight(0x8090c0,0x2a2018,.55);S2.add(OUT.hemi);const dl=new THREE.DirectionalLight(0xc0c8ff,.32);dl.position.set(-30,60,20);S2.add(dl);S2.add(dl.target);OUT.moon=dl;if(SHADOWS){dl.castShadow=true;dl.shadow.mapSize.set(2048,2048);const sc=dl.shadow.camera;sc.left=-32;sc.right=32;sc.top=32;sc.bottom=-32;sc.near=1;sc.far=140;dl.shadow.bias=-.0008;sc.updateProjectionMatrix();}
@@ -5183,8 +5237,9 @@ function buildOut(){vis(()=>{
     press(){if(CAR.inCar)return;if(W.offDay)return toast('今日は休み。店は閉まってる');if(!W.clockedOut&&!CAR.parked)return toast('先に車を裏の駐車場に停めよう');transit(goInside);}});
   OUTB.wq.forEach(f=>f());OUTB.wq=[];
   OUT.winMesh=flushBatch(OUTB.w,S2,true);if(OUT.winMesh)NIGHT.wins.push([OUT.winMesh.material,0xffffff]);OUTB.meshes=[flushBatch(OUTB.f,S2),flushBatch(OUTB.l,S2,true),flushBatch(OUTB.i,S2,true),OUT.winMesh];OUTB.f=OUTB.l=OUTB.w=OUTB.i=null;
+  {const live=liveSet([OUT,CAR,BIKE]);live.delete(OUT.winMesh);OUT.freeze=freezeStatic(S2,live,liveMats([NIGHT,OUT]));}
   setShadows(S2);OUT.sky.castShadow=false;OUT.built=true;
-});}
+});}finally{MAT_LITE=false;}}
 // every player gets a car + bike; both sets are always built so hitbox ids match on every client
 const VEH=[];
 function buildVehicles(S2){[0x0d0d10,0x1f3c8a].forEach((col,k)=>{const n0=OUT.hits.length;buildCar(S2,col);OUT.lights=[];OUT.car.traverse(o=>{if(o.isLight)OUT.lights.push(o);});buildBike(S2);vehCarryHits();
@@ -7102,10 +7157,11 @@ function render(dt){
     p.m.position.y+=p.vy*dt;
     if(p.kind==='s'){const k=1-p.life/p.max;p.m.scale.setScalar(.2+k*p.grow);p.m.material.opacity=p.op*(1-k);}
     if(p.life<=0){scene.remove(p.m);if(p.m.material!==bubMat)p.m.material.dispose();parts.splice(i,1);}}
-  const sc=W.store&&STORES[W.store].scene?STORES[W.store].scene:W.home&&HOME.scene?HOME.scene:(W.outside&&OUT.scene?OUT.scene:scene);if(camera.parent!==sc){sc.add(camera);camera.far=sc===scene?40:sc===OUT.scene?170:30;camera.updateProjectionMatrix();}
+  const sc=W.store&&STORES[W.store].scene?STORES[W.store].scene:W.home&&HOME.scene?HOME.scene:(W.outside&&OUT.scene?OUT.scene:scene);detailCull(sc,camera);if(sc===OUT.scene)lightCap(sc,camera);if(camera.parent!==sc){sc.add(camera);camera.far=sc===scene?40:sc===OUT.scene?170:30;camera.updateProjectionMatrix();}
   drawScene(sc,dt);fpsWatch(dt);
 }
 if(window.__TEST__)window.__G={stTrain,trainSeg,nextDeps,gmNow,rushNow,arrest,R_,rTurn,rBuy,rGacha,noOpenShame,GLINE,RAMEN,health,TOPS_W,GYM,gymStart,gymStop,gymRelease,gymPress,gymMember,STORES,enterStore,applyLook,lookOf,lookCode,openLookUI,wearItem,outfitKey,OWN,forceSleep,dayWrap,get gOrd(){return W.gOrd;},leaveHome,enterCar,get trays(){return trays;},CARRYDAY,openGuestShop,enterAsGuest,guestSit,guestOrder,guestKeys,startPassout,sleepNow,exitHome,enterHome,crewReact,PARTIES,SLOTS,spawnParty,trySpawnParty,staffN,tgtKeys,partyServeDrink,partyServeFood,groupCards,PASS,putPass,sgServeBeer,sgServeFood,setJob,SEKKYO,GLINE,meddle,fryers,get rack(){return rack;},lineThreads,LW,JOB_NAME,setSky,NIGHT,buildOut,CREW_NOW,crewToday,MAKA,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
+if(window.__TEST__)Object.assign(window.__G,{renderer,OUT,HOME,mainScene:scene,frozenCheck,FROZEN,LamOrig,PhoOrig});
 camera.position.set(0,1.62,.2);
 {const _bm=buildModel;buildModel=function(t,s){const m=_bm(t,s);if(SHADOWS)m.g.traverse(o=>{if(o.isMesh)o.castShadow=true;});m.blob=blob(m.g,0,.02,.6,.48,.012);return m;};}
 setShadows(scene);if(HQ)loadPP();
