@@ -3091,7 +3091,7 @@ const PL0={i:0,pos:player,P,hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,a
 function mkPl(i){return{i,pos:{x:0,z:.2},P:{hp:100,atk:null,atkT:0,cd:0,lastHurt:-99,hitDone:false},hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,actT:0,pid:0,moved:false};}
 let players=[PL0],me=0,cur=0;
 // each player has their own whereabouts, car, bike and apartment; swapped in and out like the hand
-const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil','ride','homeRide','clockInT','wage','store','ball','dayChoice','makaSeat','job','sekkyoNow','sekkyo','payCut','violN','splashN','condM','guest','gSeat','gOrd','gBill','gWait'];
+const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil','ride','homeRide','clockInT','wage','store','ball','dayChoice','makaSeat','job','sekkyoNow','sekkyo','payCut','violN','splashN','condM','guest','gSeat','gOrd','gBill','gWait','arrest','gameN','gameWarnT','gMedT','awayT','awayN','awayMsgs','tg'];
 const CKEYS=['x','z','h','v','st','engine','starting','side','gear','gearDir','doorOpen','inCar','dead','fall','warnT','brakeL','acc','rpm','atg','cam','parked','lastAcc','ck'];
 const BKEYS=['x','z','h','v','riding','arrived','warned','g','front','crank','rw','fw','lampM'];
 const HKEYS=['mode','nap','endHow','tvOn','lightOn','fridgeOpen','bathOpen'];
@@ -3189,13 +3189,13 @@ function reset(){
   Object.assign(P,{hp:100,atk:null,atkT:0,cd:0,lastHurt:-99});hurtT=0;$('#copP').hidden=true;
   Object.assign(W,{closed:false,norenDown:false,gasOff:false,trashOut:false,bagTaken:false,regDone:false,regP:0,lightsOff:false,paidGroups:new Set(),taskT:0});
   norenMesh.visible=true;resetTrays();if(DAY.n<=1)trays.forEach(T=>{CONDS.forEach(c=>T.lv[c.id]=1);showTray(T);});else if(CARRYDAY.lv)trays.forEach((T,i)=>{if(CARRYDAY.lv[i])Object.assign(T.lv,CARRYDAY.lv[i]);showTray(T);});sgReset();partyReset();W.guestShop=false;
-  returners.forEach(p=>scene.remove(p.g));returners.length=0;lostItems.forEach(L=>{scene.remove(L.mesh);if(L.hb)removeHit(L.hb);});lostItems.length=0;W.contacts=[];W.staffVomit=0;Object.assign(W,{lastOrder:false,dine:0,regN:0,cheersT:null,noGreet:0,returned:0,water:0,chkP:0});shoutCD=0;gasLamp.material.color.set(0xff8a2a);if(lightList)setShopLights(true,true);$('#tickets').hidden=false;$('#tasks').hidden=true;
+  returners.forEach(p=>scene.remove(p.g));returners.length=0;lostItems.forEach(L=>{scene.remove(L.mesh);if(L.hb)removeHit(L.hb);});lostItems.length=0;W.contacts=[];W.staffVomit=0;Object.assign(W,{noOpen:null,lastOrder:false,dine:0,regN:0,cheersT:null,noGreet:0,returned:0,water:0,chkP:0});shoutCD=0;gasLamp.material.color.set(0xff8a2a);if(lightList)setShopLights(true,true);$('#tickets').hidden=false;$('#tasks').hidden=true;
   LATER=[];
   W.outside=false;W.home=false;W.clockedOut=false;W.bikeUsed=false;resetCarry();Object.assign(BIKE,{x:47.6,z:104.6,h:0,v:0,riding:false,arrived:false,warned:false});W.transit=false;W.homeEnd=false;W.taskSnap=null;W.clockTxt=null;scene.add(camera);camera.far=40;camera.updateProjectionMatrix();
   Object.assign(CAR,{x:9.1,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}});{const o=OOBST.find(o=>o.k==='cop');if(o)o.r=[-11.85,-10.95,19.6,20.4];if(OUT.cop)OUT.cop.g.position.x=-11.4;}RETA.forEach(a=>scene.remove(a.mesh));RETA.length=0;
   $('#carHud').hidden=true;$('#fade').classList.remove('on');
   {const com=startMode==='commute';players.forEach((q,i)=>{const ap=aptOf(i),v=VEH[i];
-    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null,ride:null,homeRide:false,clockInT:0,wage:0,store:null,ball:null,dayChoice:null,makaSeat:false,job:null,sekkyoNow:false,sekkyo:0,payCut:0,violN:0,splashN:0,condM:null,guest:false,gSeat:null,gOrd:{d:[],f:[]},gBill:0,gWait:[]};
+    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null,ride:null,homeRide:false,clockInT:0,wage:0,store:null,ball:null,dayChoice:null,makaSeat:false,job:null,sekkyoNow:false,sekkyo:0,payCut:0,violN:0,splashN:0,condM:null,arrest:null,gameN:0,gameWarnT:null,gMedT:null,awayT:0,awayN:0,awayMsgs:[],guest:false,gSeat:null,gOrd:{d:[],f:[]},gBill:0,gWait:[]};
     q.car={x:9.1-i*2.6,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,brakeL:0,acc:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}};
     q.bike=Object.assign({x:ap.bike[0],z:ap.bike[1],h:0,v:0,riding:false,arrived:false,warned:false},v?v.bikeM:{g:null,front:null,crank:null,rw:null,fw:null,lampM:null});
     q.hm={mode:'start',nap:0,endHow:null,tvOn:false,lightOn:true,fridgeOpen:false,bathOpen:false};q.carM=v?Object.assign({},v.carM):{};});
@@ -3217,6 +3217,7 @@ function startGame(){
   canvas.focus();
 }
 function endGame(o={}){
+  closeOverlays();
   if(!W.running)return;if(o.who==null)o.who=cur;if(MP.on&&cur!==me)return withPlayer(me,()=>endGame(o));
   if(o.allHome)o.home=HOME.endHow||'drive';
   W.running=false;actUp();DAY.choosing=false;$('#dayEnd').hidden=true;$('#sleepAsk').hidden=true;$('#shiftUI').hidden=true;if(OUT.engGain)OUT.engGain.gain.value=0;$('#carHud').hidden=true;$('#phone').hidden=true;phoneShown=false;openMenu(false);$('#drunkV').style.opacity=0;$('#punch').hidden=true;$('#actionBtn').hidden=true;$('#voice').hidden=true;$('#hurt').style.opacity=0;
@@ -3570,11 +3571,11 @@ function lineThreads(){const m=gameClock().mins,me0=players[me].P,th=[];
   if(m>=85&&W.fights)boss.push([85,'お客さんと揉めたって本当? 明日話そう']);
   if(m>=88&&W.calls)boss.push([88,'警察から店に電話あったんだけど!?']);
   if(W.closed)boss.push([181,'おつかれ! 締めよろしく。ガスの元栓とレジ締めだけは本当に頼む']);
-  if(W.clockedOut)boss.push([Math.max(182,W.outMins||182),(me0.bac||0)>=3?'おつかれ〜。…まさか飲んでないよね? 車でしょ?':'おつかれさま! 気をつけて帰ってね']);
+  if(W.clockedOut&&!(W.arrest&&W.arrest.onShift)&&(W.awayN||0)<3)boss.push([Math.max(182,W.outMins||182),(me0.bac||0)>=3?'おつかれ〜。…まさか飲んでないよね? 車でしょ?':'おつかれさま! 気をつけて帰ってね']);
   {const ct=crewThread(m,at);if(ct)th.push(ct);}
   if(W.condM&&W.condM.viol!=null&&m>=W.condM.viol)boss.push([W.condM.viol,'…お客さんに手を出したって聞いたけど、本当? 次やったら本当にクビだからね']);
   if(W.condM&&W.condM.splash!=null&&m>=W.condM.splash)boss.push([W.condM.splash,'寝てるお客さんにお酒かけたって…? 起こすときは声かけてね😅']);
-  arrestLine(m,boss);if(W.noOpen){const n=W.noOpen;[[1,'…は?'],[2,'ラストオーダーの時間なんだけど、まだ店開いてないってどういうこと?'],[4,'電話出て'],[6,'(不在着信 3件)'],[9,'常連さんから何件も電話きてる。説明して'],[13,'既読つけてるよね?'],[18,'明日10時に事務所来て。今日の分の給料は出せないから']].forEach(([d,x])=>{if(m>=n+d)boss.push([n+d,x]);});}
+  arrestLine(m,boss);(W.awayMsgs||[]).forEach(x=>{if(m>=x[0])boss.push(x);});if(W.noOpen&&W.open&&W.openAt>0){const om=Math.floor(W.openAt/W.dur*180);if(om>=W.noOpen&&m>=om+1)boss.push([om+1,'え、今から開けたの!? …来てくれたお客さんだけでも、ちゃんと頼むね']);}if(W.noOpen){const n=W.noOpen;[[1,'…は?'],[2,'ラストオーダーの時間なんだけど、まだ店開いてないってどういうこと?'],[4,'電話出て'],[6,'(不在着信 3件)'],[9,'常連さんから何件も電話きてる。説明して'],[13,'既読つけてるよね?'],[18,'明日10時に事務所来て。今日の分の給料は出せないから']].forEach(([d,x])=>{if(m>=n+d)boss.push([n+d,x]);});}
   boss.sort((a,b)=>a[0]-b[0]);if(!W.offDay)th.push({id:'boss',name:'権田(店長)',msgs:boss.map(([t,x])=>({t:at(t),x}))});
   const mom=[];if(m>=60)mom.push([60,'今日ご飯いるの?']);if(m>=125)mom.push([125,'もう寝るから、お風呂のスイッチ消しといてね']);
   if(mom.length)th.push({id:'mom',name:'母',msgs:mom.map(([t,x])=>({t:at(t),x}))});
@@ -4635,6 +4636,14 @@ function meddle(task){if(!CREW_NOW.length||!W.open||W.closed||W.sekkyoNow)return
 // (and the boss hears about it); again: a senior (or 三好) takes you to the staff room, it goes in the group chat and comes off today's pay.
 const CONDUCT={game:{cut:1500,name:'勤務中にスマホゲームで遊んでいました'},viol:{cut:3000,name:'お客さんに暴力をふるいました'},splash:{cut:1000,name:'お客さんに飲み物をかけました'}};
 const MALE=new Set(['桐谷 颯真','三好 恭平','大森 拓海']);
+// walking off in the middle of a shift: the crew notice, the boss chases you, and in the end clocks you out
+function awayStep(dt){if(W.offDay||!W.clockedIn||W.clockedOut||!W.open||W.closed||W.guest||P.jail){W.awayT=0;return;}const m=Math.floor(W.t/W.dur*180),away=locOf(cur)!=='shop';
+  if(!away){if((W.awayT||0)/W.dur*180>=8){const q=CREW_NOW.find(p=>crewIn(p)&&p.post.role!=='boss');if(q)say(q,pick(['あ、戻ってきた! どこ行ってたの!?','ちょっと、どこ行ってたんすか! 回んなかったですよ!']),'');}W.awayT=0;return;}
+  W.awayT=(W.awayT||0)+dt;const mn=W.awayT/W.dur*180;if(!W.awayMsgs)W.awayMsgs=[];
+  if(mn>=10&&(W.awayN||0)<1){W.awayN=1;gpost(m,CREW_NOW.some(p=>p.crew==='早川 莉子')?'早川':'白石',`${newbie(cur)}どこ行った? さっきから見当たらないんだけど`);}
+  if(mn>=25&&W.awayN<2){W.awayN=2;W.awayMsgs.push([m,'今どこ? 勤務中だよね? みんなから連絡来てるよ']);if(cur===me)toast('📱 店長から「今どこ?」とLINEが来た');}
+  if(mn>=45&&W.awayN<3){W.awayN=3;W.clockedOut=true;W.outMins=m;W.wage=Math.max(0,wageFor(W.clockInT||0,Math.min(W.t,W.dur))-(W.payCut||0)-2000);if(cur===me&&W.wage)BANK.add(W.wage,'給料振込 イザカヤノンベエ(途中で抜けた)');
+    W.awayMsgs.push([m,'…もう戻らなくていいです。タイムカードはこっちで切っておきます。抜けたぶん、今日は−2,000円ね']);gpost(m+1,'権田(店長)',`${newbie(cur)}が勤務中にいなくなったので、今日は上がりにしました。みんなごめん、あと頼む`);if(cur===me)toast('勤務中に抜け出したので、店長にタイムカードを切られた…');}}
 function gameCatch(dt){if(!P.phone||!P.game||W.home||W.outside||W.store||W.guest||W.offDay||!W.open||W.closed||W.sekkyoNow||SEKKYO.p){P.gameT=0;return;}P.gameT=(P.gameT||0)+dt;if(P.gameT<2.5)return;
   const q=CREW_NOW.find(p=>crewIn(p)&&SENIOR.has(p.crew)&&!p.seat&&Math.hypot(p.g.position.x-player.x,p.g.position.z-player.z)<6);if(!q||W.t<(W.gameWarnT||-1e9))return;W.gameWarnT=W.t+25;
   const n=W.gameN=(W.gameN||0)+1;setExpr(q,'angry');if(n===1){say(q,q.crew==='早川 莉子'?'ちょっと! 今ゲームしてたでしょ? しまって!':'…え、今スマホでゲームしてました? 仕事中っすよ','loud');if(cur===me)toast('ゲームしてるところを見られた… 次は説教だ');return;}
@@ -5142,7 +5151,9 @@ function toggleEngine(){if(CAR.starting)return;if(CAR.gear!=='P'&&CAR.gear!=='N'
 function enterCar(){CAR.inCar=true;CAR.doorOpen=false;laterP(()=>sfx.carDoor(false),350);view.yaw=0;view.pitch=-.08;}
 function exitCar(){CAR.inCar=false;CAR.doorOpen=true;sfx.carDoor(true);const c=Math.cos(CAR.h),s=Math.sin(CAR.h);let px=CAR.x+c*1.5+s*.2,pz=CAR.z-s*1.5+c*.2;if(!walkOut(px,pz)){px=CAR.x-c*1.5;pz=CAR.z+s*1.5;}player.x=px;player.z=pz;view.yaw=CAR.h-Math.PI/2;
   if(!W.clockedOut&&CAR.parked&&!W.toldDoor){W.toldDoor=true;toast('通用口(建物の裏の灰色のドア)から店に入ろう');}}
-function transit(fn){if(W.transit)return;W.transit=true;if(cur===me)$('#fade').classList.add('on');laterP(()=>{fn();if(cur===me)$('#fade').classList.remove('on');laterP(()=>{W.transit=false;},450);},550);}
+function transit(fn){if(W.transit)return;W.transit=true;const g=W.tg=(W.tg||0)+1;if(cur===me)$('#fade').classList.add('on');laterP(()=>{if(W.tg!==g)return;fn();if(cur===me)$('#fade').classList.remove('on');laterP(()=>{if(W.tg===g)W.transit=false;},450);},550);}
+// something bigger happened (2:00, the police): whatever door you were going through no longer matters
+const cancelTransit=()=>{W.tg=(W.tg||0)+1;W.transit=false;if(cur===me)$('#fade').classList.remove('on');};
 function skyMode(){const c=gameClock(),hr=c.h+c.m/60;return hr<16.3?'day':W.t<-40?'dusk':'night';}
 function setSky(){if(!OUT.sky)return;const md=skyMode();OUT.skyMode=md;if(md==='day'&&!OUT.skyDay)OUT.skyDay=skyDayTex();const day=md==='day',dusk=md==='dusk';
   OUT.sky.material.map=day?OUT.skyDay:dusk?OUT.skyDusk:OUT.skyNight;OUT.sky.material.needsUpdate=true;
@@ -5510,7 +5521,8 @@ function dayWrap(){const i=cur;if(!DAY.notes)DAY.notes=[];
     DAY.notes.push(['権田(店長)',`${newbie(i)}、タイムカード押し忘れてたから21:00で切っといたよ`]);}
   if(!W.offDay&&!W.clockedIn&&isWorkDay(DAY.n))DAY.notes.push(['権田(店長)',`${newbie(i)}、昨日来なかったよね…? 連絡くらいはしてほしい。今度ちゃんと話そう`]);}
 // staying up too late: at 2:00 you drop wherever you are and wake up at home
-function forceSleep(){if(W.slept)return;if(W.guest){if(W.gSeat!=null)guestStand();guestPay();W.guest=false;}if(W.store)W.store=null;CAR.inCar=false;BIKE.riding=false;W.ride=null;W.sekkyoNow=false;W.makaSeat=false;
+const closeOverlays=()=>{['#rpgUI','#lookUI','#gymUI'].forEach(k=>{const e=$(k);if(e)e.hidden=true;});PREVIEW=null;};
+function forceSleep(){if(W.slept)return;cancelTransit();if(cur===me)closeOverlays();if(W.guest){if(W.gSeat!=null)guestStand();guestPay();W.guest=false;}if(W.store==='gym')gymLeft(cur);P.ramen=null;P.onTrain=null;P.jail=null;P.game=false;if(W.store)W.store=null;CAR.inCar=false;BIKE.riding=false;W.ride=null;W.sekkyoNow=false;W.makaSeat=false;
   goHome('walk');dayWrap();W.slept=true;allSleptCheck();if(cur===me)toast('…限界。気づいたら家のベッドで寝ていた');}
 function openSleepAsk(){const el=$('#sleepAsk');$('#saSub').textContent=`今日はここで終わりにして、${dayLabel(DAY.n+1)} に進みます`;el.hidden=false;if(document.exitPointerLock&&locked())document.exitPointerLock();}
 function goHome(how){if(!HOME.built)buildHome();HOME.mode='end';HOME.endHow=how;W.home=true;W.outside=false;player.x=HX-.8;player.z=1.5;yaw=0;pitch=-.05;if(cur===me){view.yaw=0;view.pitch=-.05;}HOME.lightOn=false;HOME.tvOn=false;
@@ -5904,7 +5916,7 @@ function ramenHand(){const r=P.ramen;r.st='wait';r.t=7+R()*4;ramenSay(r.k==='big
 function ramenSit(k){if(ramenSeatTaken(k)){if(cur===me)toast('その席は埋まってる');return;}
   if(!P.ramen)P.ramen={st:'done',seat:k};P.ramen.seat=k;player.x=STORES.ramen.X+RAMEN_SEATS[k];player.z=-.3;yaw=0;if(cur===me){view.yaw=0;view.pitch=-.35;}sfx.clink(.3);
   if(P.ramen.st==='ticket')ramenHand();else if(P.ramen.st==='done'&&cur===me)toast('先に入口の券売機で食券を買ってね');}
-function ramenStand(){const r=P.ramen;if(!r)return;if(r.st==='bowl'||r.st==='wait'){if(cur===me)toast('まだ食べ終わってない…(アクションから食べる)');return;}r.seat=null;if(r.st==='done')P.ramen=null;player.z=.45;}
+function ramenStand(){const r=P.ramen;if(!r)return;if(r.st==='bowl'||r.st==='wait'){ramenSay(r.st==='wait'?'えっ、帰っちゃうの!? …食券代はいただきますよ':'…お残しですか。またどうぞ');if(cur===me)toast('ラーメンを残して席を立った(スタンプはなし)');P.ramen=null;player.z=.45;return;}r.seat=null;if(r.st==='done')P.ramen=null;player.z=.45;}
 function ramenEat(){const r=P.ramen;if(!r||r.st!=='bowl')return;const it=RAMEN[r.k];r.left--;hlAdd('hunger',-it.fill/it.bites);hlAdd('thirst',3);sfx.slurp();
   if(r.left>0){if(cur===me&&r.left===Math.floor(it.bites/2))toast(r.garlic>=4?'ニンニクが効いてる…!':'うまい…!');return;}
   hlAdd('poo',8);r.st='done';ramenSay(pick(['ありがとうございましたー!','まいど! また来てね!']));
@@ -5932,7 +5944,7 @@ function buildRamen(S,G,B,C,PL,hit){const yel=lam(0xf2c21b),red=lam(0xb01818),wo
   B(7,1.0,.5,wood,0,.5,-1.0);B(7,.05,.62,phong(0x5a3a1e,60),0,1.02,-.98);B(7,.12,.3,phong(0x5a3a1e,60),0,1.3,-1.2);
   RAMEN_SEATS.forEach((x,k)=>{C(.2,.2,.06,red,x,.66,-.25,14);C(.04,.06,.62,st,x,.32,-.25,8);
     C(.05,.05,.12,lam(0xf4f4ee),x+.3,1.1,-1.12,10);C(.03,.03,.2,lam(0x6a3a1a),x-.3,1.13,-1.12,8);
-    hit(.6,1.0,.6,x,.6,-.25,{prompt(){const r=P.ramen;if(r&&r.seat===k)return r.st==='bowl'||r.st==='wait'?'(食べ終わるまで座っていよう)':'席を<b>立つ</b>';if(ramenSeatTaken(k))return'(席は埋まっている)';
+    hit(.6,1.0,.6,x,.6,-.25,{prompt(){const r=P.ramen;if(r&&r.seat===k)return r.st==='bowl'||r.st==='wait'?'席を立つ(<b>残して帰る</b>)':'席を<b>立つ</b>';if(ramenSeatTaken(k))return'(席は埋まっている)';
       return r&&r.st==='ticket'?'座って<b>食券を渡す</b>':'カウンターに<b>座る</b>';},press(){const r=P.ramen;if(r&&r.seat===k)ramenStand();else if(!r||r.seat==null)ramenSit(k);}});});
   [-2,-.6,.8].forEach(x=>{C(.32,.3,.5,st,x,1.15,-2.4,16);C(.33,.33,.03,st,x,1.41,-2.4,16);});B(4.6,.9,.6,st,0,.45,-2.4);B(1.4,.04,.6,lam(0xf4f4ee),2.4,.92,-2.4);
   for(let i=0;i<6;i++)C(.12,.08,.06,lam(0xf4f4ee),2.0+i*.16,.97+Math.floor(i/3)*.06,-2.4,12);
@@ -5952,7 +5964,7 @@ function buildRamen(S,G,B,C,PL,hit){const yel=lam(0xf2c21b),red=lam(0xb01818),wo
     const ch=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.015,12),lam(0xd89a8a));ch.position.set(.06,.13,.03);g.add(ch);
     const gl=new THREE.Mesh(new THREE.DodecahedronGeometry(.05,0),lam(0xfaf6ea));gl.position.set(-.06,.125,.03);gl.scale.y=.5;g.add(gl);g.visible=false;return{g,nd,ch,gl};});
   {const pl=new THREE.PointLight(0xffe6b8,.5,8,1.5);pl.position.set(0,2.4,-.5);G.add(pl);}
-  hit(1.4,2.3,.3,-2.4,1.15,2.85,{prompt(){const r=P.ramen;return r&&(r.st==='bowl'||r.st==='wait')?'まだ食べてない…':'店を<b>出る</b>';},press(){const r=P.ramen;if(r&&(r.st==='bowl'||r.st==='wait'))return toast('先に食べ終わろう');transit(exitStore);}});
+  hit(1.4,2.3,.3,-2.4,1.15,2.85,{prompt(){return'店を<b>出る</b>';},press(){transit(exitStore);}});
   PL(1.2,2.2,phong(0xcfe0e6,140,0xffffff),-2.4,1.1,2.98,0,Math.PI);}
 function drawRamen(S){if(!S.bowls)return;S.bowls.forEach((b,k)=>{const i=players.findIndex((q,j)=>q.P.ramen&&q.P.ramen.seat===k&&locOf(j)==='store:ramen'),r=i>=0?players[i].P.ramen:null,on=!!r&&(r.st==='bowl'||r.st==='done');b.g.visible=on;if(!on)return;
   const it=RAMEN[r.k]||RAMEN.reg,f=r.st==='done'?0:Math.max(0,r.left/it.bites);b.nd.visible=f>0;b.nd.scale.set(.3+f*.7,1,.3+f*.7);b.ch.visible=f>.5;b.gl.visible=(r.garlic||0)>0;{const g=Math.min(10,r.garlic||0);b.gl.scale.set(.5+g*.1,.3+g*.05,.5+g*.1);}});}
@@ -6124,13 +6136,14 @@ const ARREST={'公務執行妨害':{fine:100000,why:'警察官に手を出した
   '酒酔い運転':{fine:500000,why:'検問で、だいぶ酔った状態で運転していた',pay:'罰金'},'検問突破':{fine:120000,why:'検問を止まらずに通過した',pay:'反則金'},'道路交通法違反(検問からの逃走)':{fine:300000,why:'検問から逃げた',pay:'罰金'}};
 function arrest(kind,note){if(!W.running||P.jail)return;const A=ARREST[kind]||{fine:50000,why:note||kind,pay:'罰金'};
   if(W.outside&&CAR.inCar){CAR.inCar=false;CAR.v=0;CAR.engine=false;CAR.doorOpen=false;}if(W.outside&&BIKE.riding){BIKE.riding=false;BIKE.v=0;}
-  setHand(null);P.phone=false;P.game=false;W.sekkyoNow=false;W.gSeat=null;W.makaSeat=null;W.guest=false;
+  if(W.guest){if(W.gSeat!=null)guestStand();W.guest=false;}if(W.makaSeat){W.makaSeat=false;const j=MAKA.joined.indexOf(cur);if(j>=0)MAKA.joined.splice(j,1);}if(CARRY.c)dropCarry();if(W.store==='gym')gymLeft(cur);
+  setHand(null);P.phone=false;P.game=false;P.ramen=null;P.onTrain=null;W.sekkyoNow=false;
   const m=Math.floor(W.t/W.dur*180);W.arrest={m,kind,fine:A.fine,onShift:!W.offDay&&!W.clockedOut&&!W.home};if(W.arrest.onShift){W.clockedOut=true;W.outMins=m;}
   P.jail={t:0,kind,step:0};if(cur===me)toast(`🚓 ${kind}で警察署に連行された…`);
-  transit(()=>{W.home=false;W.outside=false;W.store=null;enterStore('police');player.x=STORES.police.X;player.z=.9;yaw=0;pitch=-.1;if(cur===me){view.yaw=0;view.pitch=-.1;}});}
+  cancelTransit();transit(()=>{W.home=false;W.outside=false;W.store=null;enterStore('police');player.x=STORES.police.X;player.z=.9;yaw=0;pitch=-.1;if(cur===me){view.yaw=0;view.pitch=-.1;}});}
 const JAIL_LINES=k=>[[2,'刑事','はい、座って。名前と住所、言えるかな'],[7,'刑事',`…で、${(ARREST[k]||{}).why||k}。間違いないね?`],[12,'あなた','…はい。すみませんでした'],
   [16,'刑事',`今回は${(ARREST[k]||{}).pay||'罰金'}として${yen((ARREST[k]||{fine:50000}).fine)}。払ってもらうよ`],[22,'刑事','バイト先にも連絡が行ってるからね。ちゃんと謝っておきなさい'],[28,'刑事','…もう二度とやるんじゃないよ。今日は帰ってよし']];
-function jailStep(dt){const J=P.jail;if(!J)return;if(W.store!=='police')return;J.t+=dt;const L=JAIL_LINES(J.kind);
+function jailStep(dt){const J=P.jail;if(!J)return;if(W.store!=='police'){if(!W.transit)P.jail=null;return;}J.t+=dt;const L=JAIL_LINES(J.kind);
   while(J.step<L.length&&J.t>=L[J.step][0]){const[,who,x]=L[J.step];if(locOf(me)==='store:police')sub(who,x,J.step===L.length-1?'':'quiet');
     if(J.step===3&&cur===me){const f=(ARREST[J.kind]||{fine:50000}).fine;BANK.add(-f,`${(ARREST[J.kind]||{}).pay||'罰金'}(${J.kind})`);toast(`${yen(f)}を支払った(残高 ${yen(BANK.bal)})`);}J.step++;}
   if(J.t>=31){P.jail=null;if(cur===me)toast('釈放された。外はもう…');transit(exitStore);}}
@@ -6463,7 +6476,7 @@ function applyInput(q,inp,dt){
   if(W.ball&&(!onFootOut()||Math.hypot(W.ball.x-player.x,W.ball.z-player.z)>25)){W.ball=null;if(cur===me&&W.outside)toast('ボールをしまった');} // back in the bag when I drive off or walk away
   const ox=player.x,oz=player.z,bm=soccerMode();
   P.bac=Math.max(0,(P.bac||0)-dt*(q.moved?.25:.04));
-  const riding=W.outside&&W.ride!=null;let mx=inp.mx,mz=inp.mz;if(W.transit||riding||(q.sk&&q.sk.t>0)||W.makaSeat||W.sekkyoNow||W.gSeat!=null||(P.ramen&&P.ramen.seat!=null)||P.jail||crushed()){mx=0;mz=0;}
+  const riding=W.outside&&W.ride!=null;let mx=inp.mx,mz=inp.mz;if(W.transit||riding||(q.sk&&q.sk.t>0)||W.makaSeat||W.sekkyoNow||W.gSeat!=null||(P.ramen&&P.ramen.seat!=null)||(P.jail&&W.store==='police')||crushed()){mx=0;mz=0;}
   const inCarNow=W.outside&&CAR.inCar;
   if(inCarNow){carStep({mx,mz},dt);mx=0;mz=0;}
   else if(W.outside&&BIKE.riding){bikeStep({mx,mz},dt);mx=0;mz=0;}
@@ -6479,7 +6492,7 @@ function applyInput(q,inp,dt){
   }
   if(q.sk&&q.sk.t>0){q.sk.t-=dt;let nx,nz;if(q.sk.curve){const u=Math.min(1,1-q.sk.t/q.sk.d);[nx,nz]=bez(q.sk,u);}else{nx=player.x+q.sk.dx*dt;nz=player.z+q.sk.dz*dt;}if(W.outside&&walkOut(nx,nz)){player.x=nx;player.z=nz;}q.moved=true;}
   q.vx=(player.x-ox)/dt;q.vz=(player.z-oz)/dt;
-  if(W.running)healthTick(q,dt);if(W.store==='ramen'||P.ramen)ramenTick(dt);if(W.store)trainStep();if(P.jail)jailStep(dt);
+  if(W.running)healthTick(q,dt);if(W.store==='ramen'||P.ramen)ramenTick(dt);if(W.store)trainStep();if(P.jail)jailStep(dt);awayStep(dt);
   if(W.store&&STORES[W.store].open&&!storeOpen(W.store)&&!W.transit){if(cur===me)toast(W.store==='gym'?'閉館時間になりました':'閉店時間になりました');if(W.store==='super')sub('店内放送','本日はご来店ありがとうございました。まもなく閉店いたします','quiet');transit(exitStore);}
   if(riding){const rc=rideCar();if(rc){const st2=seatOf(rc);player.x=st2.x;player.z=st2.z;}q.moved=false;}
   else if(W.outside&&!inCarNow)footOutStep();
