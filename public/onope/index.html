@@ -153,18 +153,25 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 #drunkV{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,rgba(255,170,90,0) 35%,rgba(120,40,60,.55));mix-blend-mode:multiply}
 #fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .5s}
 #fade.on,#fade.zz{opacity:1}
-#actMenu{position:fixed;right:calc(max(16px,env(safe-area-inset-right,0px)) + 100px);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);width:min(300px,calc(100vw - 32px));display:grid;gap:7px;z-index:5;pointer-events:auto}
-#actMenu .amh{font-family:var(--f-display);font-size:12px;letter-spacing:.35em;color:var(--oil);text-align:right;opacity:0;transform:translateX(12px);transition:.25s}
-#actMenu.show .amh{opacity:1;transform:none}
-.ami{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;text-align:left;border:0;border-left:3px solid var(--shu);border-radius:3px 14px 14px 3px;padding:9px 12px 9px 10px;background:linear-gradient(100deg,rgba(14,18,34,.94),rgba(30,38,70,.86));color:#fff;font-family:var(--f-body);cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.4);opacity:0;transform:translateX(40px) skewX(-6deg);transition:transform .28s cubic-bezier(.2,.9,.3,1.2) var(--d),opacity .2s var(--d)}
-#actMenu.show .ami{opacity:1;transform:none}
-.ami:hover,.ami:focus-visible{background:linear-gradient(100deg,rgba(150,36,28,.95),rgba(60,30,40,.9));outline:none}
-.ami .ic{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center}
-.ami svg{width:22px;height:22px;fill:none;stroke:#f6e7c8;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.ami b{display:block;font-size:14px;font-weight:800;letter-spacing:.02em}
-.ami small{display:block;font-size:11px;opacity:.7;margin-top:2px;line-height:1.35}
-.ami kbd{font-family:var(--f-body);font-size:10px;opacity:.5;border:1px solid rgba(255,255,255,.4);border-radius:3px;padding:0 4px}
-.ami.off{border-left-color:#555}.ami.off b,.ami.off .ic{opacity:.45}
+#loadMsg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#d8d4c8;font-weight:800;font-size:15px;letter-spacing:.1em}
+#actMenu{position:fixed;inset:0;display:grid;place-items:center;z-index:5;pointer-events:auto;background:radial-gradient(circle at 50% 50%,rgba(6,8,16,.45),rgba(6,8,16,.15) 60%,transparent)}
+.rw{position:relative;width:min(86vmin,360px);aspect-ratio:1;opacity:0;transform:scale(.82) rotate(-8deg);transition:transform .26s cubic-bezier(.2,.9,.3,1.25),opacity .18s}
+#actMenu.show .rw{opacity:1;transform:none}
+.rw svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.rw-seg{fill:rgba(14,18,34,.86);stroke:rgba(246,231,200,.22);stroke-width:1.2;cursor:pointer;transition:fill .12s}
+.rw-seg.on{fill:rgba(170,40,30,.95);stroke:#f6e7c8}.rw-seg.off{fill:rgba(30,30,36,.78)}.rw-seg.off.on{fill:rgba(70,60,60,.9)}
+.rw-seg.empty{fill:rgba(14,18,34,.42);stroke:rgba(246,231,200,.12);pointer-events:none}
+.rw-ring{fill:none;stroke:rgba(246,231,200,.35);stroke-width:1.5}
+.rw-lab{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none;color:#f6e7c8;text-align:center;width:22%}
+.rw-lab svg{position:static;width:clamp(18px,6.4vmin,26px);height:clamp(18px,6.4vmin,26px);fill:none;stroke:#f6e7c8;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.rw-lab b{font-size:clamp(9px,2.9vmin,12px);font-weight:800;line-height:1.15;letter-spacing:.02em;text-shadow:0 1px 2px #000}
+.rw-lab kbd{font-size:9px;opacity:.55;font-family:var(--f-body)}
+.rw-lab.off{opacity:.45}
+.rw-c{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:36%;aspect-ratio:1;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  background:radial-gradient(circle,rgba(40,48,86,.96),rgba(14,18,34,.96));border:2px solid rgba(246,231,200,.55);box-shadow:0 0 0 6px rgba(14,18,34,.35),0 10px 30px rgba(0,0,0,.5);color:#f6e7c8;pointer-events:none;padding:6px}
+.rw-c b{font-family:var(--f-display);font-size:clamp(12px,3.8vmin,16px);letter-spacing:.25em}
+.rw-c.pick b{font-family:var(--f-body);letter-spacing:.02em;font-size:clamp(10px,3.1vmin,13px)}
+.rw-c small{font-size:clamp(8px,2.4vmin,10px);opacity:.75;margin-top:3px;line-height:1.3}
 #phone{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);transform:translateX(-50%);width:min(270px,62vw);height:min(500px,78vh);height:min(500px,78dvh);background:#0c0c0e;border-radius:34px;padding:9px;box-shadow:0 0 0 2px #3a3a40,0 20px 50px rgba(0,0,0,.6);z-index:6;pointer-events:auto}
 .ph-screen{height:100%;box-sizing:border-box;border-radius:26px;overflow:hidden;background:#f2f3f5;color:#111;display:flex;flex-direction:column;font-family:"Noto Sans JP","Hiragino Sans",sans-serif}
 .ph-status{display:flex;justify-content:space-between;align-items:center;padding:7px 16px 3px;font-size:11px;font-weight:700}
@@ -248,7 +255,6 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
   .tk{padding:2px 7px 3px;font-size:10px}.tk .it{font-size:12px}
   #subs{bottom:calc(env(safe-area-inset-bottom,0px) + 44px);width:min(58vw,560px)}#subs .sub{font-size:12px}
   #act{width:80px;height:80px;font-size:18px}
-  #actMenu{right:calc(max(16px,env(safe-area-inset-right,0px)) + 190px);bottom:calc(env(safe-area-inset-bottom,0px) + 10px)}
   #phone{left:calc(max(16px,env(safe-area-inset-left,0px)) + 6px);transform:none;top:calc(env(safe-area-inset-top,0px) + 8px);bottom:calc(env(safe-area-inset-bottom,0px) + 8px);height:auto;max-height:none;width:240px}
   .scrollcol{columns:2;column-gap:18px}.scrollcol .steps li,.scrollcol .note{break-inside:avoid}
   .card{max-width:900px;padding:16px 18px}.card h1{font-size:28px}.noren{height:40px;margin:-16px -18px 10px}
@@ -272,7 +278,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 .howto .ctrl{margin:8px 0 0;opacity:.85}
 @media (orientation:landscape) and (max-height:520px){.hero{max-width:640px}.hero h1{font-size:34px}.hero .lead{margin-bottom:10px}.hero .btns{grid-template-columns:1.4fr 1fr 1fr}.hero .btns #go{grid-column:auto;font-size:18px}.howto{order:2}}
 @media (prefers-reduced-motion: reduce){#rotate svg{animation:none}}
-@media (prefers-reduced-motion: reduce){.ami,#actMenu .amh{transition:none}#fade{transition:none}}
+@media (prefers-reduced-motion: reduce){.rw,.rw-seg{transition:none}#fade{transition:none}}
 @media (prefers-reduced-motion: reduce){.pill.bump,#copP{animation:none}}
 </style>
 
@@ -304,7 +310,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 <div id="actMenu" hidden></div>
 <div id="phone" hidden></div>
 <div id="carHud" hidden></div>
-<div id="fade"></div>
+<div id="fade"><div id="loadMsg" hidden>街を準備中…</div></div>
 <button id="camBtn" class="atk" hidden>視点</button>
 <div id="guide" hidden></div>
 <div id="drive" hidden><div id="wheelUI"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="#1c1c1e" stroke-width="10"/><circle cx="50" cy="50" r="44" fill="none" stroke="#3a3a3e" stroke-width="2"/><path d="M8 54 Q50 44 92 54" stroke="#1c1c1e" stroke-width="9" fill="none"/><path d="M50 56 L50 92" stroke="#1c1c1e" stroke-width="9"/><circle cx="50" cy="54" r="12" fill="#2a2a2e"/><rect x="47" y="4" width="6" height="9" fill="#d02020"/></svg></div><button id="brkP">ブレーキ</button><button id="gasP">アクセル</button></div>
@@ -506,21 +512,28 @@ function freezeStatic(S,live,keepMats,CELL=32,DCELL=16){S.updateMatrixWorld(true
   const vcMat=(k,m)=>{const v=m.clone();v.vertexColors=true;v.color=new THREE.Color(0xffffff);if(k==='NVC'){NIGHT.wins.push([v,0xffffff]);if(NIGHT.md==='day')v.color.set(0x3c4a58);}return v;};
   const tint=(m,k)=>k==='NVC'?new THREE.Color(nightC.get(m)):k.startsWith('VC|')?m.color:null;
   const canon=new Map(),B=new Map(),v3=new THREE.Vector3(),nm=new THREE.Matrix3();
+  // per-triangle work is the hot path (≈300k triangles): numeric cell keys, typed-array index maps, normals transformed once per vertex
+  const arr=(A,n)=>A&&!A.isInterleavedBufferAttribute&&A.itemSize===n?A.array:null,BB=new Map();
   cand.forEach(o=>{const g=o.geometry,P=g.attributes.position,N=g.attributes.normal,U=g.attributes.uv,C=g.attributes.color,idx=g.index,M=o.matrixWorld;nm.getNormalMatrix(M);const flip=M.determinant()<0;
-    const ms=[].concat(o.material),tri=idx?idx.count/3:P.count/3,grp=g.groups.length?g.groups:[{start:0,count:tri*3,materialIndex:0}];
-    const wp=new Float32Array(P.count*3);for(let i=0;i<P.count;i++){v3.fromBufferAttribute(P,i).applyMatrix4(M);wp[i*3]=v3.x;wp[i*3+1]=v3.y;wp[i*3+2]=v3.z;}
-    const remap=new Map();
+    const ms=[].concat(o.material),tri=idx?idx.count/3:P.count/3,grp=g.groups.length?g.groups:[{start:0,count:tri*3,materialIndex:0}],big=!!o.userData.big,nv=P.count;
+    const wp=new Float32Array(nv*3);for(let i=0;i<nv;i++){v3.fromBufferAttribute(P,i).applyMatrix4(M);wp[i*3]=v3.x;wp[i*3+1]=v3.y;wp[i*3+2]=v3.z;}
+    let wn=null;if(N){wn=new Float32Array(nv*3);for(let i=0;i<nv;i++){v3.fromBufferAttribute(N,i).applyMatrix3(nm).normalize();wn[i*3]=v3.x;wn[i*3+1]=v3.y;wn[i*3+2]=v3.z;}}
+    const ua=arr(U,2),ca=arr(C,3),ia=idx?idx.array:null,remap=new Map();
     grp.forEach(gr=>{const mat=ms[gr.materialIndex||0]||ms[0];if(mat.visible===false)return;const mk=mkey(mat),tc=tint(mat,mk);if(!canon.has(mk))canon.set(mk,tc?vcMat(mk,mat):mat);const sig=tc?'vc':(N?'n':'')+(U?'u':'')+(C?'c':'');
-      for(let t=gr.start/3;t<(gr.start+gr.count)/3&&t<tri;t++){const a=idx?idx.getX(t*3):t*3,b=idx?idx.getX(t*3+1):t*3+1,c=idx?idx.getX(t*3+2):t*3+2;
-        const cx=(wp[a*3]+wp[b*3]+wp[c*3])/3,cz=(wp[a*3+2]+wp[b*3+2]+wp[c*3+2])/3,e2=(i,j)=>(wp[i*3]-wp[j*3])**2+(wp[i*3+1]-wp[j*3+1])**2+(wp[i*3+2]-wp[j*3+2])**2;
+      const bkey=mk+'#'+sig;let cells=BB.get(bkey);if(!cells){cells=new Map();BB.set(bkey,cells);}const tr=tc?tc.r:1,tg=tc?tc.g:1,tb=tc?tc.b:1;
+      const t1=Math.min(tri,(gr.start+gr.count)/3);for(let t=gr.start/3;t<t1;t++){const a=ia?ia[t*3]:t*3,b=ia?ia[t*3+1]:t*3+1,c=ia?ia[t*3+2]:t*3+2,a3=a*3,b3=b*3,c3=c*3;
+        const cx=(wp[a3]+wp[b3]+wp[c3])/3,cz=(wp[a3+2]+wp[b3+2]+wp[c3+2])/3;let det=false;
         // small parts (sills, frames, AC units, bolts...) go to their own chunks that are only drawn up close
-        const det=!o.userData.big&&Math.max(e2(a,b),e2(b,c),e2(c,a))<.5,cs=det?DCELL:CELL,key=mk+'#'+sig+'#'+(det?'d':'')+Math.floor(cx/cs)+','+Math.floor(cz/cs);
-        let bk=B.get(key);if(!bk){bk={mat:canon.get(mk),det,p:[],n:tc||N?[]:null,u:tc?null:U?[]:null,c:tc||C?[]:null,i:[],vc:0};B.set(key,bk);}
-        let rm=remap.get(bk);if(!rm){rm=new Map();remap.set(bk,rm);}
-        const vid=(s)=>{let j=rm.get(s);if(j!==undefined)return j;j=bk.vc++;rm.set(s,j);bk.p.push(wp[s*3],wp[s*3+1],wp[s*3+2]);
-          if(bk.n){if(N)v3.fromBufferAttribute(N,s).applyMatrix3(nm).normalize();else v3.set(0,1,0);bk.n.push(v3.x,v3.y,v3.z);}if(bk.u)bk.u.push(U.getX(s),U.getY(s));
-          if(bk.c){const r=C?C.getX(s):1,g2=C?C.getY(s):1,b2=C?C.getZ(s):1;if(tc)bk.c.push(r*tc.r,g2*tc.g,b2*tc.b);else bk.c.push(r,g2,b2);}return j;};
-        const A=vid(a),Bv=vid(b),Cv=vid(c);if(flip)bk.i.push(A,Cv,Bv);else bk.i.push(A,Bv,Cv);}});
+        if(!big){const ab=(wp[a3]-wp[b3])**2+(wp[a3+1]-wp[b3+1])**2+(wp[a3+2]-wp[b3+2])**2,bc=(wp[b3]-wp[c3])**2+(wp[b3+1]-wp[c3+1])**2+(wp[b3+2]-wp[c3+2])**2,ca2=(wp[c3]-wp[a3])**2+(wp[c3+1]-wp[a3+1])**2+(wp[c3+2]-wp[a3+2])**2;det=ab<.5&&bc<.5&&ca2<.5;}
+        const cs=det?DCELL:CELL,key=(det?1<<22:0)+((Math.floor(cx/cs)+1024)<<11)+(Math.floor(cz/cs)+1024);
+        let bk=cells.get(key);if(!bk){bk={mat:canon.get(mk),det,p:[],n:tc||N?[]:null,u:tc?null:U?[]:null,c:tc||C?[]:null,i:[],vc:0};cells.set(key,bk);B.set(bkey+key,bk);}
+        let rm=remap.get(bk);if(!rm){rm=new Int32Array(nv).fill(-1);remap.set(bk,rm);}
+        for(let q=0;q<3;q++){const v=q===0?a:q===1?(flip?c:b):(flip?b:c);let j2=rm[v];
+          if(j2<0){j2=rm[v]=bk.vc++;const v3i=v*3;bk.p.push(wp[v3i],wp[v3i+1],wp[v3i+2]);
+            if(bk.n){if(wn)bk.n.push(wn[v3i],wn[v3i+1],wn[v3i+2]);else bk.n.push(0,1,0);}
+            if(bk.u){if(ua)bk.u.push(ua[v*2],ua[v*2+1]);else bk.u.push(U.getX(v),U.getY(v));}
+            if(bk.c){let r=1,g2=1,b2=1;if(ca){r=ca[v3i];g2=ca[v3i+1];b2=ca[v3i+2];}else if(C){r=C.getX(v);g2=C.getY(v);b2=C.getZ(v);}bk.c.push(r*tr,g2*tg,b2*tb);}}
+          bk.i.push(j2);}}});
     o.parent.remove(o);FROZEN.push(o);});
   const out=[];B.forEach(bk=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(bk.p,3));if(bk.n)g.setAttribute('normal',new THREE.Float32BufferAttribute(bk.n,3));else g.computeVertexNormals();
     if(bk.u)g.setAttribute('uv',new THREE.Float32BufferAttribute(bk.u,2));if(bk.c)g.setAttribute('color',new THREE.Float32BufferAttribute(bk.c,3));g.setIndex(bk.vc>65535?new THREE.Uint32BufferAttribute(bk.i,1):new THREE.Uint16BufferAttribute(bk.i,1));
@@ -3354,8 +3367,16 @@ function startGame(){
   players.forEach(q=>{delete q.look;});setTimeout(()=>{if(W.running)input.acQ=lookCode(OWN.look||defLook(me));},400);
   $('#start').hidden=true;$('#result').hidden=true;$('#hud').hidden=false;$('#cross').hidden=false;$('#hand').hidden=false;actBtn.hidden=!isTouch;$('#punch').hidden=!isTouch;$('#actionBtn').hidden=!isTouch;$('#voice').hidden=!isTouch;
   if(!isTouch){try{const p=canvas.requestPointerLock();if(p&&p.catch)p.catch(()=>{});}catch(_){}}
-  canvas.focus();
+  canvas.focus();prebuildOut();
 }
+// draw everything once into a 1×1 target: compiles every shader and uploads every texture/mesh now, not on the first step outside
+function warmScene(S){const hid=[],cul=[],rt=new THREE.WebGLRenderTarget(1,1),cam=new THREE.PerspectiveCamera(60,1,.1,400),prev=renderer.getRenderTarget();
+  S.traverse(o=>{if(o.isLight)return;if(!o.visible){hid.push(o);o.visible=true;}if(o.frustumCulled){cul.push(o);o.frustumCulled=false;}});
+  try{renderer.setRenderTarget(rt);renderer.render(S,cam);}finally{renderer.setRenderTarget(prev);hid.forEach(o=>o.visible=false);cul.forEach(o=>o.frustumCulled=true);rt.dispose();}}
+// build the town (and compile its shaders) behind the opening fade, so stepping out of the flat later is instant
+function prebuildOut(){if(OUT.built||window.__NOPREBUILD)return;const f=$('#fade'),lm=$('#loadMsg');f.classList.add('on');lm.hidden=false;
+  setTimeout(()=>{try{if(!OUT.built&&W.running)withPlayer(me,buildOut);if(OUT.scene){OUT.scene.userData.lT=0;lightCap(OUT.scene,camera);warmScene(OUT.scene);}}catch(e){console.error(e);}
+    finally{lm.hidden=true;if(!W.transit)f.classList.remove('on');}},60);}
 function endGame(o={}){
   closeOverlays();
   if(!W.running)return;if(o.who==null)o.who=cur;if(MP.on&&cur!==me)return withPlayer(me,()=>endGame(o));
@@ -3657,25 +3678,40 @@ const ICONS={
   ball:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5l3.2 2.3-1.2 3.8h-4l-1.2-3.8zM12 3v4.5M15.2 9.8l4.6-1.4M14 13.6l2.7 3.8M10 13.6l-2.7 3.8M8.8 9.8L4.2 8.4"/></svg>'};
 let menuOpen=false;
 function actionItems(){const q=players[me],h=me===cur?hand:q.hand,ph=q.P.phone,inShop=locOf(me)==='shop';
-  const it=[{code:1,icon:'phone',t:ph?'スマホをしまう':`スマホを見る${lastUnread?`(LINE ${lastUnread}件)`:''}`,s:ph?'仕事に戻る':'LINE・SNSをチェック(見られると印象が悪い)',ok:true}];
-  if(inShop)it.push({code:2,icon:'drink',t:'持ってる飲み物を飲む',s:isGlass(h)&&gSum(h)>.05?drinkLabel(h):'ジョッキを持っていない',ok:isGlass(h)&&gSum(h)>.05});
+  const it=[{code:1,icon:'phone',w:ph?'しまう':lastUnread?`スマホ(${lastUnread})`:'スマホ',t:ph?'スマホをしまう':`スマホを見る${lastUnread?`(LINE ${lastUnread}件)`:''}`,s:ph?'仕事に戻る':'LINE・SNSをチェック(見られると印象が悪い)',ok:true}];
+  it.push(eatItem(q,h,inShop));
   {const L=me===cur?W:q.L;if(L.outside&&OWN.ball){const pp=players[me].pos,inP=inPark(pp.x,pp.z),foot=me===cur?onFootOut():true;
     if(L.ball)it.push({code:7,icon:'ball',t:'ボールをしまう',s:'カバンにしまう',ok:true});
     else it.push({code:6,icon:'ball',t:'サッカーボールを出す',s:inP?'足で触れてドリブル・使うでシュート':'公園(サッカーコート)でしか出せない',ok:inP&&foot});}}
-  if(h&&h.type==='goods'&&!GOODS[h.g].toy)it.push({code:5,icon:isDrinkGood(h.g)?'drink':'bite',t:`${GOODS[h.g].n}を${isDrinkGood(h.g)?'飲む':'食べる'}`,s:h.paid?goodsEffect(h.g):'まだお会計していない',ok:!!h.paid});
-  if(h&&h.type==='shopbag')[...new Set(h.items)].slice(0,5).forEach(k=>it.push({code:100+GKEYS.indexOf(k),icon:isDrinkGood(k)?'drink':'bite',t:`${GOODS[k].n}を${isDrinkGood(k)?'飲む':'食べる'}`,s:`レジ袋から(${h.items.filter(x=>x===k).length}個) ${goodsEffect(k)}`,ok:true}));
   {const L=me===cur?W:q.L;if(inShop&&L.guest&&L.gSeat!=null){GUEST_MENU.forEach(([k],j)=>it.push({code:40+j,icon:DRINKS[k]?'drink':'bite',t:`${gName(k)}を注文する`,s:`${yen(gPrice(k))}(社割で2割引)`,ok:true}));it.push({code:47,icon:'phone',t:'お会計する',s:L.gBill?`いまの合計 ${yen(Math.round(L.gBill*.8/10)*10)}`:'まだ何も頼んでない',ok:!!L.gBill});}}
-  {const r=q.P.ramen;if(locOf(me)==='store:ramen'&&r&&r.st==='bowl'){it.push({code:60,icon:'bite',t:'ラーメンを食べる',s:`残り${r.left}口${r.garlic?` ・ ニンニク${r.garlic}杯`:''}`,ok:true});it.push({code:61,icon:'bite',t:'ニンニクを入れる',s:r.garlic>=3?'体臭がどんどん臭くなる…':'無料・入れ放題(においが強くなる)',ok:true});}}
+  {const r=q.P.ramen;if(locOf(me)==='store:ramen'&&r&&r.st==='bowl'){it.push({code:61,icon:'bite',t:'ニンニクを入れる',s:r.garlic>=3?'体臭がどんどん臭くなる…':'無料・入れ放題(においが強くなる)',ok:true});}}
   {const L=me===cur?W:q.L;if(false){const S=STORES[L.store],lx=q.pos.x-S.X;if(inCarZone(lx,q.pos.z,0)||inCarZone(lx,q.pos.z,1))it.push({code:62,icon:'phone',t:'「すみません、降ります!」',s:'満員で動けない。ドアが開いている間に降りる',ok:true});}}
   if(q.P.sit)it.push({code:63,icon:'phone',t:'席を立つ',s:'座席から立ち上がる',ok:true});
   if(locOf(me)==='store:gym'&&GYM.mode&&gymMember(me))it.push({code:3999,icon:'ball',t:'試合をやめる',s:`${SPORTS[GYM.mode].n}を終わりにする`,ok:true});
-  if(inShop)it.push({code:3,icon:'bite',t:(me===cur?W:q.L).guest?'料理を食べる':'つまみ食いする',s:isPlate(h)&&h.food?`${ITEMS[h.food.item].name} 残り${foodLeft(h.food)}個`:'料理の乗った皿を持っていない',ok:!!(isPlate(h)&&h.food)});
   return it;}
+// whatever is in my hand (or in front of me at the ramen counter) decides what "eat / drink" does
+function eatItem(q,h,inShop){const L=me===cur?W:q.L,r=q.P.ramen;
+  if(locOf(me)==='store:ramen'&&r&&r.st==='bowl')return{code:60,icon:'bite',t:'食べる',w:'食べる',s:`ラーメン 残り${r.left}口${r.garlic?` ・ ニンニク${r.garlic}杯`:''}`,ok:true};
+  if(isGlass(h)&&gSum(h)>.05)return inShop?{code:2,icon:'drink',t:'飲む',w:'飲む',s:drinkLabel(h),ok:true}:{code:2,icon:'drink',t:'飲む',w:'飲む',s:'店の外では飲めない',ok:false};
+  if(isPlate(h)&&h.food)return{code:3,icon:'bite',t:L.guest?'食べる':'つまみ食い',w:L.guest?'食べる':'つまみ食い',s:`${ITEMS[h.food.item].name} 残り${foodLeft(h.food)}個`,ok:inShop};
+  if(h&&h.type==='goods'&&!GOODS[h.g].toy){const d=isDrinkGood(h.g);return{code:5,icon:d?'drink':'bite',t:d?'飲む':'食べる',w:d?'飲む':'食べる',s:h.paid?`${GOODS[h.g].n} ・ ${goodsEffect(h.g)}`:`${GOODS[h.g].n}(まだお会計していない)`,ok:!!h.paid};}
+  if(h&&h.type==='shopbag'&&h.items.length){const k=h.items[0],d=isDrinkGood(k);return{code:100+GKEYS.indexOf(k),icon:d?'drink':'bite',t:d?'飲む':'食べる',w:d?'飲む':'食べる',s:`レジ袋の${GOODS[k].n}(残り${h.items.length}個) ・ ${goodsEffect(k)}`,ok:true};}
+  return{code:-9,icon:'bite',t:'食べる・飲む',w:'食べる・飲む',s:'手に何も持っていない',ok:false};}
 const goodsEffect=k=>GOODS[k].bac>0?'お酒(酔う)':GOODS[k].bac<0?'酔いが少し醒める':'体力が回復する';
-function renderMenu(){const box=$('#actMenu');box.innerHTML='<div class="amh">ACTION</div>'+actionItems().map((it,i)=>`<button class="ami${it.ok?'':' off'}" data-code="${it.code}" style="--d:${i*40}ms"><span class="ic">${ICONS[it.icon]}</span><span class="tx"><b>${it.t}</b><small>${it.s}</small></span><kbd>${i+1}</kbd></button>`).join('');}
+// the action wheel: "ACTION" in the middle, one segment per thing I can do right now (top first, clockwise); hover/tap shows the details in the centre
+const wLabel=it=>it.w||it.t.replace(/[((].*$/,'').replace(/(を|する$)/g,m=>m==='を'?'':'').slice(0,8);
+function renderMenu(){const box=$('#actMenu'),L=actionItems(),n=Math.max(6,L.length),C=160,R1=66,R2=154,gp=Math.min(.05,.6/n),pt=(r,a)=>`${(C+r*Math.cos(a)).toFixed(2)} ${(C+r*Math.sin(a)).toFixed(2)}`;
+  const seg=i=>{const a0=-Math.PI/2+(i-.5)*2*Math.PI/n+gp,a1=a0+2*Math.PI/n-2*gp,lg=a1-a0>Math.PI?1:0;
+    return n===1?`M${C} ${C-R2}A${R2} ${R2} 0 1 1 ${C-.01} ${C-R2}ZM${C} ${C-R1}A${R1} ${R1} 0 1 0 ${C+.01} ${C-R1}Z`:`M${pt(R1,a0)}L${pt(R2,a0)}A${R2} ${R2} 0 ${lg} 1 ${pt(R2,a1)}L${pt(R1,a1)}A${R1} ${R1} 0 ${lg} 0 ${pt(R1,a0)}Z`;};
+  box.innerHTML=`<div class="rw"><svg viewBox="0 0 320 320"><circle class="rw-ring" cx="${C}" cy="${C}" r="${R2+6}"/>${Array.from({length:n},(_,i)=>{const it=L[i];return it?`<path class="rw-seg${it.ok?'':' off'}" data-i="${i}" fill-rule="evenodd" d="${seg(i)}"/>`:`<path class="rw-seg empty" d="${seg(i)}"/>`;}).join('')}</svg>`+
+    L.map((it,i)=>{const a=-Math.PI/2+i*2*Math.PI/n,r=(R1+R2)/2;return`<div class="rw-lab${it.ok?'':' off'}" style="left:${(C+r*Math.cos(a))/3.2}%;top:${(C+r*Math.sin(a))/3.2}%">${ICONS[it.icon]||''}<b>${wLabel(it)}</b>${i<9?`<kbd>${i+1}</kbd>`:''}</div>`;}).join('')+
+    `<div class="rw-c"><b>ACTION</b><small>選んでタップ</small></div></div>`;
+  const cen=box.querySelector('.rw-c'),hi=i=>{box.querySelectorAll('.rw-seg').forEach(p=>p.classList.toggle('on',+p.dataset.i===i));const it=L[i];
+    if(it){cen.classList.add('pick');cen.innerHTML=`<b>${it.t}</b><small>${it.s}</small>`;}else{cen.classList.remove('pick');cen.innerHTML='<b>ACTION</b><small>選んでタップ</small>';}};
+  box.querySelectorAll('.rw-seg[data-i]').forEach(p=>{p.addEventListener('pointerenter',()=>hi(+p.dataset.i));p.addEventListener('pointerleave',()=>hi(-1));});}
 function openMenu(on){menuOpen=on;const box=$('#actMenu');if(on){renderMenu();box.hidden=false;if(document.exitPointerLock&&document.pointerLockElement)document.exitPointerLock();requestAnimationFrame(()=>box.classList.add('show'));}else{box.classList.remove('show');box.hidden=true;}}
 function pickAction(code){const it=actionItems().find(x=>x.code===code);openMenu(false);if(!it)return;if(!it.ok){toast(it.s);return;}input.acQ=code;}
-$('#actMenu').addEventListener('click',e=>{const b=e.target.closest('.ami');if(b)pickAction(+b.dataset.code);else openMenu(false);});
+$('#actMenu').addEventListener('click',e=>{const b=e.target.closest('.rw-seg');if(b){const it=actionItems()[+b.dataset.i];if(it)pickAction(it.code);}else if(!e.target.closest('.rw-c'))openMenu(false);});
 $('#actionBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!W.running)return;initAudio();openMenu(!menuOpen);});
 $('#actionBtn').addEventListener('contextmenu',e=>e.preventDefault());
 {const b=$('#punch');let t0=0,kicked=false,tm=null;
