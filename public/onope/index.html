@@ -67,6 +67,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 #joy{position:fixed;width:116px;height:116px;margin:-58px 0 0 -58px;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.05);pointer-events:none}
 #joy i{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:rgba(255,255,255,.35)}
 #pop{position:fixed;left:50%;top:36%;transform:translateX(-50%);font-family:var(--f-display);font-size:22px;color:var(--oil);text-shadow:0 2px 0 #000;pointer-events:none;opacity:0;transition:opacity .2s}
+#toast.goal{font-size:clamp(20px,5vh,30px);padding:10px 22px;background:#f2c21b;color:#1a1a1a;animation:goalPop .5s ease-out}@keyframes goalPop{0%{transform:translateX(-50%) scale(.4)}60%{transform:translateX(-50%) scale(1.15)}100%{transform:translateX(-50%) scale(1)}}
 #toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 58px);transform:translateX(-50%);background:var(--paper);color:var(--ink);padding:5px 12px;border-radius:4px;font-weight:800;font-size:13px;pointer-events:none;opacity:0;transition:opacity .25s;white-space:nowrap}
 .ov{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 0%,#2b3a6b,var(--noren) 55%,#121a35);display:flex;align-items:center;justify-content:center;overflow:auto;
   padding-top:calc(env(safe-area-inset-top,0px) + 20px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 20px);
@@ -3152,7 +3153,7 @@ Object.assign(sfx,{
 });
 
 /* ================= HUD ================= */
-let toastT=0;function toast(t){if(cur!==me)return;const e=$('#toast');e.textContent=t;e.style.opacity=1;toastT=1.4;}
+let toastT=0;function toast(t){if(cur!==me)return;const e=$('#toast');e.classList.remove('goal');e.textContent=t;e.style.opacity=1;toastT=1.4;}
 let popT=0;function popMoney(t){const e=$('#pop');e.textContent=t;e.style.opacity=1;popT=1.2;}
 function bumpPill(id){const e=$(id);e.classList.remove('bump');void e.offsetWidth;e.classList.add('bump');}
 const subsEl=$('#subs');
@@ -3207,7 +3208,7 @@ const PL0={i:0,pos:player,P,hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,a
 function mkPl(i){return{i,pos:{x:0,z:.2},P:{hp:100,atk:null,atkT:0,cd:0,lastHurt:-99,hitDone:false},hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,actT:0,pid:0,moved:false};}
 let players=[PL0],me=0,cur=0;
 // each player has their own whereabouts, car, bike and apartment; swapped in and out like the hand
-const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil','ride','homeRide','clockInT','wage','store','ball','dayChoice','makaSeat','job','sekkyoNow','sekkyo','payCut','violN','splashN','condM','guest','gSeat','gOrd','gBill','gWait','arrest','gameN','gameWarnT','gMedT','awayT','awayN','awayMsgs','tg'];
+const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil','ride','bride','homeRide','clockInT','wage','store','ball','dayChoice','makaSeat','job','sekkyoNow','sekkyo','payCut','violN','splashN','condM','guest','gSeat','gOrd','gBill','gWait','arrest','gameN','gameWarnT','gMedT','awayT','awayN','awayMsgs','tg'];
 const CKEYS=['x','z','h','v','st','engine','starting','side','gear','gearDir','doorOpen','inCar','dead','fall','warnT','brakeL','acc','rpm','atg','cam','parked','lastAcc','ck'];
 const BKEYS=['x','z','h','v','riding','arrived','warned','g','front','crank','rw','fw','lampM'];
 const HKEYS=['mode','nap','endHow','tvOn','lightOn','fridgeOpen','bathOpen'];
@@ -3311,7 +3312,7 @@ function reset(){
   Object.assign(CAR,{x:9.1,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}});{const o=OOBST.find(o=>o.k==='cop');if(o)o.r=[-11.85,-10.95,19.6,20.4];if(OUT.cop)OUT.cop.g.position.x=-11.4;}RETA.forEach(a=>scene.remove(a.mesh));RETA.length=0;
   $('#carHud').hidden=true;$('#fade').classList.remove('on');
   {const com=startMode==='commute';players.forEach((q,i)=>{const ap=aptOf(i),v=VEH[i];
-    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null,ride:null,homeRide:false,clockInT:0,wage:0,store:null,ball:null,dayChoice:null,makaSeat:false,job:null,sekkyoNow:false,sekkyo:0,payCut:0,violN:0,splashN:0,condM:null,arrest:null,gameN:0,gameWarnT:null,gMedT:null,awayT:0,awayN:0,awayMsgs:[],guest:false,gSeat:null,gOrd:{d:[],f:[]},gBill:0,gWait:[]};
+    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null,ride:null,bride:null,homeRide:false,clockInT:0,wage:0,store:null,ball:null,dayChoice:null,makaSeat:false,job:null,sekkyoNow:false,sekkyo:0,payCut:0,violN:0,splashN:0,condM:null,arrest:null,gameN:0,gameWarnT:null,gMedT:null,awayT:0,awayN:0,awayMsgs:[],guest:false,gSeat:null,gOrd:{d:[],f:[]},gBill:0,gWait:[]};
     q.car={x:9.1-i*2.6,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,brakeL:0,acc:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}};
     q.bike=Object.assign({x:ap.bike[0],z:ap.bike[1],h:0,v:0,riding:false,arrived:false,warned:false},v?v.bikeM:{g:null,front:null,crank:null,rw:null,fw:null,lampM:null});
     q.hm={mode:'start',nap:0,endHow:null,tvOn:false,lightOn:true,fridgeOpen:false,bathOpen:false};q.carM=v?Object.assign({},v.carM):{};});
@@ -3492,7 +3493,7 @@ function netStep(dt){
 // input delay follows the measured round trip: just long enough for our input to reach the partner in time
 function onPo(d){if(typeof d.s!=='number')return;const r=performance.now()-d.s;if(r<0||r>5000)return;
   if(!MP.rtt){MP.rtt=r;MP.jit=r*.25;}else{MP.jit+=(Math.abs(r-MP.rtt)-MP.jit)*.2;MP.rtt+=(r-MP.rtt)*.2;}
-  const want=clamp(Math.ceil((MP.rtt/2+MP.jit*2+30)/(TICK*1000))+1,2,12);
+  const want=clamp(Math.ceil((MP.rtt/2+MP.jit*1.5+12)/(TICK*1000))+1,2,12);
   if(want>MP.myD){MP.myD=want;MP.dT=3;}else if(want<MP.myD&&MP.dT<=0){MP.myD--;MP.dT=2;}}
 // my own walking/cycling is shown right away: replay my inputs that the lockstep hasn't simulated yet
 const PRED={x:0,z:0,ok:false};
@@ -3515,7 +3516,9 @@ function updateAvatars(dt){
   players.forEach((q,i)=>{const av=q.av;if(!av||i===me)return;
     {const ok=outfitKey(i);if(av.of!==ok){const ty=outfitType(i),nv=vis(()=>buildModel(ty,'#e2b08a'));Object.assign(nv,{vis:true,type:ty,skin:'#e2b08a',ctx:nv.fc.getContext('2d'),expr:'',hy:0,hp:0,hr:0,walkT:0,hv:-1,of:ok});
       const tag=av.g.children.find(o=>o.isSprite);if(tag)nv.g.add(tag);const par=av.g.parent;if(par){par.remove(av.g);par.add(nv.g);}vis(()=>setExpr(nv,'normal'));q.av=nv;return;}}
-    const lo=locOf(i),rid=lo==='out'&&q.L&&q.L.ride!=null&&players[q.L.ride],show=lo===locOf(me)&&lo!=='home'&&!(lo==='out'&&q.car&&q.car.inCar);av.g.visible=show;if(!show)return;
+    const lo=locOf(i),rid=lo==='out'&&q.L&&q.L.ride!=null&&players[q.L.ride],show=lo===locOf(me)&&lo!=='home';av.g.visible=show;if(!show)return;
+    if(lo==='out'&&q.car&&q.car.inCar){if(av.g.parent!==OUT.scene)OUT.scene.add(av.g);const K=carPose(i),st2=seatOf(K,.38,.05);av.g.position.set(st2.x,-.42,st2.z);av.g.rotation.y=K.h+Math.PI;av.head.rotation.set(-q.pitch*.5,0,0,'YXZ');armTo(av,0,'tray',dt,6);armTo(av,1,'tray',dt,6);vis(()=>rigUpdate(av,dt));return;}
+    const brid=lo==='out'&&q.L&&q.L.bride!=null&&players[q.L.bride];if(brid){if(av.g.parent!==OUT.scene)OUT.scene.add(av.g);const ip=ipos(players[q.L.bride]),b=players[q.L.bride].bike||BIKE,h=q.L.bride===cur?BIKE.h:b.h;av.g.position.set(ip.x+Math.sin(h)*.6,.42,ip.z+Math.cos(h)*.6);av.g.rotation.y=h+Math.PI;av.forceLP='chair';vis(()=>rigUpdate(av,dt));return;}else if(av.forceLP==='chair'&&!q.P.sit)av.forceLP=null;
     if(rid){if(av.g.parent!==OUT.scene)OUT.scene.add(av.g);const K=carPose(q.L.ride),st2=seatOf(K);av.g.position.set(st2.x,-.42,st2.z);av.g.rotation.y=K.h+Math.PI;av.head.rotation.set(-q.pitch*.5,0,0,'YXZ');vis(()=>rigUpdate(av,dt));return;}
     {const sc=lo==='out'?OUT.scene:lo.startsWith('store:')?STORES[lo.slice(6)].scene:scene;if(sc&&av.g.parent!==sc)sc.add(av.g);}
     {const ip=ipos(q);av.g.position.set(ip.x,lo==='out'&&q.bike&&q.bike.riding?.3:lo==='shop'?floorAt(ip.x,ip.z):0,ip.z);}av.g.rotation.y=q.yaw+Math.PI;if(q.moved)legsWalk(av,dt,true);if(q.P.sit){av.g.position.y=-.36;av.forceLP='chair';}else if(av.forceLP==='chair')av.forceLP=null;
@@ -4415,8 +4418,8 @@ function ballSkill(q,kind,inp){const fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math
     q.sk={t:D,d:D,curve:1,ax:player.x,az:player.z,cx:2*Q1x-(player.x+Q2x)/2,cz:2*Q1z-(player.z+Q2z)/2,bx:Q2x,bz:Q2z};
     sfx.kickBall(.05);later(()=>sfx.kickBall(.12),D*450);if(cur===me){SELF.dt=D;toast(s>0?'ダブルタッチ →':'← ダブルタッチ');}return;}
   if(kind==='tackle'){q.sk={t:.32,dx:fx*6.4,dz:fz*6.4};sfx.whoosh('kick');if(cur===me)SELF.kickT=.3;}}
-function goalEvent(b,north){if(north)SOCCER.n++;else SOCCER.s++;sfx.goal();
-  if(locOf(me)==='out'&&inPark(players[me].pos.x,players[me].pos.z)){const who=MP.on?`${b.lt+1}Pの`:'';toast(`⚽ ${who}ゴール!!  北 ${SOCCER.n} - ${SOCCER.s} 南`);}}
+function goalEvent(b,north){if(north)SOCCER.n++;else SOCCER.s++;const c0=cur;cur=me;try{if(locOf(me)==='out'&&inPark(players[me].pos.x,players[me].pos.z)){sfx.goal();const who=MP.on&&b.lt!=null?`${b.lt+1}Pの`:'';toast(`⚽ ${who}ゴール!!  北 ${SOCCER.n} - ${SOCCER.s} 南`);goalFlash();}}finally{cur=c0;}}
+function goalFlash(){const e=$('#toast');if(!e)return;e.classList.remove('goal');void e.offsetWidth;e.classList.add('goal');toastT=2.6;}
 // one tick of one ball: rolling / flying, touches from every player on foot, goals, leaving the park
 const bez=(g,u)=>{const a=(1-u)*(1-u),m=2*u*(1-u),c=u*u;return[a*g.ax+m*g.cx+c*g.bx,a*g.az+m*g.cz+c*g.bz];};
 function stepBall(b,dt,owner){const C=COURT,pz=b.z,px=b.x,py=b.y;
@@ -5316,7 +5319,7 @@ function buildOut(){MAT_LITE=true;try{vis(()=>{
   OUTB.wq.forEach(f=>f());OUTB.wq=[];
   OUT.winMesh=flushBatch(OUTB.w,S2,true);if(OUT.winMesh)NIGHT.wins.push([OUT.winMesh.material,0xffffff]);OUTB.meshes=[flushBatch(OUTB.f,S2),flushBatch(OUTB.l,S2,true),flushBatch(OUTB.i,S2,true),OUT.winMesh];OUTB.f=OUTB.l=OUTB.w=OUTB.i=null;
   if(OUT.winMesh)reflectPatch(OUT.winMesh.material);buildLightPools(S2,(x,z)=>x>43&&x<85&&z>-50&&z<60);buildContactShadows(S2);
-  {const live=liveSet([OUT,CAR,BIKE]);live.delete(OUT.winMesh);OUT.freeze=freezeStatic(S2,live,liveMats([OUT,NIGHT.lamps]));}
+  {const live=liveSet([OUT,CAR,BIKE,VEH,players]);live.delete(OUT.winMesh);OUT.freeze=freezeStatic(S2,live,liveMats([OUT,NIGHT.lamps]));}
   buildWalkers(S2);
   setShadows(S2);OUT.sky.castShadow=false;OUT.built=true;
 });}finally{MAT_LITE=false;}}
@@ -5326,19 +5329,33 @@ function buildVehicles(S2){[0x0d0d10,0x1f3c8a].forEach((col,k)=>{const n0=OUT.hi
   OUT.hits.slice(n0).forEach(m=>m.userData.veh=k);
   OUT.passHit=oHit(.26,1.0,.95,-.84,.95,-.25,{prompt(){return'';},press(){if(W.ride!=null)exitRide();else if(k!==cur)enterRide(k);}},OUT.car);OUT.passHit.userData.tapOnly=true;OUT.passHit.userData.passOf=k;
   VEH.push({carM:cp({},OUT,CARK),bikeM:cp({},BIKE,['g','front','crank','rw','fw','lampM'])});});
+  VEH.forEach((v,k)=>{const h=oHit(.9,1.2,1.7,0,.7,.1,{prompt(){if(!MP.on||k===cur||W.bride!=null||CAR.inCar||BIKE.riding||W.ride!=null||CARRY.c)return'';const b=players[k]&&players[k].bike;return b&&b.riding?`${k+1}Pの自転車の後ろに<b>2ケツ</b>する`:'';},press(){enterBikeRide(k);}},v.bikeM.g);h.userData.optional=true;});
   players.forEach((q,i)=>{if(i===cur){cp(OUT,VEH[i].carM,CARK);cp(BIKE,VEH[i].bikeM,['g','front','crank','rw','fw','lampM']);}else{q.carM=Object.assign({},VEH[i].carM);q.bike=Object.assign(q.bike||{},VEH[i].bikeM);}});
   showVehicles();}
 function showVehicles(){VEH.forEach((v,k)=>{const on=k<players.length;v.carM.car.visible=on;v.bikeM.g.visible=on;if(!on){v.carM.car.position.set(-9999,-500,-9999);v.bikeM.g.position.set(-9999,-500,-9999);}});}
 // ---- riding in the partner's car (2P) ----
 function rideCar(){return W.ride!=null&&players[W.ride]?players[W.ride].car:null;}
 function seatOf(c,lx=-.38,lz=.05){const co=Math.cos(c.h),si=Math.sin(c.h);return{x:c.x+co*lx+si*lz,z:c.z-si*lx+co*lz};}
+function enterBikeRide(k){const b=players[k]&&players[k].bike;if(!MP.on||k===cur||!b||!b.riding||CAR.inCar||BIKE.riding||W.ride!=null||CARRY.c)return;W.bride=k;sfx.ratchet(false);toast(`${k+1}Pの自転車に2ケツした(使うボタンで降りる)`);}
+function exitBikeRide(){const k=W.bride;W.bride=null;const b=k!=null&&players[k]&&players[k].bike;if(b){const sx=-Math.cos(b.h)*.8,sz=Math.sin(b.h)*.8;if(walkOut(b.x+sx,b.z+sz)){player.x=b.x+sx;player.z=b.z+sz;}else if(walkOut(b.x-sx,b.z-sz)){player.x=b.x-sx;player.z=b.z-sz;}}if(cur===me)toast('自転車から降りた');
+  if(!W.clockedOut&&inR([-9.6,12,-24.5,-10.7],player.x,player.z)&&!CAR.parked){CAR.parked=true;if(cur===me)toast('到着! 通用口(灰色のドア)から店に入ろう');}}
 function enterRide(k){if(!MP.on||CAR.inCar||BIKE.riding||!players[k])return;W.ride=k;sfx.carDoor(false);toast('助手席に乗った');}
 function exitRide(){const c=rideCar();W.ride=null;if(!c)return;const co=Math.cos(c.h),si=Math.sin(c.h);let x=c.x-co*1.5,z=c.z+si*1.5;if(!walkOut(x,z)){x=c.x+co*1.6;z=c.z-si*1.6;}
   if(walkOut(x,z)){player.x=x;player.z=z;}yaw=c.h+Math.PI/2;if(cur===me){view.yaw=yaw;view.pitch=-.05;}sfx.carDoor(true);
   if(!W.clockedOut&&inR([-9.6,12,-24.5,-10.7],player.x,player.z)&&!CAR.parked){CAR.parked=true;toast('到着! 通用口(灰色のドア)から店に入ろう');}
   if(W.clockedOut&&Math.hypot(player.x-aptOf(cur).door[0],player.z-aptOf(cur).door[1])<30)W.homeRide=true;}
 // car pose between the last two lockstep ticks (smooth camera / mesh at any frame rate)
-function carPose(i){const q=players[i],c=i===cur?CAR:q&&q.car;if(!c||!MP.on||!q||q.cpx==null)return c;const dx=c.x-q.cpx,dz=c.z-q.cpz;if(dx*dx+dz*dz>25)return c;
+// my own car runs ahead of the lockstep with the inputs I've already sent (same maths as carStep, minus collisions), so steering feels immediate
+const CPRED={x:0,z:0,h:0,ok:false};
+function predictCar(){if(!MP.on||!W.outside||!CAR.inCar||CAR.dead)return null;let x=CAR.x,z=CAR.z,h=CAR.h,v=CAR.v,st=CAR.st;const drive=CAR.engine&&(CAR.gear==='D'||CAR.gear==='R')&&!CAR.side,dir=CAR.gear==='D'?1:-1,vmax=dir>0?40:6;
+  for(let t=MP.tick;t<MP.gen;t++){const inp=MP.inp[me][t];if(!inp)break;const dt=TICK,acc=Math.max(0,-inp.mz),brk=Math.max(0,inp.mz);
+    if(drive){if(acc>0)v+=dir*(dir>0?6.2:3)*acc*dt*Math.max(0,1-Math.abs(v)/vmax);else if(dir*v<1.4&&brk<.1)v+=dir*1.2*dt;}
+    v-=v*.05*dt;if(v)v-=Math.sign(v)*Math.min(Math.abs(v),.2*dt);if(brk>0)v-=Math.sign(v)*Math.min(Math.abs(v),10*brk*dt);if(CAR.side)v-=Math.sign(v)*Math.min(Math.abs(v),5*dt);if(CAR.gear==='P')v-=Math.sign(v)*Math.min(Math.abs(v),9*dt);
+    const maxSt=.52/(1+Math.abs(v)*.07);st+=(inp.mx*maxSt-st)*Math.min(1,dt*(Math.abs(inp.mx)>.05?4:6));const nh=h-v*Math.tan(st)/2.6*dt,nx=x-Math.sin(nh)*v*dt,nz=z-Math.cos(nh)*v*dt;if(!onDrive(nx,nz))break;h=nh;x=nx;z=nz;}
+  return{x,z,h};}
+function updateCarPred(dt){const t=predictCar();if(!t){CPRED.ok=false;return;}if(!CPRED.ok||Math.hypot(t.x-CPRED.x,t.z-CPRED.z)>3){Object.assign(CPRED,t,{ok:true});return;}
+  const k=Math.min(1,dt*16);CPRED.x+=(t.x-CPRED.x)*k;CPRED.z+=(t.z-CPRED.z)*k;let dh=t.h-CPRED.h;dh=Math.atan2(Math.sin(dh),Math.cos(dh));CPRED.h+=dh*k;}
+function carPose(i){if(i===me&&cur===me&&CPRED.ok&&MP.on&&CAR.inCar)return Object.assign({},CAR,{x:CPRED.x,z:CPRED.z,h:CPRED.h});const q=players[i],c=i===cur?CAR:q&&q.car;if(!c||!MP.on||!q||q.cpx==null)return c;const dx=c.x-q.cpx,dz=c.z-q.cpz;if(dx*dx+dz*dz>25)return c;
   const k=clamp(MP.acc/TICK,0,1);return{x:q.cpx+dx*k,z:q.cpz+dz*k,h:lerpAngle(q.cph,c.h,k),v:c.v};}
 function nextGearIdx(){let i=GEARS.indexOf(CAR.gear);let n=i+CAR.gearDir;if(n<0||n>3){CAR.gearDir*=-1;n=i+CAR.gearDir;}return n;}
 function shiftGear(){if(!CAR.engine)return toast('エンジンがかかっていない');if(Math.abs(CAR.v)>1.5&&CAR.gear!=='N')return toast('走りながらは危ない');const n=nextGearIdx();CAR.gear=GEARS[n];if(n===0||n===3)CAR.gearDir*=-1;sfx.shiftClk();if(CAR.gear==='R')sfx.revBeep();}
@@ -5464,7 +5481,7 @@ function guideText(){
   if(W.slept)return MP.on&&!DAY.choosing?'おやすみなさい… <b>相方の帰宅</b>を待っています':'おやすみなさい…';
   if(soccerMode())return'⚽ 触れてドリブル / <b>使う</b>を長押し→離してシュート'+(isTouch?'':'(F:ダブルタッチ G:タックル V:ループ)');
   if(W.store==='salon')return`鏡の前の椅子で<b>カット・カラー</b>(残高 ${yen(BANK.bal)})`;if(W.store==='boutique')return`服を選んで<b>買う・着替える</b>(残高 ${yen(BANK.bal)})`;
-  if(P.sit&&W.store)return'座っている(アクションから<b>席を立つ</b>)';if(W.store==='police')return'';if(W.store&&W.store.startsWith('trn'))return crushed()?'満員電車…身動きがとれない':'電車で移動中…(アナウンスを待とう)';
+  if(W.outside&&W.bride!=null)return'2ケツ中(<b>使う</b>で降りる)';if(P.sit&&W.store)return'座っている(アクションから<b>席を立つ</b>)';if(W.store==='police')return'';if(W.store&&W.store.startsWith('trn'))return crushed()?'満員電車…身動きがとれない':'電車で移動中…(アナウンスを待とう)';
   if(STN[W.store]){const lx=player.x-STORES[W.store].X;if(player.z>100)return player.z>114?`改札を通ってホームへ(全線 ${yen(FARE)})`:'階段・エスカレーターで<b>ホームへ</b>';
     if(inCarZone(lx,player.z,0)||inCarZone(lx,player.z,1))return crushed()?'満員で動けない…(アクションから降りる)':'ドアが閉まると発車します';
     const d=nextDeps(W.store,90)[0];return d?`次の電車 <b>${clockOfGm(d.gm)}</b> ${STN[d.to].n}行(${trackOf(W.store,d.dir)?2:1}番線)`:'本日の運転は終了しました';}
@@ -5719,7 +5736,7 @@ function dayWrap(){const i=cur;if(!DAY.notes)DAY.notes=[];
   if(!W.offDay&&!W.clockedIn&&isWorkDay(DAY.n))DAY.notes.push(['権田(店長)',`${newbie(i)}、昨日来なかったよね…? 連絡くらいはしてほしい。今度ちゃんと話そう`]);}
 // staying up too late: at 2:00 you drop wherever you are and wake up at home
 const closeOverlays=()=>{['#rpgUI','#lookUI','#gymUI'].forEach(k=>{const e=$(k);if(e)e.hidden=true;});PREVIEW=null;};
-function forceSleep(){if(W.slept)return;cancelTransit();if(cur===me)closeOverlays();if(W.guest){if(W.gSeat!=null)guestStand();guestPay();W.guest=false;}if(W.store==='gym')gymLeft(cur);P.ramen=null;P.onTrain=null;P.jail=null;P.game=false;P.sit=null;if(cur===me)rideHum(0);if(W.store)W.store=null;CAR.inCar=false;BIKE.riding=false;W.ride=null;W.sekkyoNow=false;W.makaSeat=false;
+function forceSleep(){if(W.slept)return;cancelTransit();if(cur===me)closeOverlays();if(W.guest){if(W.gSeat!=null)guestStand();guestPay();W.guest=false;}if(W.store==='gym')gymLeft(cur);P.ramen=null;P.onTrain=null;P.jail=null;P.game=false;P.sit=null;if(cur===me)rideHum(0);if(W.store)W.store=null;CAR.inCar=false;BIKE.riding=false;W.ride=null;W.bride=null;W.sekkyoNow=false;W.makaSeat=false;
   goHome('walk');dayWrap();W.slept=true;allSleptCheck();if(cur===me)toast('…限界。気づいたら家のベッドで寝ていた');}
 function openSleepAsk(){const el=$('#sleepAsk');$('#saSub').textContent=`今日はここで終わりにして、${dayLabel(DAY.n+1)} に進みます`;el.hidden=false;if(document.exitPointerLock&&locked())document.exitPointerLock();}
 function goHome(how){if(!HOME.built)buildHome();HOME.mode='end';HOME.endHow=how;W.home=true;W.outside=false;player.x=HX-.8;player.z=1.5;yaw=0;pitch=-.05;if(cur===me){view.yaw=0;view.pitch=-.05;}HOME.lightOn=false;HOME.tvOn=false;
@@ -6770,7 +6787,7 @@ const ARREST={'公務執行妨害':{fine:100000,why:'警察官に手を出した
   '過失運転致傷':{fine:200000,why:'道で寝ていた人をはねてしまった',pay:'示談金・罰金'},'酒気帯び運転':{fine:300000,why:'検問で酒気帯び運転が見つかった',pay:'罰金'},
   '酒酔い運転':{fine:500000,why:'検問で、だいぶ酔った状態で運転していた',pay:'罰金'},'検問突破':{fine:120000,why:'検問を止まらずに通過した',pay:'反則金'},'道路交通法違反(検問からの逃走)':{fine:300000,why:'検問から逃げた',pay:'罰金'}};
 function arrest(kind,note){if(!W.running||P.jail)return;const A=ARREST[kind]||{fine:50000,why:note||kind,pay:'罰金'};
-  if(W.outside&&CAR.inCar){CAR.inCar=false;CAR.v=0;CAR.engine=false;CAR.doorOpen=false;}if(W.outside&&BIKE.riding){BIKE.riding=false;BIKE.v=0;}
+  if(W.outside&&CAR.inCar){CAR.inCar=false;CAR.v=0;CAR.engine=false;CAR.doorOpen=false;}if(W.outside&&BIKE.riding){BIKE.riding=false;BIKE.v=0;}W.ride=null;W.bride=null;
   if(W.guest){if(W.gSeat!=null)guestStand();W.guest=false;}if(W.makaSeat){W.makaSeat=false;const j=MAKA.joined.indexOf(cur);if(j>=0)MAKA.joined.splice(j,1);}if(CARRY.c)dropCarry();if(W.store==='gym')gymLeft(cur);
   setHand(null);P.phone=false;P.game=false;P.ramen=null;P.onTrain=null;P.sit=null;W.sekkyoNow=false;
   const m=Math.floor(W.t/W.dur*180);W.arrest={m,kind,fine:A.fine,onShift:!W.offDay&&!W.clockedOut&&!W.home};if(W.arrest.onShift){W.clockedOut=true;W.outMins=m;}
@@ -7111,7 +7128,7 @@ function applyInput(q,inp,dt){
   if(W.ball&&(!onFootOut()||Math.hypot(W.ball.x-player.x,W.ball.z-player.z)>25)){W.ball=null;if(cur===me&&W.outside)toast('ボールをしまった');} // back in the bag when I drive off or walk away
   const ox=player.x,oz=player.z,bm=soccerMode();
   P.bac=Math.max(0,(P.bac||0)-dt*(q.moved?.25:.04));
-  const riding=W.outside&&W.ride!=null;let mx=inp.mx,mz=inp.mz;if(W.transit||riding||(q.sk&&q.sk.t>0)||W.makaSeat||W.sekkyoNow||W.gSeat!=null||(P.ramen&&P.ramen.seat!=null)||(P.jail&&W.store==='police')||P.sit){mx=0;mz=0;}
+  const riding=W.outside&&W.ride!=null;let mx=inp.mx,mz=inp.mz;if(W.transit||riding||W.bride!=null||(q.sk&&q.sk.t>0)||W.makaSeat||W.sekkyoNow||W.gSeat!=null||(P.ramen&&P.ramen.seat!=null)||(P.jail&&W.store==='police')||P.sit){mx=0;mz=0;}
   const inCarNow=W.outside&&CAR.inCar;
   if(inCarNow){carStep({mx,mz},dt);mx=0;mz=0;}
   else if(W.outside&&BIKE.riding){bikeStep({mx,mz},dt);mx=0;mz=0;}
@@ -7130,6 +7147,8 @@ function applyInput(q,inp,dt){
   if(W.running)healthTick(q,dt);if(W.store==='ramen'||P.ramen)ramenTick(dt);if(W.store){trainStep();seatStep();}else P.sit=null;if(P.jail)jailStep(dt);awayStep(dt);
   if(W.store&&STORES[W.store].open&&!storeOpen(W.store)&&!W.transit){if(cur===me)toast(W.store==='gym'?'閉館時間になりました':'閉店時間になりました');if(W.store==='super')sub('店内放送','本日はご来店ありがとうございました。まもなく閉店いたします','quiet');transit(exitStore);}
   if(riding){const rc=rideCar();if(rc){const st2=seatOf(rc);player.x=st2.x;player.z=st2.z;}q.moved=false;}
+  if(W.bride!=null){const b=W.outside&&players[W.bride]&&players[W.bride].bike;if(!b||!b.riding||locOf(W.bride)!=='out')exitBikeRide();else{player.x=b.x+Math.sin(b.h)*.6;player.z=b.z+Math.cos(b.h)*.6;q.moved=false;if(inp.a&&!q.act){q.act=1;exitBikeRide();}}}
+  if(W.outside&&!W.clockedOut&&!CAR.parked&&!CAR.inCar&&!BIKE.riding&&W.ride==null&&W.bride==null&&inR([-9.6,12,-24.5,-10.7],player.x,player.z)){CAR.parked=true;if(cur===me)toast('到着! 通用口(灰色のドア)から店に入ろう');}
   else if(W.outside&&!inCarNow)footOutStep();
   const hb=inp.aid?(W.store?STORES[W.store].hits:W.home?HOME.hits:W.outside?OUT.hits:hits).find(m=>m.userData.hid===inp.aid):null,st=hb&&!W.transit&&!P.phone&&!(hb.userData.veh!=null&&hb.userData.veh!==q.i)&&!(riding&&hb.userData.passOf==null)?hb.userData.st:null;
   if(gymPlaying()&&!st&&!q.pid){if(inp.a){if(!q.act){q.act=1;q.actT=0;q.pid=0;q.gym=1;gymPress(q);}else q.actT+=dt;}else{if(q.act&&q.gym)gymRelease(q,q.actT);q.act=0;q.pid=0;q.gym=0;}}
@@ -7203,11 +7222,12 @@ function simWorldIn(dt){
     if(!DAY.notes)DAY.notes=[];DAY.notes.push(['権田(店長)',`${newbie(i)}、昨日24時まで残ってたでしょ… 無理しないでね`]);});});
 }
 function camPose(){if(W.outside&&W.ride!=null&&players[W.ride]){const K=carPose(W.ride),e=seatOf(K,-.38,-.02);return[e.x,1.14,e.z,K.h+view.yaw];}
+  if(W.outside&&W.bride!=null&&players[W.bride]&&players[W.bride].bike){const b=players[W.bride].bike,ip=ipos(players[W.bride]);return[ip.x+Math.sin(b.h)*.62,1.72,ip.z+Math.cos(b.h)*.62,b.h+view.yaw];}
   if(W.outside&&CAR.inCar){const K=carPose(me)||CAR,c=Math.cos(K.h),s=Math.sin(K.h);if(CAR.cam){const yw=K.h+view.yaw,d=5.8;return[K.x+Math.sin(yw)*d,1.9,K.z+Math.cos(yw)*d,yw,-.17];}const lx=.38,lz=-.02;return[K.x+c*lx+s*lz,1.14,K.z-s*lx+c*lz,K.h+view.yaw];}const p=players[me]?(MP.on&&PRED.ok?PRED:ipos(players[me])):player;return[p.x,(W.outside&&BIKE.riding?1.78:players[me]&&players[me].P.sit?1.16:1.62)+(W.outside||W.home||W.store?0:camFloor),p.z,view.yaw];}
 let camFloor=0,onTatami=false;
 const MATE_VEH={prompt(){return'相方の乗り物';},press(){}};
 function viewUpdate(dt){
-  if(MP.on)updatePred(dt);else PRED.ok=false;
+  if(MP.on){updatePred(dt);updateCarPred(dt);}else{PRED.ok=false;CPRED.ok=false;}
   {const pp=MP.on&&PRED.ok?PRED:player,f=W.outside||W.home||W.store?0:floorAt(pp.x,pp.z);camFloor+=(f-camFloor)*Math.min(1,dt*9);const up=f>0;if(up!==onTatami){onTatami=up;if(up)toast('靴を脱いで座敷に上がった');}}
   const q=players[me];if(q&&q.moved)bob+=dt*8.5;
   if(W.outside&&((CAR.inCar&&!CAR.cam)||W.ride!=null))view.yaw=clamp(view.yaw,-2.4,2.4);
@@ -7250,7 +7270,7 @@ function render(dt){
   drawScene(sc,dt);fpsWatch(dt);
 }
 if(window.__TEST__)window.__G={stTrain,trainSeg,nextDeps,gmNow,rushNow,arrest,R_,rTurn,rBuy,rGacha,noOpenShame,GLINE,RAMEN,health,TOPS_W,GYM,gymStart,gymStop,gymRelease,gymPress,gymMember,STORES,enterStore,applyLook,lookOf,lookCode,openLookUI,wearItem,outfitKey,OWN,forceSleep,dayWrap,get gOrd(){return W.gOrd;},leaveHome,enterCar,get trays(){return trays;},CARRYDAY,openGuestShop,enterAsGuest,guestSit,guestOrder,guestKeys,startPassout,sleepNow,exitHome,enterHome,crewReact,PARTIES,SLOTS,spawnParty,trySpawnParty,staffN,tgtKeys,partyServeDrink,partyServeFood,groupCards,PASS,putPass,sgServeBeer,sgServeFood,setJob,SEKKYO,GLINE,meddle,fryers,get rack(){return rack;},lineThreads,LW,JOB_NAME,setSky,NIGHT,buildOut,CREW_NOW,crewToday,MAKA,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
-if(window.__TEST__)Object.assign(window.__G,{renderer,OUT,HOME,mainScene:scene,frozenCheck,FROZEN,LamOrig,PhoOrig,OOBST,MAPB});
+if(window.__TEST__)Object.assign(window.__G,{renderer,OUT,HOME,mainScene:scene,frozenCheck,FROZEN,LamOrig,PhoOrig,OOBST,MAPB,VEH,goalEvent,CPRED,get BIKE(){return BIKE},get CAR(){return CAR}});
 camera.position.set(0,1.62,.2);
 {const _bm=buildModel;buildModel=function(t,s){const m=_bm(t,s);if(SHADOWS)m.g.traverse(o=>{if(o.isMesh)o.castShadow=true;});m.blob=blob(m.g,0,.02,.6,.48,.012);return m;};}
 setShadows(scene);if(HQ)loadPP();
