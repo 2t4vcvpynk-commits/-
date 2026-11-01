@@ -3882,6 +3882,14 @@ function carryArms(){if(CARRY.arms)return CARRY.arms;const g=new THREE.Group();g
     const u=new THREE.Mesh(new THREE.CylinderGeometry(.036,.042,.34,10),sl);u.position.y=-.17;a.add(u);const h=new THREE.Mesh(new THREE.SphereGeometry(.045,10,8),sk);h.scale.set(1,1.5,.7);h.position.y=-.37;a.add(h);});
   CARRY.arms=g;g.userData.sl=sl;return g;}
 function shirtColor(c){let col=null;c.g.traverse(o=>{if(!col&&o.material&&o.material.color&&o!==c.head&&o.parent===c.rig.chest)col=o.material.color.getHex();});return col||0x4a5a70;}
+// a guest asleep in my bed: out of their outside clothes (men down to boxers, women into my loungewear); the model is rebuilt in place
+function undressGuest(c){const t={...c.type,shoe:new THREE.Color(c.skin).getHex()},fem=!!t.fem,clr={hood:0,zip:0,stripes:0,cardigan:0,suit:0,tie:0,shirt:0,print:0,work:0,cop:0,workcap:0}; // shoes come off first
+  if(fem){Object.assign(t,clr,{top:0x8a8a90,pants:0x6a6a72,sweat:1});c.undress=2;}
+  else if(!c.undress){Object.assign(t,clr,{bare:1});c.undress=1;}else{Object.assign(t,{boxer:1,pants:0x2a4a8a,sweat:0});c.undress=2;}
+  const m=vis(()=>buildModel(t,c.skin)),old=c.g,par=old.parent;m.g.position.copy(old.position);m.g.rotation.copy(old.rotation);if(par){par.remove(old);par.add(m.g);}
+  if(c.blob&&c.blob.parent)c.blob.parent.remove(c.blob);
+  Object.assign(c,{g:m.g,body:m.body,head:m.head,hands:m.hands,phone:m.phone,fc:m.fc,tex:m.tex,rig:m.rig,face3d:m.face3d,blob:m.blob,ctx:m.fc.getContext('2d'),type:t,expr:''});c.body.rotation.x=0;vis(()=>setExpr(c,'sleep'));sfx.clink&&sfx.clink(.7);
+  if(cur===me)sub('あなた',fem?'…部屋着、貸しますね。外の服のままベッドはちょっと…':c.undress===1?'…失礼します。外の服でベッドはちょっと…':'…下も。すみません、これも外の服なんで…','quiet');}
 function detachPerson(c){if(c.g.parent)c.g.parent.remove(c.g);}
 function pickUp(c,from){if(CARRY.c)return;CARRY.c=c;detachPerson(c);c.g.rotation.set(0,0,0);c.g.rotation.order='XYZ';
   const a=carryArms();a.userData.sl.color.set(shirtColor(c));a.visible=false;sfx.thud();setHand(null);
@@ -3931,7 +3939,7 @@ function runOverCheck(){if(!W.outside||!W.running)return;for(const S of CARRY.sl
     if(Math.abs(CAR.v)>.4){const [lx,lz]=carLocal(S.x,S.z);if(Math.abs(lx)<1.15&&Math.abs(lz)<2.2){CAR.v=0;sfx.thud();if(cur===me)toast(`${S.c.name}を車ではねてしまった…`);arrest('過失運転致傷');return;}}
     if(BIKE.riding&&Math.abs(BIKE.v)>.5&&Math.hypot(BIKE.x-S.x,BIKE.z-S.z)<.8){sfx.thud();if(cur===me)toast(`${S.c.name}に自転車で突っ込んでしまった…`);arrest('過失運転致傷');return;}}}
 function resetCarry(){[...CARRY.sleepers].forEach(unSleeper);[CARRY.car,CARRY.bike,CARRY.bed,CARRY.c].forEach(c=>{if(c)detachPerson(c);});Object.assign(CARRY,{c:null,car:null,bike:null,bed:null});if(CARRY.arms)CARRY.arms.visible=false;}
-function carryEndNote(){const n=[];if(CARRY.bed)n.push(`酔いつぶれた${CARRY.bed.name}を自分のベッドに寝かせ、自分は床で寝た。翌朝、目を覚ました客は状況に青ざめ、平謝りして帰っていった。`);
+function carryEndNote(){const n=[];if(CARRY.bed)n.push(CARRY.bed.undress>=2&&!CARRY.bed.type.fem?`酔いつぶれた${CARRY.bed.name}をパンイチにして自分のベッドに寝かせ、自分は床で寝た。翌朝、知らない部屋でパンイチで目覚めた客は絶叫し、事情を聞いて平謝りして帰っていった。`:`酔いつぶれた${CARRY.bed.name}を${CARRY.bed.undress?'着替えさせて':''}自分のベッドに寝かせ、自分は床で寝た。翌朝、目を覚ました客は状況に青ざめ、平謝りして帰っていった。`);
   if(CARRY.sleepers.length)n.push(`歩道に寝かせた客(${CARRY.sleepers.map(s=>s.c.name).join('、')})は、朝方に通行人に起こされたらしい。`);
   if(CARRY.car)n.push(`助手席の${CARRY.car.name}は、朝まで車の中で眠っていた。`);if(CARRY.bike)n.push(`荷台に乗せた${CARRY.bike.name}は、朝まで自転車の上で寝ていたらしい。`);
   if(CARRY.c)n.push(`${CARRY.c.name}を背負ったまま力尽きた。`);return n.length?' '+n.join(' '):'';}
@@ -5791,6 +5799,8 @@ function buildHome(){vis(()=>{
   hHit(.25,2.0,1.0,-1.62,1.0,-3.85,{prompt(){return'クローゼットで<b>着替える</b>(私服)';},press(){if(cur===me)openLookUI('closet');}});
   hHit(.9,2.0,.3,-.8,1.0,2.05,{prompt(){if(shiftPending())return'玄関(シフトを出すまで出かけられない)';if(HOME.mode==='off')return'玄関から<b>出かける</b>(今日はオフ)';if(HOME.mode==='start')return'玄関から<b>出かける</b>(出勤)';return'玄関から<b>出かける</b>';},
     press(){if(shiftPending())return toast('シフトを出すまで出かけられない(机のパソコン)');if(HOME.mode==='off'){HOME.mode='back';transit(leaveOff);return;}if(HOME.mode==='start'){HOME.mode='back';transit(leaveHome);return;}transit(exitHome);}});
+  {const gh=hHit(.8,.45,1.5,1.27,.78,-2.7,{prompt(){const c=CARRY.bed;if(!c||c.undress>=2)return'';return c.type.fem?`${c.name}に部屋着を<b>貸して着替えさせる</b>`:c.undress?`${c.name}のズボンも<b>脱がせる</b>(パンイチに)`:`${c.name}の上の服を<b>脱がせる</b>`;},
+    press(){if(CARRY.bed&&!(CARRY.bed.undress>=2))undressGuest(CARRY.bed);}});gh.userData.optional=true;}
   hHit(1.1,.6,2.1,1.27,.35,-3.3,{carry(){if(HOME.mode!=='end')return;const c=CARRY.c;dropCarry();CARRY.bed=c;HOME.scene.add(c.g);c.g.rotation.order='YXZ';c.g.rotation.set(-1.45,0,0);c.g.position.set(HX+1.27,.62,-2.45);c.body.rotation.x=0;sfx.thud();sub('あなた','…今日はここで寝てください。オレは床で寝るか…','quiet');},
     carryPrompt(){return HOME.mode==='end'?`${CARRY.c.name}をベッドに<b>寝かせる</b>`:'';},
     prompt(){const late=W.t>=W.dur;if(shiftPending()&&!late)return'ベッド(先にパソコンでシフトを出そう)';if(CARRY.bed&&late)return`ベッドは${CARRY.bed.name}が使ってる。<b>床で寝る</b>(翌日へ)`;
@@ -7372,7 +7382,7 @@ function render(dt){
   drawScene(sc,dt);fpsWatch(dt);
 }
 if(window.__TEST__)window.__G={stTrain,trainSeg,nextDeps,gmNow,rushNow,arrest,R_,rTurn,rBuy,rGacha,noOpenShame,GLINE,RAMEN,health,TOPS_W,GYM,gymStart,gymStop,gymRelease,gymPress,gymMember,STORES,enterStore,applyLook,lookOf,lookCode,openLookUI,wearItem,outfitKey,OWN,forceSleep,dayWrap,get gOrd(){return W.gOrd;},leaveHome,enterCar,get trays(){return trays;},CARRYDAY,openGuestShop,enterAsGuest,guestSit,guestOrder,guestKeys,startPassout,sleepNow,exitHome,enterHome,crewReact,PARTIES,SLOTS,spawnParty,trySpawnParty,staffN,tgtKeys,partyServeDrink,partyServeFood,groupCards,PASS,putPass,sgServeBeer,sgServeFood,setJob,SEKKYO,GLINE,meddle,fryers,get rack(){return rack;},lineThreads,LW,JOB_NAME,setSky,NIGHT,buildOut,CREW_NOW,crewToday,MAKA,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
-if(window.__TEST__)Object.assign(window.__G,{renderer,OUT,HOME,mainScene:scene,frozenCheck,FROZEN,LamOrig,PhoOrig,OOBST,MAPB,VEH,goalEvent,CPRED,rookieMP,get BANK(){return BANK},outfitType,buildModel,applyLook,setExpr,get BIKE(){return BIKE},get CAR(){return CAR}});
+if(window.__TEST__)Object.assign(window.__G,{renderer,OUT,HOME,mainScene:scene,frozenCheck,FROZEN,LamOrig,PhoOrig,OOBST,MAPB,VEH,goalEvent,CPRED,rookieMP,get BANK(){return BANK},outfitType,buildModel,applyLook,setExpr,undressGuest,get CARRY(){return CARRY},NORMAL_TYPES,HX,get BIKE(){return BIKE},get CAR(){return CAR}});
 camera.position.set(0,1.62,.2);
 {const _bm=buildModel;buildModel=function(t,s){const m=_bm(t,s);if(SHADOWS)m.g.traverse(o=>{if(o.isMesh)o.castShadow=true;});m.blob=blob(m.g,0,.02,.6,.48,.012);return m;};}
 setShadows(scene);if(HQ)loadPP();
