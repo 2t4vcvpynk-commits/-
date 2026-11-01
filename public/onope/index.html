@@ -3208,7 +3208,7 @@ const PL0={i:0,pos:player,P,hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,a
 function mkPl(i){return{i,pos:{x:0,z:.2},P:{hp:100,atk:null,atkT:0,cd:0,lastHurt:-99,hitDone:false},hand:null,handV:0,yaw:0,pitch:-.08,shoutCD:0,act:0,actT:0,pid:0,moved:false};}
 let players=[PL0],me=0,cur=0;
 // each player has their own whereabouts, car, bike and apartment; swapped in and out like the hand
-const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil','ride','bride','homeRide','clockInT','wage','store','ball','dayChoice','makaSeat','job','sekkyoNow','sekkyo','payCut','violN','splashN','condM','guest','gSeat','gOrd','gBill','gWait','arrest','gameN','gameWarnT','gMedT','awayT','awayN','awayMsgs','tg'];
+const LKEYS=['home','outside','transit','clockedOut','clockedIn','dressed','bikeUsed','toldDoor','homeEnd','taskSnap','clockTxt','outMins','slept','napUntil','ride','bride','rideOn','homeRide','clockInT','wage','store','ball','dayChoice','makaSeat','job','sekkyoNow','sekkyo','payCut','violN','splashN','condM','guest','gSeat','gOrd','gBill','gWait','arrest','gameN','gameWarnT','gMedT','awayT','awayN','awayMsgs','tg'];
 const CKEYS=['x','z','h','v','st','engine','starting','side','gear','gearDir','doorOpen','inCar','dead','fall','warnT','brakeL','acc','rpm','atg','cam','parked','lastAcc','ck'];
 const BKEYS=['x','z','h','v','riding','arrived','warned','g','front','crank','rw','fw','lampM'];
 const HKEYS=['mode','nap','endHow','tvOn','lightOn','fridgeOpen','bathOpen'];
@@ -3312,7 +3312,7 @@ function reset(){
   Object.assign(CAR,{x:9.1,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}});{const o=OOBST.find(o=>o.k==='cop');if(o)o.r=[-11.85,-10.95,19.6,20.4];if(OUT.cop)OUT.cop.g.position.x=-11.4;}RETA.forEach(a=>scene.remove(a.mesh));RETA.length=0;
   $('#carHud').hidden=true;$('#fade').classList.remove('on');
   {const com=startMode==='commute';players.forEach((q,i)=>{const ap=aptOf(i),v=VEH[i];
-    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null,ride:null,bride:null,homeRide:false,clockInT:0,wage:0,store:null,ball:null,dayChoice:null,makaSeat:false,job:null,sekkyoNow:false,sekkyo:0,payCut:0,violN:0,splashN:0,condM:null,arrest:null,gameN:0,gameWarnT:null,gMedT:null,awayT:0,awayN:0,awayMsgs:[],guest:false,gSeat:null,gOrd:{d:[],f:[]},gBill:0,gWait:[]};
+    q.L={home:false,outside:false,transit:false,clockedOut:false,clockedIn:!com,dressed:!com,bikeUsed:false,toldDoor:false,homeEnd:false,taskSnap:null,clockTxt:null,outMins:0,slept:false,napUntil:null,ride:null,bride:null,rideOn:false,homeRide:false,clockInT:0,wage:0,store:null,ball:null,dayChoice:null,makaSeat:false,job:null,sekkyoNow:false,sekkyo:0,payCut:0,violN:0,splashN:0,condM:null,arrest:null,gameN:0,gameWarnT:null,gMedT:null,awayT:0,awayN:0,awayMsgs:[],guest:false,gSeat:null,gOrd:{d:[],f:[]},gBill:0,gWait:[]};
     q.car={x:9.1-i*2.6,z:-15.3,h:0,v:0,st:0,engine:false,starting:false,side:true,gear:'P',gearDir:1,doorOpen:false,inCar:false,dead:false,fall:0,warnT:0,brakeL:0,acc:0,rpm:0,atg:1,cam:0,parked:true,lastAcc:0,ck:{state:'',done:false,warned:false}};
     q.bike=Object.assign({x:ap.bike[0],z:ap.bike[1],h:0,v:0,riding:false,arrived:false,warned:false},v?v.bikeM:{g:null,front:null,crank:null,rw:null,fw:null,lampM:null});
     q.hm={mode:'start',nap:0,endHow:null,tvOn:false,lightOn:true,fridgeOpen:false,bathOpen:false};q.carM=v?Object.assign({},v.carM):{};});
@@ -5340,7 +5340,7 @@ function enterBikeRide(k){const b=players[k]&&players[k].bike;if(!MP.on||k===cur
 function exitBikeRide(){const k=W.bride;W.bride=null;const b=k!=null&&players[k]&&players[k].bike;if(b){const sx=-Math.cos(b.h)*.8,sz=Math.sin(b.h)*.8;if(walkOut(b.x+sx,b.z+sz)){player.x=b.x+sx;player.z=b.z+sz;}else if(walkOut(b.x-sx,b.z-sz)){player.x=b.x-sx;player.z=b.z-sz;}}if(cur===me)toast('自転車から降りた');
   if(!W.clockedOut&&inR([-9.6,12,-24.5,-10.7],player.x,player.z)&&!CAR.parked){CAR.parked=true;if(cur===me)toast('到着! 通用口(灰色のドア)から店に入ろう');}}
 function enterRide(k){if(!MP.on||CAR.inCar||BIKE.riding||!players[k])return;W.ride=k;sfx.carDoor(false);toast('助手席に乗った');}
-function exitRide(){const c=rideCar();W.ride=null;if(!c)return;const co=Math.cos(c.h),si=Math.sin(c.h);let x=c.x-co*1.5,z=c.z+si*1.5;if(!walkOut(x,z)){x=c.x+co*1.6;z=c.z-si*1.6;}
+function exitRide(){const c=rideCar();W.ride=null;W.rideOn=false;if(!c)return;const co=Math.cos(c.h),si=Math.sin(c.h);let x=c.x-co*1.5,z=c.z+si*1.5;if(!walkOut(x,z)){x=c.x+co*1.6;z=c.z-si*1.6;}
   if(walkOut(x,z)){player.x=x;player.z=z;}yaw=c.h+Math.PI/2;if(cur===me){view.yaw=yaw;view.pitch=-.05;}sfx.carDoor(true);
   if(!W.clockedOut&&inR([-9.6,12,-24.5,-10.7],player.x,player.z)&&!CAR.parked){CAR.parked=true;toast('到着! 通用口(灰色のドア)から店に入ろう');}
   if(W.clockedOut&&Math.hypot(player.x-aptOf(cur).door[0],player.z-aptOf(cur).door[1])<30)W.homeRide=true;}
@@ -7146,7 +7146,7 @@ function applyInput(q,inp,dt){
   q.vx=(player.x-ox)/dt;q.vz=(player.z-oz)/dt;
   if(W.running)healthTick(q,dt);if(W.store==='ramen'||P.ramen)ramenTick(dt);if(W.store){trainStep();seatStep();}else P.sit=null;if(P.jail)jailStep(dt);awayStep(dt);
   if(W.store&&STORES[W.store].open&&!storeOpen(W.store)&&!W.transit){if(cur===me)toast(W.store==='gym'?'閉館時間になりました':'閉店時間になりました');if(W.store==='super')sub('店内放送','本日はご来店ありがとうございました。まもなく閉店いたします','quiet');transit(exitStore);}
-  if(riding){const rc=rideCar();if(rc){const st2=seatOf(rc);player.x=st2.x;player.z=st2.z;}q.moved=false;}
+  if(riding){const rc=rideCar();if(rc){if(rc.inCar)W.rideOn=true;else if(W.rideOn&&Math.abs(rc.v)<.3){exitRide();if(cur===me)toast('運転手が降りたので、助手席から降りた');}if(W.ride!=null){const st2=seatOf(rc);player.x=st2.x;player.z=st2.z;}}q.moved=false;}
   if(W.bride!=null){const b=W.outside&&players[W.bride]&&players[W.bride].bike;if(!b||!b.riding||locOf(W.bride)!=='out')exitBikeRide();else{player.x=b.x+Math.sin(b.h)*.6;player.z=b.z+Math.cos(b.h)*.6;q.moved=false;if(inp.a&&!q.act){q.act=1;exitBikeRide();}}}
   if(W.outside&&!W.clockedOut&&!CAR.parked&&!CAR.inCar&&!BIKE.riding&&W.ride==null&&W.bride==null&&inR([-9.6,12,-24.5,-10.7],player.x,player.z)){CAR.parked=true;if(cur===me)toast('到着! 通用口(灰色のドア)から店に入ろう');}
   else if(W.outside&&!inCarNow)footOutStep();
