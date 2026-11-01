@@ -3371,11 +3371,16 @@ function startGame(){
 }
 // draw everything once into a 1×1 target: compiles every shader and uploads every texture/mesh now, not on the first step outside
 function warmScene(S){const hid=[],cul=[],rt=new THREE.WebGLRenderTarget(1,1),cam=new THREE.PerspectiveCamera(60,1,.1,400),prev=renderer.getRenderTarget();
-  S.traverse(o=>{if(o.isLight)return;if(!o.visible){hid.push(o);o.visible=true;}if(o.frustumCulled){cul.push(o);o.frustumCulled=false;}});
-  try{renderer.setRenderTarget(rt);renderer.render(S,cam);}finally{renderer.setRenderTarget(prev);hid.forEach(o=>o.visible=false);cul.forEach(o=>o.frustumCulled=true);rt.dispose();}}
+  const hasL=o=>{let f=false;o.traverse(x=>{if(x.isLight)f=true;});return f;}; // a hidden car's headlights would change the light count
+  S.traverse(o=>{if(o.isLight)return;if(!o.visible&&!hasL(o)){hid.push(o);o.visible=true;}if(o.frustumCulled){cul.push(o);o.frustumCulled=false;}});
+  // drawn to the real canvas (the fade covers it): drivers finish preparing a shader on its first real draw
+  try{renderer.setRenderTarget(null);renderer.render(S,cam);renderer.setRenderTarget(rt);renderer.render(S,cam);}finally{renderer.setRenderTarget(prev);hid.forEach(o=>o.visible=false);cul.forEach(o=>o.frustumCulled=true);rt.dispose();}}
 // build the town (and compile its shaders) behind the opening fade, so stepping out of the flat later is instant
 function prebuildOut(){if(OUT.built||window.__NOPREBUILD)return;const f=$('#fade'),lm=$('#loadMsg');f.classList.add('on');lm.hidden=false;
-  setTimeout(()=>{try{if(!OUT.built&&W.running)withPlayer(me,buildOut);if(OUT.scene){OUT.scene.userData.lT=0;lightCap(OUT.scene,camera);warmScene(OUT.scene);}}catch(e){console.error(e);}
+  setTimeout(()=>{try{if(!OUT.built&&W.running)withPlayer(me,buildOut);if(OUT.scene){OUT.scene.userData.lT=0;lightCap(OUT.scene,camera);try{withPlayer(me,()=>updateVehicle(0));}catch(_){} // car lights on/off as in play, so the light count (part of every shader) matches
+      // my own body and the partner's avatar only move into the town when we step out: warm their shaders for the town's lights too
+      const ex=[];try{const sb=selfBody();if(sb)ex.push(sb.g);}catch(_){}players.forEach(q=>{if(q.av)ex.push(q.av.g);});const par=ex.map(g=>g.parent);ex.forEach(g=>OUT.scene.add(g));
+      try{warmScene(OUT.scene);}finally{ex.forEach((g,i)=>{if(par[i])par[i].add(g);else OUT.scene.remove(g);});}}}catch(e){console.error(e);}
     finally{lm.hidden=true;if(!W.transit)f.classList.remove('on');}},60);}
 function endGame(o={}){
   closeOverlays();
