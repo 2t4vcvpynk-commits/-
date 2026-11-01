@@ -2691,7 +2691,7 @@ function updateExtra(c,dt){
     legsWalk(c,dt,false);faceTo(c,Math.PI/2,dt,4);const [y,p]=lookPlayer(c);headTo(c,y*.6,p*.5,0,dt,3);setExpr(c,'normal');
     if(!c.doorSaid&&t>.4){c.doorSaid=1;say(c,c.gara?'1人。空いとる?':c.lv>=2?'すんませぇ〜ん、1人いけますぅ?':pick(['すみません、1人なんですけど…','1人です、大丈夫ですか?']),c.gara?'':'quiet');}
     if(c.greeted){c.doorDone=true;c.state='walkIn';c.st=0;say(c,c.gara?'おう':'あ、どうも','quiet');c.pat=Math.min(c.maxPat,c.pat+c.maxPat*.1);}
-    else if(t>11){c.doorDone=true;c.state='walkIn';c.st=0;say(c,c.gara?'…なんやねん、誰もおらんのか':'…勝手に座っちゃいますね','quiet');c.pat-=c.maxPat*.15;W.noGreet=(W.noGreet||0)+1;}
+    else if(t>(rookieMP()?18:11)){c.doorDone=true;c.state='walkIn';c.st=0;say(c,c.gara?'…なんやねん、誰もおらんのか':'…勝手に座っちゃいますね','quiet');c.pat-=c.maxPat*.15;W.noGreet=(W.noGreet||0)+1;}
   }else if(c.state==='toReg'){
     if(!c.path&&(g.position.y<-.01||g.position.z>-4.86)){g.position.y+=(0-g.position.y)*Math.min(1,dt*6);if(Math.abs(g.position.y)<.01)g.position.y=0;g.position.z=Math.max(-4.9,g.position.z-dt*1.2);c.body.rotation.x*=.9;c.body.rotation.z*=.9;legsWalk(c,dt,false);}
     else{if(!c.path){c.regIdx=W.regN=(W.regN||0)+1;const q=regQueue().filter(x=>x!==c&&x.regIdx<c.regIdx).length;const sp=REG_SPOTS[Math.min(q,2)];c.path=findPath(g.position.x,g.position.z,sp[0],sp[1]);}
@@ -2976,6 +2976,9 @@ const PKIND={
   trio:{label:'3人組',n:[3,3],types:()=>NORMAL_TYPES,dur:[190,280]},
   company:{label:'会社の飲み会',n:[4,6],types:()=>NORMAL_TYPES.filter(t=>['営業マン','OLさん','一人飲みのおじさん'].includes(t.name)),dur:[230,330]}};
 // how many staff are on today (players + crew who actually work)
+// two newbies running the shop alone (multiplayer, before any crew is on the rota): eased so it plays like a solo first day for two
+// (fewer table groups, no big parties on day 1, a little more time between customers and at the door) — tuned with a shift simulation
+const rookieMP=()=>players.length>1&&!W.offDay&&!CREW_NOW.some(p=>p.post.role!=='boss'&&p.post.role!=='slack');
 const staffN=()=>(W.offDay?0:players.length)+CREW_NOW.filter(p=>p.post.role!=='boss'&&p.post.role!=='slack').length;
 const pkey=P=>'p'+P.id;
 function partyName(P){return`${P.slot.name} ${P.kindLabel}(${P.n}名)`;}
@@ -2983,7 +2986,7 @@ function pickPartyKind(n){const r=R();
   if(n<=1)return r<.5?'solo':r<.9?'pair':'trio';
   if(n===2)return r<.25?'solo':r<.6?'pair':r<.85?'trio':r<.95?'company':'students';
   return r<.15?'solo':r<.42?'pair':r<.62?'trio':r<.84?'company':'students';}
-function trySpawnParty(){const n=staffN();let kind=pickPartyKind(n);
+function trySpawnParty(){const n=staffN();let kind=pickPartyKind(rookieMP()&&DAY.n<=1?1:n);
   if(kind==='students'&&(SG.on||SG.done))kind='trio';
   if(kind==='students'){const sl=SLOTS.filter(s=>s.kind==='table'&&slotFree(s));if(!sl.length)return false;startStudents(pick(sl));return true;}
   const K=PKIND[kind],size=K.n[0]+Math.floor(R()*(K.n[1]-K.n[0]+1));
@@ -3042,7 +3045,7 @@ function clearSlot(s){if(!s.clutter)return null;scene.remove(s.clutter);s.clutte
 function updateParties(dt){
   // spawning: busier with more staff on (day 1 alone: about one small group)
   if(W.open&&!W.closed&&W.t<W.dur*.78){W.partyT=(W.partyT==null?40+R()*40:W.partyT)-dt;
-    if(W.partyT<=0){const n=staffN(),T=[0,1,3,5,7,8][Math.min(5,n)],done=trySpawnParty();W.partyT=done?(W.dur*.72/T)*(.6+R()*.8):8;}}
+    if(W.partyT<=0){const n=staffN(),T=rookieMP()?2:[0,1,3,5,7,8][Math.min(5,n)],done=trySpawnParty();W.partyT=done?(W.dur*.72/T)*(.6+R()*.8):8;}}
   for(let k=PARTIES.length-1;k>=0;k--){const P=PARTIES[k];P.t+=dt;const al=partyAlive(P);
     if(!P.members.some(p=>regulars.includes(p))){PARTIES.splice(k,1);if(P.st!=='leave')P.foodMeshes.forEach(f=>scene.remove(f.m));if(P.slot.party===P)P.slot.party=null;continue;}
     if(P.st==='door'){al.forEach((p,i)=>{const tx=-6.1-i*.5,dx=tx-p.g.position.x;if(dx>.02){p.g.rotation.y=Math.PI/2;p.g.position.x+=Math.min(dx,dt*1.4);legsWalk(p,dt,true);}else faceTo(p,Math.PI/2,dt,4);});
@@ -7202,8 +7205,8 @@ function simWorldIn(dt){
   if(washing>0&&R()<dt*30)addDrop(-3.3+(R()-.5)*.2,1.0,-0.55+(R()-.5)*.2,0xdff2fa);
   // spawn
   W.spawnT-=dt;
-  const sn=staffN(),solo=sn<=1,spd=[1,1,1.4,1.8,2.2,2.5][Math.min(5,sn)];
-  if(W.open&&!customers.some(c=>c.seat.c===c))W.spawnT=Math.min(W.spawnT,solo?28:12);
+  const sn=staffN(),solo=sn<=1,rk=rookieMP(),spd=[1,1,1.4,1.8,2.2,2.5][Math.min(5,sn)]*(rk?.85:1);
+  if(W.open&&!customers.some(c=>c.seat.c===c))W.spawnT=Math.min(W.spawnT,solo?28:rk?20:12);
   if(W.open&&W.spawnT<=0&&W.t<W.dur*.9){const busy=customers.filter(c=>c.seat.c===c&&!c.ate).length;
     if(busy>=(sn<=1?2:sn===2?3:4))W.spawnT=10;else{const free=seats.filter(s=>!s.c&&!s.leaving&&!s.plate&&s.guest==null);if(free.length){spawn(pick(free));const gm=W.t/W.dur*180;const peak=gm>55&&gm<125;W.spawnT=(peak?44+R()*24:72+R()*40)/spd;}else W.spawnT=6;}}
   if(RETA.length)updateReta(dt);
@@ -7270,7 +7273,7 @@ function render(dt){
   drawScene(sc,dt);fpsWatch(dt);
 }
 if(window.__TEST__)window.__G={stTrain,trainSeg,nextDeps,gmNow,rushNow,arrest,R_,rTurn,rBuy,rGacha,noOpenShame,GLINE,RAMEN,health,TOPS_W,GYM,gymStart,gymStop,gymRelease,gymPress,gymMember,STORES,enterStore,applyLook,lookOf,lookCode,openLookUI,wearItem,outfitKey,OWN,forceSleep,dayWrap,get gOrd(){return W.gOrd;},leaveHome,enterCar,get trays(){return trays;},CARRYDAY,openGuestShop,enterAsGuest,guestSit,guestOrder,guestKeys,startPassout,sleepNow,exitHome,enterHome,crewReact,PARTIES,SLOTS,spawnParty,trySpawnParty,staffN,tgtKeys,partyServeDrink,partyServeFood,groupCards,PASS,putPass,sgServeBeer,sgServeFood,setJob,SEKKYO,GLINE,meddle,fryers,get rack(){return rack;},lineThreads,LW,JOB_NAME,setSky,NIGHT,buildOut,CREW_NOW,crewToday,MAKA,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
-if(window.__TEST__)Object.assign(window.__G,{renderer,OUT,HOME,mainScene:scene,frozenCheck,FROZEN,LamOrig,PhoOrig,OOBST,MAPB,VEH,goalEvent,CPRED,get BIKE(){return BIKE},get CAR(){return CAR}});
+if(window.__TEST__)Object.assign(window.__G,{renderer,OUT,HOME,mainScene:scene,frozenCheck,FROZEN,LamOrig,PhoOrig,OOBST,MAPB,VEH,goalEvent,CPRED,rookieMP,get BIKE(){return BIKE},get CAR(){return CAR}});
 camera.position.set(0,1.62,.2);
 {const _bm=buildModel;buildModel=function(t,s){const m=_bm(t,s);if(SHADOWS)m.g.traverse(o=>{if(o.isMesh)o.castShadow=true;});m.blob=blob(m.g,0,.02,.6,.48,.012);return m;};}
 setShadows(scene);if(HQ)loadPP();
