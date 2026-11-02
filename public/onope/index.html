@@ -154,7 +154,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 #fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .5s}
 #fade.on,#fade.zz{opacity:1}
 #vcap{position:fixed;left:calc(max(16px,env(safe-area-inset-left,0px)) + 30px);bottom:calc(env(safe-area-inset-bottom,0px) + 70px);z-index:4;pointer-events:none;color:#f8e21a;text-shadow:0 2px 6px rgba(0,0,0,.8);opacity:0;transition:opacity .6s;font-family:var(--f-body)}
-#vcap.on{opacity:1}#vcap b{display:block;font-size:clamp(18px,4.6vh,30px);font-weight:900;font-style:italic;letter-spacing:.06em}#vcap i{display:block;font-size:clamp(12px,3vh,18px);font-weight:800;letter-spacing:.04em}
+#vcap.on{opacity:1}#vcap span{opacity:0;color:#5c5512;transition:color .16s ease-out}#vcap span.in{opacity:1;color:#f8e21a}#vcap b{display:block;font-size:clamp(18px,4.6vh,30px);font-weight:900;font-style:italic;letter-spacing:.06em}#vcap i{display:block;font-size:clamp(12px,3vh,18px);font-weight:800;letter-spacing:.04em}
 #scanUI{position:fixed;left:50%;top:44%;transform:translate(-50%,-50%);z-index:6;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px;color:#ff4a4a;font-family:var(--f-body);text-shadow:0 0 8px rgba(255,40,40,.6)}
 #scanUI b{font-size:20px;font-weight:900;letter-spacing:.1em}#scanUI small{font-size:11px;letter-spacing:.3em}
 #scanUI .eye{width:120px;height:120px;border-radius:50%;border:3px solid currentColor;position:relative;overflow:hidden;box-shadow:0 0 18px currentColor inset}
@@ -7290,7 +7290,16 @@ function footsteps(){if(!AC||!W.running)return;const mp=players[me]&&players[me]
     const d=Math.hypot(p.x-F.x,p.z-F.z);F.x=p.x;F.z=p.z;if(d>1.2||!footOK(i)){F.acc=0;return;}F.acc+=d;if(F.acc<.72)return;F.acc-=.72;
     let v=1;if(i!==me){const dd=Math.hypot(p.x-mp.x,p.z-mp.z);if(dd>14)return;v=(1-dd/14)*.8;}
     stepSound('',v,true);});} // one soft step sound everywhere (the per-floor sounds were too loud)
-function vCaption(a,b){sfx.vring&&sfx.vring();const e=$('#vcap');e.innerHTML=`<b>${a}</b><i>${b}</i>`;e.classList.remove('on');void e.offsetWidth;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),4800);}
+// the yellow caption types itself in like the show: the Japanese line a character at a time, then the English line faster; each new
+// character comes up dark and brightens. The electronic "ペレレレ" is three very high blips (≈16.7k → 14.1k → 7.3k Hz, 20 ms apart)
+// cycling while the characters appear — matched to the reference clip by ear and spectrum, synthesised here (no recorded audio).
+const VBLIP=[16742,14093,7330];
+function vblip(k,d){if(!AC)return;tone(VBLIP[k%3],.018,'sine',.045,null,d);}
+function vCaption(a,b){const e=$('#vcap');clearTimeout(e._t);(e._tm||[]).forEach(clearTimeout);e._tm=[];
+  const mk=t=>[...t].map(ch=>`<span>${ch===' '?'&nbsp;':ch}</span>`).join('');e.innerHTML=`<b>${mk(a)}</b><i>${mk(b)}</i>`;e.classList.add('on');
+  const sp=[...e.querySelectorAll('span')],nA=[...a].length;let t=0,k=0;
+  sp.forEach((s,i)=>{if(i)t+=i<nA?80:28;const at=t,jp=i<nA;e._tm.push(setTimeout(()=>{s.classList.add('in');for(let j=0;j<(jp?4:1);j++)vblip(k++,j*.02);},at));});
+  e._t=setTimeout(()=>e.classList.remove('on'),t+3400);}
 function vScanUI(){const e=$('#scanUI');e.className='';e.hidden=false;e.querySelector('b').textContent='瞳孔認証中…';e.querySelector('small').textContent='PUPIL SCAN';
   setTimeout(()=>{e.className='ok';e.querySelector('b').textContent='認証完了';e.querySelector('small').textContent='ACCESS GRANTED';},1700);setTimeout(()=>{e.hidden=true;},2700);}
 function buildVivant(S,G,B,C,PL,hit){const rr=seedRand(808),conc=lam(0x8a8a86),dark=lam(0x2a2a2c),steel=phong(0x6a6e74,70,0x666666);
@@ -7575,7 +7584,7 @@ function render(dt){
   drawScene(sc,dt);fpsWatch(dt);
 }
 if(window.__TEST__)window.__G={stTrain,trainSeg,nextDeps,gmNow,rushNow,arrest,R_,rTurn,rBuy,rGacha,noOpenShame,GLINE,RAMEN,health,TOPS_W,GYM,gymStart,gymStop,gymRelease,gymPress,gymMember,STORES,enterStore,applyLook,lookOf,lookCode,openLookUI,wearItem,outfitKey,OWN,forceSleep,dayWrap,get gOrd(){return W.gOrd;},leaveHome,enterCar,get trays(){return trays;},CARRYDAY,openGuestShop,enterAsGuest,guestSit,guestOrder,guestKeys,startPassout,sleepNow,exitHome,enterHome,crewReact,PARTIES,SLOTS,spawnParty,trySpawnParty,staffN,tgtKeys,partyServeDrink,partyServeFood,groupCards,PASS,putPass,sgServeBeer,sgServeFood,setJob,SEKKYO,GLINE,meddle,fryers,get rack(){return rack;},lineThreads,LW,JOB_NAME,setSky,NIGHT,buildOut,CREW_NOW,crewToday,MAKA,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
-if(window.__TEST__)Object.assign(window.__G,{renderer,OUT,HOME,mainScene:scene,frozenCheck,FROZEN,LamOrig,PhoOrig,OOBST,MAPB,VEH,goalEvent,CPRED,rookieMP,get BANK(){return BANK},outfitType,buildModel,applyLook,setExpr,undressGuest,get CARRY(){return CARRY},NORMAL_TYPES,HX,emoteArms,emoteBody,rigUpdate,get input(){return input},sweatSurface,vbWalk,get AC(){return AC},FOOT,initAudio,get BIKE(){return BIKE},get CAR(){return CAR}});
+if(window.__TEST__)Object.assign(window.__G,{renderer,OUT,HOME,mainScene:scene,frozenCheck,FROZEN,LamOrig,PhoOrig,OOBST,MAPB,VEH,goalEvent,CPRED,rookieMP,get BANK(){return BANK},outfitType,buildModel,applyLook,setExpr,undressGuest,get CARRY(){return CARRY},NORMAL_TYPES,HX,emoteArms,emoteBody,rigUpdate,get input(){return input},sweatSurface,vbWalk,get AC(){return AC},FOOT,initAudio,vCaption,get BIKE(){return BIKE},get CAR(){return CAR}});
 camera.position.set(0,1.62,.2);
 {const _bm=buildModel;buildModel=function(t,s){const m=_bm(t,s);if(SHADOWS)m.g.traverse(o=>{if(o.isMesh)o.castShadow=true;});m.blob=blob(m.g,0,.02,.6,.48,.012);return m;};}
 setShadows(scene);if(HQ)loadPP();
