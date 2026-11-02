@@ -1367,7 +1367,7 @@ function drawFaceGlam(c){const g=c.ctx,e=c.expr,F=FACE,U=faceUV,fl=clamp(((c.bac
 
 function buildModel(type,skin){
   const T=type,[bw,bb,bc]=T.build||[1,1,1];
-  const sk=skinMat(skin),top=T.bare?sk:clothMat(T.top,T.tee?20:8),pants=clothMat(T.pants,T.sweat?1:8),legM=T.boxer?sk:pants,shoe=clothMat(T.shoe||0x15100c,60);
+  const sk=skinMat(skin),top=T.bare?sk:clothMat(T.top,T.tee?20:8),pants=clothMat(T.pants,T.sweat?1:8),legM=T.boxer?sk:pants,shoe=T.boxer?sk:clothMat(T.shoe||0x15100c,60);
   const g=new THREE.Group();g.rotation.order='YXZ';
   const hips=new THREE.Group();hips.position.y=.93;g.add(hips);
   const hp=T.hip||1;
@@ -1456,7 +1456,8 @@ function buildModel(type,skin){
     mesh(ballGeo(.06),legM,knee);
     mesh(limbGeo(.42,T.sweat?.078:.058,T.sweat?.07:.044),legM,knee);if(T.sweat)mesh(limbGeo(.05,.05,.046),pants,knee,0,-.38,0);
     const ankle=new THREE.Group();ankle.position.y=-.43;knee.add(ankle);
-    mesh(cgeo('shoe'+(T.fem?'f':'m'),()=>{const b=new THREE.BoxGeometry(T.fem?.08:.098,.07,T.fem?.22:.26);b.translate(0,-.03,.05);return b;}),shoe,ankle);
+    if(T.boxer)mesh(cgeo('foot',()=>{const b=new THREE.BoxGeometry(.078,.045,.22);b.translate(0,-.04,.055);return b;}),shoe,ankle); // bare foot
+    else mesh(cgeo('shoe'+(T.fem?'f':'m'),()=>{const b=new THREE.BoxGeometry(T.fem?.08:.098,.07,T.fem?.22:.26);b.translate(0,-.03,.05);return b;}),shoe,ankle);
     return{hip,tw,knee,ankle,s};
   });
   const phone=mesh(cgeo('phone',()=>new THREE.BoxGeometry(.042,.08,.008)),phong(0x111111,100),arms[1].hand,0,-.07,.022);phone.visible=false;
@@ -4592,7 +4593,7 @@ const SELF={m:null,k:-1,kickT:0};
 // clothes: the uniform once I've changed at the locker, otherwise my own hoodie and jeans (2P: a grey hoodie)
 const lookNow=i=>(i===me&&PREVIEW)||lookOf(i);
 function outfitType(i){const base=STAFF_TYPES[i]||STAFF_TYPE,L=lookNow(i),hair={hs:HAIRS[L.h][0],hair:HCOLS[L.c][0]};if(LW(i).dressed)return{...base,...hair};
-  const t={...base,...hair,hood:0,zip:0,stripes:0,cardigan:0,suit:0,tie:0,shirt:0,print:0,...TOPS_W[L.t].t,pants:BOTS_W[L.b].c,boxer:BOTS_W[L.b].boxer?1:0,shoe:0xeeeeee};delete t.workcap;return t;}
+  const t={...base,...hair,hood:0,zip:0,stripes:0,cardigan:0,suit:0,tie:0,shirt:0,print:0,...TOPS_W[L.t].t,pants:BOTS_W[L.b].c,boxer:BOTS_W[L.b].boxer?1:0,shoe:BOTS_W[L.b].boxer?0xe2b08a:0xeeeeee};/* in boxers: barefoot too */delete t.workcap;return t;}
 const outfitKey=i=>{const L=lookNow(i);return(LW(i).dressed?'u':'c')+i+'-'+L.h+'.'+L.c+'.'+L.t+'.'+L.b;};
 function selfBody(){const ok=outfitKey(me);if(SELF.m&&SELF.k===ok)return SELF.m;if(SELF.m&&SELF.m.g.parent)SELF.m.g.parent.remove(SELF.m.g);
   const ty=outfitType(me),m=vis(()=>buildModel(ty,'#e2b08a'));m.rig.headJ.visible=false;m.rig.neck.children.forEach(o=>{if(o!==m.rig.headJ)o.visible=false;});
