@@ -7257,7 +7257,7 @@ function applyInput(q,inp,dt){
   if(inCarNow){carStep({mx,mz},dt);mx=0;mz=0;}
   else if(W.outside&&BIKE.riding){bikeStep({mx,mz},dt);mx=0;mz=0;}
   else{const b=P.bac||0;if(b>12&&(mx||mz)){const k=Math.min(.6,(b-12)/45);mx+=Math.sin(W.t*.9+q.i*2)*k;mz+=Math.sin(W.t*.63+1+q.i)*k*.5;}if(P.phone){mx*=.6;mz*=.6;}}
-  if(P.emote){if(Math.hypot(mx,mz)>.25||P.sit)P.emote=null;else{P.emote.t+=dt;if(P.emote.k===0&&W.home&&!P.emote.sw&&P.emote.t>1.6){P.emote.sw=1;addSweat(player.x,player.z,roomOf(cur));if(cur===me)toast('ふぅ…汗だくだ。床に汗が垂れた');}if(P.emote.t>=EMOTE_T)P.emote=null;mx=0;mz=0;}}
+  if(P.emote){if(Math.hypot(mx,mz)>.25||P.sit)P.emote=null;else{P.emote.t+=dt;if(P.emote.k===0&&W.home&&!P.emote.sw&&P.emote.t>1.6){P.emote.sw=1;addSweat(player.x,player.z,roomOf(cur));if(cur===me)toast('ふぅ…汗だくだ。');}if(P.emote.t>=EMOTE_T)P.emote=null;mx=0;mz=0;}}
   const l=Math.hypot(mx,mz);q.moved=l>.1;
   if(l>.001){
     const sp=2.4*(CARRY.c?.6:1)*(W.store==='gym'?1.7:1),sn=Math.sin(yaw),cs=Math.cos(yaw);
