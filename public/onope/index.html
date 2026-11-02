@@ -5827,7 +5827,7 @@ function buildHome(){vis(()=>{
   hHit(.55,.8,.6,1.45,.4,1.85,{prompt(){return(P.bac||0)>=20?'トイレで<b>吐く</b>':'<b>トイレに行く</b>';},press(){const b=P.bac||0;transit(()=>{const u=relieve();if(b>=20){P.bac=b-12;toast('トイレで吐いた…少し楽になった');}else toast(u?'トイレに行った。スッキリ':'トイレに行った');});}});
   hHit(.4,.4,.5,1.62,.95,1.2,{prompt(){return'洗面台で<b>顔を洗う</b>';},press(){P.bac=Math.max(0,(P.bac||0)-1.5);hlAdd('odor',-6);hlAdd('sleepy',-6);sfx.pour('soda');toast('顔を洗った。少しシャキッとした');}});
   hHit(.12,.14,.1,.16,1.2,-.05,{prompt(){return HOME.lightOn?'電気を<b>消す</b>':'電気を<b>つける</b>';},press(){HOME.lightOn=!HOME.lightOn;sfx.clink(.2);}});
-  {const HG=new THREE.Group();HG.position.x=HX;[...S3.children].forEach(o=>HG.add(o));S3.add(HG);S3.updateMatrixWorld(true);}
+  {const HG=new THREE.Group();HG.position.x=HX;[...S3.children].forEach(o=>HG.add(o));S3.add(HG);S3.updateMatrixWorld(true);HOME.hg=HG;}
   setShadows(S3);
   HOME.built=true;
 });}
@@ -5876,10 +5876,21 @@ function mirrorTwin(dt){if(!HOME.mirror)return;const ok=outfitKey(me);if(!HOME.t
 // 腰ヒット at home works up a sweat: a clear puddle at your feet (like the shop's vomit: hold "use" to wipe it). Both flats share one
 // interior scene, so each puddle remembers its room and only shows / answers in that room.
 const sweatMat=new THREE.MeshPhongMaterial({color:0xcfe8f4,transparent:true,opacity:.42,shininess:160,specular:0xffffff,depthWrite:false});
-function addSweat(x,z,room){if(!HOME.built)return;HOME.sweat=HOME.sweat||[];if(HOME.sweat.length>=8)return;const m=new THREE.Group();m.position.set(x,.006,z);HOME.scene.add(m);
+// where a drop lands: the top of a table / desk / counter if one is right there (big, flat, 20 cm–1 m up, the drop well inside its edges),
+// otherwise the floor. Never the bed, never small things like the PC.
+const _sr=new THREE.Raycaster(),_sb=new THREE.Box3(),_sn=new THREE.Vector3();
+function sweatSurface(x,z){if(!HOME.hg)return .006;const bed=x>HX+.62&&x<HX+1.92&&z>-4.45&&z<-2.15;if(bed)return .006;
+  _sr.set(new THREE.Vector3(x,1.3,z),new THREE.Vector3(0,-1,0));_sr.far=1.4;
+  for(const h of _sr.intersectObject(HOME.hg,true)){const o=h.object,m=Array.isArray(o.material)?o.material[0]:o.material;if(!m||m.colorWrite===false||m.transparent||!o.visible)continue;
+    if(h.point.y<.2)break;if(h.point.y>1.0)continue;if(!h.face)continue;_sn.copy(h.face.normal).transformDirection(o.matrixWorld);if(_sn.y<.9)continue;
+    _sb.setFromObject(o);const w=_sb.max.x-_sb.min.x,d=_sb.max.z-_sb.min.z;if(w<.4||d<.4)return .006; // something small sits there (the laptop, a cup, the microwave): not under it — it drops to the floor
+    if(x<_sb.min.x+.08||x>_sb.max.x-.08||z<_sb.min.z+.08||z>_sb.max.z-.08)return .006; // too close to the edge: it would hang in the air
+    return h.point.y+.004;}
+  return .006;}
+function addSweat(x,z,room){if(!HOME.built)return;HOME.sweat=HOME.sweat||[];if(HOME.sweat.length>=8)return;const y=sweatSurface(x,z),onTop=y>.05;const m=new THREE.Group();m.position.set(x,y,z);HOME.scene.add(m);
   const b=new THREE.Mesh(new THREE.CircleGeometry(.2,18),sweatMat);b.rotation.x=-Math.PI/2;b.scale.set(1,.7+R()*.35,1);m.add(b);
-  for(let i=0;i<7;i++){const d=new THREE.Mesh(new THREE.CircleGeometry(.025+R()*.025,10),sweatMat);d.rotation.x=-Math.PI/2;d.position.set((R()-.5)*.6,.001,(R()-.5)*.6);m.add(d);}
-  const S={m,x,z,room,amt:1};S.hb=hHit(.5,.12,.5,x,.06,z,{prompt(){return S.room!==roomOf(cur)?'':hand?'(手がふさがってる)床の汗':'床を<b>タオルで拭く</b>(長押し)';},press(){if(!hand)this.hold(.12);},
+  for(let i=0;i<7;i++){const d=new THREE.Mesh(new THREE.CircleGeometry(.025+R()*.025,10),sweatMat);d.rotation.x=-Math.PI/2;d.position.set((R()-.5)*(onTop?.2:.6),.001,(R()-.5)*(onTop?.2:.6));m.add(d);}
+  if(onTop)b.scale.multiplyScalar(.75);const S={m,x,z,room,amt:1,top:onTop};S.hb=hHit(.5,.12,.5,x,y+.05,z,{prompt(){return S.room!==roomOf(cur)?'':hand?'(手がふさがってる)'+(S.top?'テーブルの汗':'床の汗'):(S.top?'テーブル':'床')+'を<b>タオルで拭く</b>(長押し)';},press(){if(!hand)this.hold(.12);},
     hold(dt){if(hand||S.room!==roomOf(cur))return;S.amt-=dt*.45;m.scale.setScalar(Math.max(.04,S.amt));if(R()<dt*7)sfx.wipe();if(S.amt<=0)removeSweat(S);}});S.hb.userData.optional=true;HOME.sweat.push(S);}
 function removeSweat(S){HOME.scene.remove(S.m);HOME.scene.remove(S.hb);const i=HOME.hits.indexOf(S.hb);if(i>=0)HOME.hits.splice(i,1);const j=HOME.sweat.indexOf(S);if(j>=0)HOME.sweat.splice(j,1);}
 function clearSweat(){(HOME.sweat||[]).slice().forEach(removeSweat);}
@@ -7397,7 +7408,7 @@ function render(dt){
   drawScene(sc,dt);fpsWatch(dt);
 }
 if(window.__TEST__)window.__G={stTrain,trainSeg,nextDeps,gmNow,rushNow,arrest,R_,rTurn,rBuy,rGacha,noOpenShame,GLINE,RAMEN,health,TOPS_W,GYM,gymStart,gymStop,gymRelease,gymPress,gymMember,STORES,enterStore,applyLook,lookOf,lookCode,openLookUI,wearItem,outfitKey,OWN,forceSleep,dayWrap,get gOrd(){return W.gOrd;},leaveHome,enterCar,get trays(){return trays;},CARRYDAY,openGuestShop,enterAsGuest,guestSit,guestOrder,guestKeys,startPassout,sleepNow,exitHome,enterHome,crewReact,PARTIES,SLOTS,spawnParty,trySpawnParty,staffN,tgtKeys,partyServeDrink,partyServeFood,groupCards,PASS,putPass,sgServeBeer,sgServeFood,setJob,SEKKYO,GLINE,meddle,fryers,get rack(){return rack;},lineThreads,LW,JOB_NAME,setSky,NIGHT,buildOut,CREW_NOW,crewToday,MAKA,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
-if(window.__TEST__)Object.assign(window.__G,{renderer,OUT,HOME,mainScene:scene,frozenCheck,FROZEN,LamOrig,PhoOrig,OOBST,MAPB,VEH,goalEvent,CPRED,rookieMP,get BANK(){return BANK},outfitType,buildModel,applyLook,setExpr,undressGuest,get CARRY(){return CARRY},NORMAL_TYPES,HX,emoteArms,emoteBody,rigUpdate,get input(){return input},get BIKE(){return BIKE},get CAR(){return CAR}});
+if(window.__TEST__)Object.assign(window.__G,{renderer,OUT,HOME,mainScene:scene,frozenCheck,FROZEN,LamOrig,PhoOrig,OOBST,MAPB,VEH,goalEvent,CPRED,rookieMP,get BANK(){return BANK},outfitType,buildModel,applyLook,setExpr,undressGuest,get CARRY(){return CARRY},NORMAL_TYPES,HX,emoteArms,emoteBody,rigUpdate,get input(){return input},sweatSurface,get BIKE(){return BIKE},get CAR(){return CAR}});
 camera.position.set(0,1.62,.2);
 {const _bm=buildModel;buildModel=function(t,s){const m=_bm(t,s);if(SHADOWS)m.g.traverse(o=>{if(o.isMesh)o.castShadow=true;});m.blob=blob(m.g,0,.02,.6,.48,.012);return m;};}
 setShadows(scene);if(HQ)loadPP();
