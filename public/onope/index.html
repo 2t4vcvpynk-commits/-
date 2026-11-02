@@ -1451,7 +1451,7 @@ function buildModel(type,skin){
   const legs=[-1,1].map(s=>{
     const hip=new THREE.Group();hip.rotation.order='YXZ';hip.position.set(s*.088*bw,-.04,0);hips.add(hip);
     const tw=new THREE.Group();hip.add(tw);
-    mesh(limbGeo(.45,(T.sweat?.098:.084*bw)*hp,T.sweat?.078:.06),legM,tw);if(T.boxer)mesh(limbGeo(.17,.094*bw*hp,.084),pants,tw);
+    mesh(limbGeo(.45,(T.sweat?.098:.084*bw)*hp,T.sweat?.078:.06),legM,tw);
     const knee=new THREE.Group();knee.position.y=-.45;tw.add(knee);
     mesh(ballGeo(.06),legM,knee);
     mesh(limbGeo(.42,T.sweat?.078:.058,T.sweat?.07:.044),legM,knee);if(T.sweat)mesh(limbGeo(.05,.05,.046),pants,knee,0,-.38,0);
@@ -7258,7 +7258,7 @@ function applyInput(q,inp,dt){
   if(inCarNow){carStep({mx,mz},dt);mx=0;mz=0;}
   else if(W.outside&&BIKE.riding){bikeStep({mx,mz},dt);mx=0;mz=0;}
   else{const b=P.bac||0;if(b>12&&(mx||mz)){const k=Math.min(.6,(b-12)/45);mx+=Math.sin(W.t*.9+q.i*2)*k;mz+=Math.sin(W.t*.63+1+q.i)*k*.5;}if(P.phone){mx*=.6;mz*=.6;}}
-  if(P.emote){if(Math.hypot(mx,mz)>.25||P.sit)P.emote=null;else{P.emote.t+=dt;if(P.emote.k===0&&W.home&&!P.emote.sw&&P.emote.t>1.6){P.emote.sw=1;addSweat(player.x-Math.sin(yaw)*.7,player.z-Math.cos(yaw)*.7,roomOf(cur));if(cur===me)toast('ふぅ…汗だくだ。');}if(P.emote.t>=EMOTE_T)P.emote=null;mx=0;mz=0;}}
+  if(P.emote){if(Math.hypot(mx,mz)>.25||P.sit)P.emote=null;else{P.emote.t+=dt;if(P.emote.k===0&&W.home&&!P.emote.sw&&P.emote.t>1.6){P.emote.sw=1;addSweat(player.x-Math.sin(yaw)*.3,player.z-Math.cos(yaw)*.3,roomOf(cur));if(cur===me)toast('ふぅ…汗だくだ。');}if(P.emote.t>=EMOTE_T)P.emote=null;mx=0;mz=0;}}
   const l=Math.hypot(mx,mz);q.moved=l>.1;
   if(l>.001){
     const sp=2.4*(CARRY.c?.6:1)*(W.store==='gym'?1.7:1),sn=Math.sin(yaw),cs=Math.cos(yaw);
