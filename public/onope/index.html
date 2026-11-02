@@ -7270,7 +7270,27 @@ function vbWalk(lx,z){
   if(W.vbDoor&&lx>3.45&&lx<7.55&&z>-8.6&&z<=-2.6){if(lx<4.0||(lx>7.0&&z<-2.9&&!(W.vbShelf&&z<-6)))return false;return true;}
   if(lx>-1.45&&lx<1.45&&z>-49.5&&z<-22.2)return true;
   if(Math.hypot(lx,z+58)<6.6||(Math.abs(lx)<1.2&&z>-52&&z<=-49.5))return true;return false;}
-function vCaption(a,b){const e=$('#vcap');e.innerHTML=`<b>${a}</b><i>${b}</i>`;e.classList.remove('on');void e.offsetWidth;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),4800);}
+// ---- footsteps: only the two players (mine, and my partner's when we're in the same place, quieter with distance). The floor decides the sound.
+const FOOT={};
+function footSurface(i,x,z){const lo=locOf(i);if(lo==='out')return groundY(x,z)>.06?'pave':'asph';if(lo==='home')return'wood';if(lo==='shop')return floorAt(x,z)>0?'tatami':'tile';
+  if(lo==='store:vbase')return z<-21&&z>-50.5?'gravel':'conc';if(lo.startsWith('store:st'))return'stone';return'tile';}
+function footOK(i){const q=players[i];if(!q)return false;const L=i===cur?W:q.L;if(!L||L.slept||L.napUntil!=null||L.transit)return false;if(q.P.sit||q.P.emote)return false;
+  if(locOf(i)==='out'){const car=i===cur?CAR:q.car,bike=i===cur?BIKE:q.bike;if((car&&car.inCar)||(bike&&bike.riding)||L.ride!=null||L.bride!=null)return false;}return true;}
+function stepSound(k,v,bare){const j=.9+Math.random()*.2;if(bare){burst(.05,520*j,.035*v,'lowpass');tone(85*j,.05,'sine',.03*v);return;}
+  if(k==='asph'){burst(.06,1100*j,.05*v,'bandpass');tone(70,.05,'sine',.028*v);}
+  else if(k==='pave'){burst(.05,1500*j,.05*v,'bandpass');tone(90,.04,'sine',.02*v);}
+  else if(k==='tile'){burst(.04,2600*j,.045*v,'bandpass');tone(170*j,.035,'sine',.022*v);}
+  else if(k==='wood'){burst(.05,700*j,.05*v,'lowpass');tone(95*j,.06,'sine',.045*v);}
+  else if(k==='tatami'){burst(.07,480*j,.04*v,'lowpass');}
+  else if(k==='stone'){burst(.04,3200*j,.045*v,'bandpass');tone(220*j,.03,'triangle',.016*v);}
+  else if(k==='gravel'){burst(.09,2400*j,.05*v,'highpass');burst(.06,900*j,.03*v,'bandpass',.025);}
+  else burst(.05,1800*j,.05*v,'bandpass');}
+function footsteps(){if(!AC||!W.running)return;const mp=players[me]&&players[me].pos;if(!mp)return;
+  players.forEach((q,i)=>{if(i!==me&&locOf(i)!==locOf(me))return;const p=i===me?(MP.on&&PRED.ok?PRED:q.pos):ipos(q);let F=FOOT[i];if(!F){FOOT[i]={x:p.x,z:p.z,acc:0};return;}
+    const d=Math.hypot(p.x-F.x,p.z-F.z);F.x=p.x;F.z=p.z;if(d>1.2||!footOK(i)){F.acc=0;return;}F.acc+=d;if(F.acc<.72)return;F.acc-=.72;
+    let v=1;if(i!==me){const dd=Math.hypot(p.x-mp.x,p.z-mp.z);if(dd>14)return;v=(1-dd/14)*.8;}
+    let bare=false;try{bare=!LW(i).dressed&&!!outfitType(i).boxer;}catch(_){}stepSound(footSurface(i,p.x,p.z),v,bare);});}
+function vCaption(a,b){sfx.vring&&sfx.vring();const e=$('#vcap');e.innerHTML=`<b>${a}</b><i>${b}</i>`;e.classList.remove('on');void e.offsetWidth;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),4800);}
 function vScanUI(){const e=$('#scanUI');e.className='';e.hidden=false;e.querySelector('b').textContent='瞳孔認証中…';e.querySelector('small').textContent='PUPIL SCAN';
   setTimeout(()=>{e.className='ok';e.querySelector('b').textContent='認証完了';e.querySelector('small').textContent='ACCESS GRANTED';},1700);setTimeout(()=>{e.hidden=true;},2700);}
 function buildVivant(S,G,B,C,PL,hit){const rr=seedRand(808),conc=lam(0x8a8a86),dark=lam(0x2a2a2c),steel=phong(0x6a6e74,70,0x666666);
@@ -7372,7 +7392,8 @@ function drawVivant(S,dt){S.t=(S.t||0)+dt;const lz=player.z;
 function updateStore(dt){const S=STORES[W.store];if(!S||!S.built)return;if(S.kind==='gym')drawGym(S,dt);if(S.kind==='ramen')drawRamen(S);if(S.kind==='vbase')drawVivant(S,dt);if(STN[S.kind])drawStation(S,dt);if(S.kind==='trn0'||S.kind==='trn1')drawRide(S,dt);if(S.kind==='salon'||S.kind==='boutique')mirrorTwinIn(S.scene,dt);
   S.clerks.forEach((c,i)=>{c.t=(c.t||0)+dt;armTo(c,0,'counter',dt,3);armTo(c,1,i%2?'counter':'hang',dt,3);headTo(c,Math.sin(c.t*.4+i)*.3,.05,0,dt,2);rigUpdate(c,dt);});
   S.shoppers.forEach(p=>{shopperStep(S,p,dt);rigUpdate(p,dt);});}
-Object.assign(sfx,{chime(){[880,698,880,698].forEach((f,i)=>tone(f,.18,'sine',.06,null,i*.16));}});
+Object.assign(sfx,{chime(){[880,698,880,698].forEach((f,i)=>tone(f,.18,'sine',.06,null,i*.16));},
+  vring(){for(let i=0;i<13;i++){tone(i%2?1760:1397,.045,'triangle',.045,null,i*.034);tone(i%2?3520:2794,.03,'sine',.012,null,i*.034);}tone(2093,.32,'sine',.05,null,13*.034);tone(1047,.32,'triangle',.025,null,13*.034);}});
 
 /* ================= loop ================= */
 const ray=new THREE.Raycaster();ray.far=2.5;const center=new THREE.Vector2(0,0);
@@ -7550,11 +7571,11 @@ function render(dt){
     p.m.position.y+=p.vy*dt;
     if(p.kind==='s'){const k=1-p.life/p.max;p.m.scale.setScalar(.2+k*p.grow);p.m.material.opacity=p.op*(1-k);}
     if(p.life<=0){scene.remove(p.m);if(p.m.material!==bubMat)p.m.material.dispose();parts.splice(i,1);}}
-  const sc=W.store&&STORES[W.store].scene?STORES[W.store].scene:W.home&&HOME.scene?HOME.scene:(W.outside&&OUT.scene?OUT.scene:scene);if(HOME.sweat&&sc===HOME.scene){const r=roomOf(me);HOME.sweat.forEach(S=>{S.m.visible=S.room===r;});}detailCull(sc,camera);if(sc===OUT.scene){lightCap(sc,camera);walkersOut(dt);}else if(W.store==='vbase')lightCap(sc,camera,3);if(camera.parent!==sc){sc.add(camera);camera.far=sc===scene?40:sc===OUT.scene?170:30;camera.updateProjectionMatrix();}
+  const sc=W.store&&STORES[W.store].scene?STORES[W.store].scene:W.home&&HOME.scene?HOME.scene:(W.outside&&OUT.scene?OUT.scene:scene);if(HOME.sweat&&sc===HOME.scene){const r=roomOf(me);HOME.sweat.forEach(S=>{S.m.visible=S.room===r;});}footsteps();detailCull(sc,camera);if(sc===OUT.scene){lightCap(sc,camera);walkersOut(dt);}else if(W.store==='vbase')lightCap(sc,camera,3);if(camera.parent!==sc){sc.add(camera);camera.far=sc===scene?40:sc===OUT.scene?170:30;camera.updateProjectionMatrix();}
   drawScene(sc,dt);fpsWatch(dt);
 }
 if(window.__TEST__)window.__G={stTrain,trainSeg,nextDeps,gmNow,rushNow,arrest,R_,rTurn,rBuy,rGacha,noOpenShame,GLINE,RAMEN,health,TOPS_W,GYM,gymStart,gymStop,gymRelease,gymPress,gymMember,STORES,enterStore,applyLook,lookOf,lookCode,openLookUI,wearItem,outfitKey,OWN,forceSleep,dayWrap,get gOrd(){return W.gOrd;},leaveHome,enterCar,get trays(){return trays;},CARRYDAY,openGuestShop,enterAsGuest,guestSit,guestOrder,guestKeys,startPassout,sleepNow,exitHome,enterHome,crewReact,PARTIES,SLOTS,spawnParty,trySpawnParty,staffN,tgtKeys,partyServeDrink,partyServeFood,groupCards,PASS,putPass,sgServeBeer,sgServeFood,setJob,SEKKYO,GLINE,meddle,fryers,get rack(){return rack;},lineThreads,LW,JOB_NAME,setSky,NIGHT,buildOut,CREW_NOW,crewToday,MAKA,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
-if(window.__TEST__)Object.assign(window.__G,{renderer,OUT,HOME,mainScene:scene,frozenCheck,FROZEN,LamOrig,PhoOrig,OOBST,MAPB,VEH,goalEvent,CPRED,rookieMP,get BANK(){return BANK},outfitType,buildModel,applyLook,setExpr,undressGuest,get CARRY(){return CARRY},NORMAL_TYPES,HX,emoteArms,emoteBody,rigUpdate,get input(){return input},sweatSurface,vbWalk,get BIKE(){return BIKE},get CAR(){return CAR}});
+if(window.__TEST__)Object.assign(window.__G,{renderer,OUT,HOME,mainScene:scene,frozenCheck,FROZEN,LamOrig,PhoOrig,OOBST,MAPB,VEH,goalEvent,CPRED,rookieMP,get BANK(){return BANK},outfitType,buildModel,applyLook,setExpr,undressGuest,get CARRY(){return CARRY},NORMAL_TYPES,HX,emoteArms,emoteBody,rigUpdate,get input(){return input},sweatSurface,vbWalk,get AC(){return AC},FOOT,initAudio,get BIKE(){return BIKE},get CAR(){return CAR}});
 camera.position.set(0,1.62,.2);
 {const _bm=buildModel;buildModel=function(t,s){const m=_bm(t,s);if(SHADOWS)m.g.traverse(o=>{if(o.isMesh)o.castShadow=true;});m.blob=blob(m.g,0,.02,.6,.48,.012);return m;};}
 setShadows(scene);if(HQ)loadPP();
