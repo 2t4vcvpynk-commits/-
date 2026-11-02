@@ -3886,7 +3886,7 @@ function shirtColor(c){let col=null;c.g.traverse(o=>{if(!col&&o.material&&o.mate
 // a guest asleep in my bed: out of their outside clothes (men down to boxers, women into my loungewear); the model is rebuilt in place
 function undressGuest(c){const t={...c.type,shoe:new THREE.Color(c.skin).getHex()},fem=!!t.fem,clr={hood:0,zip:0,stripes:0,cardigan:0,suit:0,tie:0,shirt:0,print:0,work:0,cop:0,workcap:0}; // shoes come off first
   if(fem){Object.assign(t,clr,{top:0x8a8a90,pants:0x6a6a72,sweat:1});c.undress=2;}
-  else if(!c.undress){Object.assign(t,clr,{bare:1});c.undress=1;}else{Object.assign(t,{boxer:1,pants:0x2a4a8a,sweat:0});c.undress=2;}
+  else if(!c.undress){Object.assign(t,clr,{bare:1});c.undress=1;}else{Object.assign(t,{boxer:1,pants:0xf4f4f0,sweat:0});c.undress=2;}
   const m=vis(()=>buildModel(t,c.skin)),old=c.g,par=old.parent;m.g.position.copy(old.position);m.g.rotation.copy(old.rotation);if(par){par.remove(old);par.add(m.g);}
   if(c.blob&&c.blob.parent)c.blob.parent.remove(c.blob);
   Object.assign(c,{g:m.g,body:m.body,head:m.head,hands:m.hands,phone:m.phone,fc:m.fc,tex:m.tex,rig:m.rig,face3d:m.face3d,blob:m.blob,ctx:m.fc.getContext('2d'),type:t,expr:''});c.body.rotation.x=0;vis(()=>setExpr(c,'sleep'));sfx.clink&&sfx.clink(.7);
@@ -5954,7 +5954,7 @@ const TOPS_W=[{n:'黒パーカー',p:0,t:{top:0x17171b,hood:1}},{n:'グレーパ
   {n:'デニムジャケット',p:7980,t:{top:0x4a6a9a,zip:1}},{n:'レザージャケット',p:12800,t:{top:0x1a1614,zip:1}},{n:'赤スウェット',p:3980,t:{top:0xb03030}},{n:'ベージュカーディガン',p:5980,t:{top:0xf2ece0,cardigan:0xb8a07a}},
   {n:'ネイビーシャツ',p:4980,t:{top:0x2a3450}},{n:'セットアップ(ジャケット)',p:15800,t:{top:0x26324c,suit:1,tie:0xa8282a,shirt:0xf2f2f0}},
   {n:'ラーメンは命T',p:0,gift:1,t:{top:0xf4f4f0,print:['ラーメンは命','#b01818']}},{n:'豚吉の太客パーカー',p:0,gift:1,t:{top:0xf2c21b,hood:1,print:['豚吉の太客','#a01010']}},{n:'脱ぐ(上半身はだか)',p:0,none:1,t:{top:0xe2b08a,bare:1}}];
-const BOTS_W=[{n:'ブルーデニム',p:0,c:0x3d5f8f},{n:'ブラックデニム',p:5980,c:0x1a1a1e},{n:'チノパン',p:3980,c:0xb8a07a},{n:'グレースラックス',p:4980,c:0x5a5a60},{n:'オリーブカーゴ',p:4980,c:0x5a6a3a},{n:'白パンツ',p:3980,c:0xe8e4dc},{n:'セットアップ(パンツ)',p:9800,c:0x26324c},{n:'脱ぐ(パンイチ)',p:0,none:1,c:0x2a4a8a,boxer:1}];
+const BOTS_W=[{n:'ブルーデニム',p:0,c:0x3d5f8f},{n:'ブラックデニム',p:5980,c:0x1a1a1e},{n:'チノパン',p:3980,c:0xb8a07a},{n:'グレースラックス',p:4980,c:0x5a5a60},{n:'オリーブカーゴ',p:4980,c:0x5a6a3a},{n:'白パンツ',p:3980,c:0xe8e4dc},{n:'セットアップ(パンツ)',p:9800,c:0x26324c},{n:'脱ぐ(パンイチ)',p:0,none:1,c:0xf4f4f0,boxer:1}];
 const CUT_P=3500,COLOR_P=5500;
 const defLook=i=>({h:i?2:0,c:i?1:0,t:i?1:0,b:0});
 const lookOf=i=>(players[i]&&players[i].look)||defLook(i);
