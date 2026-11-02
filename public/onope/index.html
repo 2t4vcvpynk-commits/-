@@ -118,7 +118,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 .de .btn{margin-top:10px}.de .btn:disabled{opacity:.45}.de-w{font-size:12px;margin:10px 0 0;opacity:.8;min-height:1em}
 #lookUI,#gymUI{position:fixed;inset:0;z-index:60;background:rgba(8,10,16,.35);display:grid;align-items:end;justify-items:center;padding:10px;pointer-events:auto}
 #lookUI[hidden],#gymUI[hidden],#gymHud[hidden]{display:none}
-#lookUI{background:rgba(8,10,16,.12)}body.scoping #joy,body.scoping #actionBtn,body.scoping #punch,body.scoping #voice{visibility:hidden}body.scoping #act{z-index:4}
+#lookUI{background:rgba(8,10,16,.12)}body.scoping #joy,body.scoping #actionBtn,body.scoping #punch,body.scoping #voice{display:none!important}body.scoping #act{z-index:4}
 #scopeUI{position:fixed;inset:0;pointer-events:none;z-index:3;background:radial-gradient(circle at 50% 50%,transparent 0,transparent 33vmin,#000 33.5vmin)}#scopeUI i{position:absolute;left:50%;top:50%;width:66vmin;height:66vmin;transform:translate(-50%,-50%);background:linear-gradient(#000,#000) center/100% 1px no-repeat,linear-gradient(#000,#000) center/1px 100% no-repeat}
 #fxFlash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:8}@media (min-width:700px){#lookUI{justify-items:end;align-items:center}#lookUI .lk-win{width:min(400px,100%);max-height:94vh}}
 .lk-win{width:min(560px,100%);max-height:72vh;display:grid;grid-template-rows:auto 1fr auto;background:rgba(250,248,244,.97);border-radius:12px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.45);font-family:var(--f-body);color:#1c1c20}
@@ -3312,7 +3312,7 @@ canvas.addEventListener('pointerdown',e=>{tapStart={id:e.pointerId,x:e.clientX,y
     lookId=e.pointerId;lookL=[e.clientX,e.clientY];return;
   }
   e.preventDefault();try{canvas.setPointerCapture(e.pointerId);}catch(_){}
-  if(e.clientX<innerWidth*.45&&!(W.outside&&CAR.inCar)){joyId=e.pointerId;joyO=[e.clientX,e.clientY];joyEl.hidden=false;joyEl.style.left=e.clientX+'px';joyEl.style.top=e.clientY+'px';knob.style.transform='';}
+  if(e.clientX<innerWidth*.45&&!(W.outside&&CAR.inCar)&&!document.body.classList.contains('scoping')){joyId=e.pointerId;joyO=[e.clientX,e.clientY];joyEl.hidden=false;joyEl.style.left=e.clientX+'px';joyEl.style.top=e.clientY+'px';knob.style.transform='';}
   else{lookId=e.pointerId;lookL=[e.clientX,e.clientY];}
 });
 canvas.addEventListener('pointermove',e=>{
@@ -7794,7 +7794,7 @@ function render(dt){
   shake=Math.max(0,shake-dt*1.2);const Rn=Math.random,cp=camPose(),bq=players[me]?(players[me].P.bac||0):0,dk=Math.max(0,Math.min(.55,(bq-3)/45)),tt=performance.now()/1000,inC=W.outside&&(CAR.inCar||W.ride!=null);
   camera.position.set(cp[0]+(Rn()-.5)*shake*.12+Math.sin(tt*.9)*dk*.07,cp[1]+(inC?0:Math.sin(bob)*.02)+(Rn()-.5)*shake*.12,cp[2]+Math.cos(tt*.7)*dk*.05);
   if(inC){const bf=BASEF+Math.min(16,Math.abs(CAR.v)*.42);if(Math.abs(camera.fov-bf)>.05){camera.fov=bf;camera.updateProjectionMatrix();}}else{const mh=myHand(),sp=players[me]&&players[me].P.scope&&mh&&mh.type==='weapon'&&mh.w==='rifle',tf=sp?14:BASEF;if(camera.fov!==tf){camera.fov=tf;camera.updateProjectionMatrix();}if(heldMesh&&hand&&hand.type==='weapon'&&hand.w==='knife'){const k=P.slashT!=null?(W.t-P.slashT)/.3:1,e=k>=0&&k<1?Math.sin(k*Math.PI):0;heldMesh.rotation.set(-1.1*e,1.3*e,.6*e);heldMesh.position.set(-.02-.18*e,-.02+.08*e,-.04-.12*e);}
-    const so=$('#scopeUI');if(so&&so.hidden===sp){so.hidden=!sp;document.body.classList.toggle('scoping',sp);if(sp&&menuOpen)openMenu(false);}if(heldMesh)heldMesh.visible=!sp;}
+    const so=$('#scopeUI');if(so&&so.hidden===sp){so.hidden=!sp;document.body.classList.toggle('scoping',sp);if(sp&&menuOpen)openMenu(false);if(sp)resetPtrs();}if(heldMesh)heldMesh.visible=!sp;}
   if(inC&&Math.abs(CAR.v)>14)shake=Math.max(shake,(Math.abs(CAR.v)-14)*.004);
   camera.rotation.set((cp[4]!=null?cp[4]:view.pitch)+Math.sin(tt*.8)*dk*.05,cp[3]+Math.sin(tt*.6)*dk*.06,(Rn()-.5)*shake*.05+Math.sin(tt*.75)*dk*.13);
   oilTex.offset.x+=dt*.012;oilTex.offset.y+=dt*.007;
