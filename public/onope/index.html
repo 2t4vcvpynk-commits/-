@@ -118,7 +118,8 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 .de .btn{margin-top:10px}.de .btn:disabled{opacity:.45}.de-w{font-size:12px;margin:10px 0 0;opacity:.8;min-height:1em}
 #lookUI,#gymUI{position:fixed;inset:0;z-index:60;background:rgba(8,10,16,.35);display:grid;align-items:end;justify-items:center;padding:10px;pointer-events:auto}
 #lookUI[hidden],#gymUI[hidden],#gymHud[hidden]{display:none}
-#lookUI,#armUI{background:rgba(8,10,16,.12)}#fxFlash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:8}@media (min-width:700px){#lookUI{justify-items:end;align-items:center}#lookUI .lk-win{width:min(400px,100%);max-height:94vh}}
+#lookUI{background:rgba(8,10,16,.12)}#scopeUI{position:fixed;inset:0;pointer-events:none;z-index:3;background:radial-gradient(circle at 50% 50%,transparent 0,transparent 33vmin,#000 33.5vmin)}#scopeUI i{position:absolute;left:50%;top:50%;width:66vmin;height:66vmin;transform:translate(-50%,-50%);background:linear-gradient(#000,#000) center/100% 1px no-repeat,linear-gradient(#000,#000) center/1px 100% no-repeat}
+#fxFlash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:8}@media (min-width:700px){#lookUI{justify-items:end;align-items:center}#lookUI .lk-win{width:min(400px,100%);max-height:94vh}}
 .lk-win{width:min(560px,100%);max-height:72vh;display:grid;grid-template-rows:auto 1fr auto;background:rgba(250,248,244,.97);border-radius:12px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.45);font-family:var(--f-body);color:#1c1c20}
 .lk-bar{display:flex;align-items:center;gap:10px;background:#1c1c20;color:#f4efe6;padding:8px 12px}.lk-bar b{flex:1;font-size:14px;letter-spacing:.06em}.lk-bar button{background:none;border:0;color:#fff;font-size:20px;line-height:1;padding:0 4px}
 .lk-body{overflow:auto;padding:8px 12px}.lk-h{font-size:11px;font-weight:800;opacity:.7;margin:8px 0 4px}.lk-row{display:flex;flex-wrap:wrap;gap:6px}
@@ -155,7 +156,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 #fade.on,#fade.zz{opacity:1}
 #vcap{position:fixed;left:calc(max(16px,env(safe-area-inset-left,0px)) + 30px);bottom:calc(env(safe-area-inset-bottom,0px) + 70px);z-index:4;pointer-events:none;color:#f8e21a;text-shadow:0 2px 6px rgba(0,0,0,.8);opacity:0;transition:opacity .6s;font-family:var(--f-body)}
 #vcap.on{opacity:1}
-#kpUI{display:grid;place-items:center;z-index:7}#kpUI .kp{background:#1a1c20;border:2px solid #4a4e56;border-radius:10px;padding:14px;width:min(240px,80vw);box-shadow:0 10px 40px rgba(0,0,0,.6);color:#e8e8e8;font-family:var(--f-body)}
+#kpUI{position:fixed;inset:0;display:grid;place-items:center;z-index:7;background:none}#kpUI[hidden]{display:none}#kpUI .kp{background:#1a1c20;border:2px solid #4a4e56;border-radius:10px;padding:14px;width:min(240px,80vw);box-shadow:0 10px 40px rgba(0,0,0,.6);color:#e8e8e8;font-family:var(--f-body)}
 #kpUI .kp-t{text-align:center;font-size:11px;letter-spacing:.3em;color:#ff4a4a;margin-bottom:6px}#kpUI .kp-d{background:#0a1a0e;color:#3aff7a;font:700 26px monospace;text-align:center;padding:6px;border-radius:4px;letter-spacing:.3em;margin-bottom:10px}
 #kpUI .kp-g{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}#kpUI button{background:#2a2c32;color:#e8e8e8;border:1px solid #4a4e56;border-radius:6px;padding:10px 0;font:800 16px var(--f-body);cursor:pointer}#kpUI button:active{background:#4a4e56}
 #kpUI .kp-x{width:100%;margin-top:8px;font-size:12px;padding:6px 0}#vcap span{opacity:0;color:#5c5512;transition:color .16s ease-out}#vcap span.in{opacity:1;color:#f8e21a}#vcap b{display:block;font-size:clamp(18px,4.6vh,30px);font-weight:900;font-style:italic;letter-spacing:.06em}#vcap i{display:block;font-size:clamp(12px,3vh,18px);font-weight:800;letter-spacing:.04em}
@@ -173,6 +174,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 .rw-seg{pointer-events:auto;fill:rgba(14,18,34,.86);stroke:rgba(246,231,200,.22);stroke-width:1.2;cursor:pointer;transition:fill .12s}
 .rw-seg.on{fill:rgba(170,40,30,.95);stroke:#f6e7c8}.rw-seg.off{fill:rgba(30,30,36,.78)}.rw-seg.off.on{fill:rgba(70,60,60,.9)}
 .rw-seg.nav{fill:rgba(60,40,90,.9)}.rw.emo .rw-c{background:radial-gradient(circle,rgba(140,60,170,.97),rgba(60,20,80,.97));border-color:#f2c21b}.rw.emo .rw-seg{fill:rgba(40,16,56,.86)}.rw.emo .rw-seg.nav{fill:rgba(20,20,30,.9)}.rw.emo .rw-seg.on{fill:rgba(200,120,30,.95)}
+.rw.arm .rw-c{background:radial-gradient(circle,rgba(40,60,70,.97),rgba(12,20,26,.97));border-color:#8ad0ff}.rw.arm .rw-seg{fill:rgba(16,24,30,.88)}.rw-seg.eq{fill:rgba(30,120,180,.95)!important;stroke:#bfe8ff;stroke-width:2.4}.rw-lab em{font-style:normal;font-size:9px;font-weight:900;color:#0e1a22;background:#8ad0ff;border-radius:3px;padding:0 4px}
 .rw-seg.empty{fill:rgba(14,18,34,.42);stroke:rgba(246,231,200,.12);pointer-events:none}
 .rw-ring{fill:none;stroke:rgba(246,231,200,.35);stroke-width:1.5}
 .rw-lab{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none;color:#f6e7c8;text-align:center;width:22%}
@@ -323,7 +325,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 <div id="actMenu" hidden></div>
 <div id="phone" hidden></div>
 <div id="carHud" hidden></div>
-<div id="vcap"></div><div id="kpUI" class="ov" hidden></div><div id="scanUI" hidden><div class="eye"><i></i></div><b>瞳孔認証中…</b><small>PUPIL SCAN</small></div>
+<div id="vcap"></div><div id="kpUI" hidden></div><div id="scanUI" hidden><div class="eye"><i></i></div><b>瞳孔認証中…</b><small>PUPIL SCAN</small></div>
 <div id="fade"><div id="loadMsg" hidden>街を準備中…</div></div>
 <button id="camBtn" class="atk" hidden>視点</button>
 <div id="guide" hidden></div>
@@ -367,7 +369,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 <div class="ov" id="sleepAsk" hidden><div class="card de"><div class="noren"><span>お</span><span>や</span><span>す</span><span>み</span></div><h1>寝て翌日に進む?</h1><p class="rank" id="saSub"></p>
   <button class="btn" id="saYes">寝る(翌日へ)</button><button class="btn sub2" id="saNo">まだ起きてる</button></div></div>
 <div id="shiftUI" hidden></div>
-<div id="lookUI" class="lkUI" hidden></div><div id="armUI" class="lkUI" hidden></div><div id="fxFlash"></div><div id="gymUI" class="lkUI" hidden></div><div id="gymHud" hidden></div>
+<div id="lookUI" class="lkUI" hidden></div><div id="fxFlash"></div><div id="scopeUI" hidden><i></i></div><div id="gymUI" class="lkUI" hidden></div><div id="gymHud" hidden></div>
 <div class="ov" id="result" hidden>
   <div class="card">
     <div class="noren"><span>本</span><span>日</span><span>終</span><span>了</span></div>
@@ -3385,7 +3387,7 @@ function reset(){
     q.bike=Object.assign({x:ap.bike[0],z:ap.bike[1],h:0,v:0,riding:false,arrived:false,warned:false},v?v.bikeM:{g:null,front:null,crank:null,rw:null,fw:null,lampM:null});
     q.hm={mode:'start',nap:0,endHow:null,tvOn:false,lightOn:true,fridgeOpen:false,bathOpen:false};q.carM=v?Object.assign({},v.carM):{};});
   if(OUT.built)showVehicles();}
-  players.forEach((q,i)=>{q.P.bac=0;q.P.phone=false;q.pos.x=i?-.55:0;q.pos.z=i?.55:.2;Object.assign(q.P,{emote:null,hp:100,atk:null,atkT:0,cd:0,lastHurt:-99,hitDone:false});q.hand=null;q.handV=(q.handV||0)+1;q.yaw=0;q.pitch=-.08;q.shoutCD=0;q.act=0;q.actT=0;q.pid=0;q.moved=false;});
+  players.forEach((q,i)=>{q.P.bac=0;q.P.phone=false;q.pos.x=i?-.55:0;q.pos.z=i?.55:.2;Object.assign(q.P,{emote:null,scope:false,hp:100,atk:null,atkT:0,cd:0,lastHurt:-99,hitDone:false});q.hand=null;q.handV=(q.handV||0)+1;q.yaw=0;q.pitch=-.08;q.shoutCD=0;q.act=0;q.actT=0;q.pid=0;q.moved=false;});
   loadPl(cur);view.yaw=0;view.pitch=-.08;input.tap=false;input.atkQ=0;input.shQ=0;
   W.offDay=false;W.commute=startMode==='commute';W.open=!W.commute;W.openAt=W.commute?null:0;W.clockedIn=!W.commute;W.dressed=!W.commute;W.toldDoor=false;W.noOpenEnd=false;
   if(W.commute){W.t=-200;regulars.forEach(r=>scene.remove(r.g));regulars.length=0;W.gasOff=true;gasLamp.material.color.set(0x222222);norenMesh.visible=false;setShopLights(false,true);$('#tickets').hidden=true;}
@@ -3418,7 +3420,7 @@ function endGame(o={}){
   closeOverlays();
   if(!W.running)return;if(o.who==null)o.who=cur;if(MP.on&&cur!==me)return withPlayer(me,()=>endGame(o));
   if(o.allHome)o.home=HOME.endHow||'drive';
-  W.running=false;actUp();DAY.choosing=false;$('#dayEnd').hidden=true;$('#sleepAsk').hidden=true;$('#copAsk').hidden=true;$('#kpUI').hidden=true;$('#armUI').hidden=true;$('#shiftUI').hidden=true;if(OUT.engGain)OUT.engGain.gain.value=0;$('#carHud').hidden=true;$('#phone').hidden=true;phoneShown=false;openMenu(false);$('#drunkV').style.opacity=0;$('#punch').hidden=true;$('#actionBtn').hidden=true;$('#voice').hidden=true;$('#hurt').style.opacity=0;
+  W.running=false;actUp();DAY.choosing=false;$('#dayEnd').hidden=true;$('#sleepAsk').hidden=true;$('#copAsk').hidden=true;$('#kpUI').hidden=true;$('#scopeUI').hidden=true;$('#shiftUI').hidden=true;if(OUT.engGain)OUT.engGain.gain.value=0;$('#carHud').hidden=true;$('#phone').hidden=true;phoneShown=false;openMenu(false);$('#drunkV').style.opacity=0;$('#punch').hidden=true;$('#actionBtn').hidden=true;$('#voice').hidden=true;$('#hurt').style.opacity=0;
   if(document.exitPointerLock&&locked())document.exitPointerLock();
   if(fryGain)fryGain.gain.value=0;if(waterGain)waterGain.gain.value=0;if(murmur)murmur.gain.value=0;
   $('#hud').hidden=true;$('#cross').hidden=true;$('#hand').hidden=true;actBtn.hidden=true;$('#prompt').textContent='';joyEl.hidden=true;subsEl.innerHTML='';
@@ -3636,8 +3638,8 @@ function staffSeen(kind){
   say(p,pick(SEEN_L[kind][p.gara?1:0]),p.gara?'':'quiet');setExpr(p,p.gara?'annoyed':'confused');
   if(kind!=='phone')W.log.push({name:p.name,line:kind==='drink'?'(店員が仕事中に飲んでいるのを見た)':'(店員のつまみ食いを見た)'});
 }
-function doAction(code){if(code>=90&&code<90+WKEYS.length){if(W.store==='bpan'){setHand({type:'weapon',w:WKEYS[code-90]});if(cur===me)toast(`${WEAPONS[WKEYS[code-90]].n}を手に取った(アクションから使う)`);}return;}
-  if(code===98){useWeapon();return;}if(code===99){if(hand&&hand.type==='weapon'){if(hand.w==='det')C4S.filter(c=>c.owner===cur).forEach(c=>{c.sc.remove(c.m);C4S.splice(C4S.indexOf(c),1);});setHand(null);if(cur===me)toast('しまった');}return;}
+function doAction(code){if(code>=90&&code<90+WKEYS.length){if(hand&&hand.type!=='weapon'){if(cur===me)toast('手がふさがっている');return;}if(CAR.inCar||(W.outside&&BIKE.riding)){return;}const k=WKEYS[code-90];setHand({type:'weapon',w:k});P.scope=false;if(cur===me)toast(`${WEAPONS[k].n}を装備 ― ${WEAPONS[k].s}`);return;}
+  if(code===99){if(hand&&hand.type==='weapon'){setHand(null);P.scope=false;}return;}
   if(code===80){if(W.outside&&!W.transit)transit(()=>enterStore('bpan'));return;}
 if(code>=70&&code<75){if(!P.sit&&!(W.outside&&(CAR.inCar||BIKE.riding||W.ride!=null||W.bride!=null))){P.emote={k:code-70,t:0};if(cur===me)toast(`エモート: ${EMOTES[code-70].n}`);}return;}
 
@@ -3722,12 +3724,16 @@ const ICONS={
   wave:'<svg viewBox="0 0 24 24"><circle cx="9" cy="5" r="2"/><path d="M9 7.5v7l-2.5 6M9 14.5l2.5 6M9 9l-4 3M9 9l5-4.5 1.5-3"/><path d="M17 3.5c1 .8 1.6 1.8 1.6 3M19.5 2c1.4 1.2 2.2 2.6 2.2 4.4"/></svg>',
   fist:'<svg viewBox="0 0 24 24"><circle cx="12" cy="6" r="2"/><path d="M12 8.5v6l-3 6M12 14.5l3 6M12 10l-4.5-3.5L6 2.5M12 10l4.5-3.5L18 2.5"/></svg>',
   bow:'<svg viewBox="0 0 24 24"><circle cx="16.5" cy="9" r="2"/><path d="M14.5 10L8 8v6l-1 7M8 14l2 7M10.5 9.5l1 4"/></svg>',
+  gun_c4:'<svg viewBox="0 0 24 24"><rect x="3" y="9" width="14" height="8" rx="1"/><path d="M17 11h2l2-3M7 9V7h4v2"/><circle cx="14" cy="13" r="1"/></svg>',
+  gun_pistol:'<svg viewBox="0 0 24 24"><path d="M3 7h17v4H11l-1 2H8l-1 6H3l1-8H3z"/><path d="M10 11v2"/></svg>',
+  gun_rifle:'<svg viewBox="0 0 24 24"><path d="M2 10h15l5-1v3H11l-2 2H7l-1 4H3l1-5H2z"/><rect x="9" y="6.5" width="6" height="2.5" rx="1"/></svg>',
+  gun_knife:'<svg viewBox="0 0 24 24"><path d="M4 20l5-5M9 15l11-11c0 4-3 9-8 11z"/><path d="M7 13l4 4"/></svg>',
   back:'<svg viewBox="0 0 24 24"><path d="M10 6l-6 6 6 6M4 12h11a5 5 0 0 1 0 10h-2"/></svg>'};
 let menuOpen=false;
+const myHand=()=>me===cur?hand:players[me]&&players[me].hand;
 function actionItems(){const q=players[me],h=me===cur?hand:q.hand,ph=q.P.phone,inShop=locOf(me)==='shop';
   const it=[{code:1,icon:'phone',w:ph?'しまう':lastUnread?`スマホ(${lastUnread})`:'スマホ',t:ph?'スマホをしまう':`スマホを見る${lastUnread?`(LINE ${lastUnread}件)`:''}`,s:ph?'仕事に戻る':'LINE・SNSをチェック(見られると印象が悪い)',ok:true}];
-  if(h&&h.type==='weapon'){const W2=WEAPONS[h.w];it.push({code:98,icon:'fist',w:h.w==='det'?'起爆':h.w==='knife'?'振る':h.w==='smoke'||h.w==='flash'?'投げる':h.w==='c4'?'設置':'撃つ',t:`${W2.n}を使う`,s:W2.s,ok:true});it.push({code:99,icon:'back',w:'しまう',t:`${W2.n}をしまう`,s:'手から離す',ok:true});}
-  else it.push(eatItem(q,h,inShop));
+  it.push(eatItem(q,h,inShop));
   {const L=me===cur?W:q.L;if(L.outside&&OWN.ball){const pp=players[me].pos,inP=inPark(pp.x,pp.z),foot=me===cur?onFootOut():true;
     if(L.ball)it.push({code:7,icon:'ball',t:'ボールをしまう',s:'カバンにしまう',ok:true});
     else it.push({code:6,icon:'ball',t:'サッカーボールを出す',s:inP?'足で触れてドリブル・使うでシュート':'公園(サッカーコート)でしか出せない',ok:inP&&foot});}}
@@ -3750,22 +3756,26 @@ const goodsEffect=k=>GOODS[k].bac>0?'お酒(酔う)':GOODS[k].bac<0?'酔いが�
 const wLabel=it=>it.w||it.t.replace(/[((].*$/,'').replace(/(を|する$)/g,m=>m==='を'?'':'').slice(0,8);
 let WHEEL='main';
 // the slots on the ring, top first and clockwise. main: my actions, the empty fill, and エモート just left of the top; emote: five emotes with 戻る at the bottom
-function wheelSlots(){if(WHEEL==='emote'){const E=EMOTES.map((e,k)=>({code:70+k,icon:e.icon,w:e.n,t:e.n,s:'その場で2〜3秒踊る(動くとやめる)',ok:true}));return[E[0],E[1],E[2],{back:1,icon:'back',w:'戻る',t:'戻る',s:'アクションに戻る',ok:true},E[3],E[4]];}
-  const L=actionItems(),n=Math.max(6,L.length+1),S=Array(n).fill(null);L.forEach((it,i)=>{S[i]=it;});S[n-1]={emote:1,icon:'emote',w:'エモート',t:'エモート',s:'踊る・手を振る・腰ヒット…',ok:true};return S;}
+function wheelSlots(){if(WHEEL==='arms'){const h=myHand(),eq=h&&h.type==='weapon'?h.w:null,A=WKEYS.map((k,i)=>({code:eq===k?99:90+i,icon:'gun_'+k,w:WEAPONS[k].n.replace('コンバット',''),t:eq===k?`${WEAPONS[k].n}(装備中)`:WEAPONS[k].n,s:eq===k?'もう一度タップで装備解除':WEAPONS[k].s,ok:true,eq:eq===k,arm:1}));
+    return[A[0],A[1],A[2],{back:1,icon:'back',w:'戻る',t:'戻る',s:'アクションに戻る',ok:true},A[3],{blank:1,icon:'',w:'',t:'(空き)',s:'',ok:false}];}
+  if(WHEEL==='emote'){const E=EMOTES.map((e,k)=>({code:70+k,icon:e.icon,w:e.n,t:e.n,s:'その場で2〜3秒踊る(動くとやめる)',ok:true}));return[E[0],E[1],E[2],{back:1,icon:'back',w:'戻る',t:'戻る',s:'アクションに戻る',ok:true},E[3],E[4]];}
+  const L=actionItems(),ar=!!OWN.arms,n=Math.max(6,L.length+1+(ar?1:0)),S=Array(n).fill(null);L.forEach((it,i)=>{S[i]=it;});S[n-1]={emote:1,icon:'emote',w:'エモート',t:'エモート',s:'踊る・手を振る・腰ヒット…',ok:true};
+  if(ar){const h=myHand();S[n-2]={arms:1,icon:'gun_pistol',w:'武器',t:'武器',s:h&&h.type==='weapon'?`${WEAPONS[h.w].n}を装備中`:'C4・拳銃・狙撃銃・ナイフ',ok:true,eq:!!(h&&h.type==='weapon')};}return S;}
 function renderMenu(){const box=$('#actMenu'),S=wheelSlots(),n=S.length,C=160,R1=66,R2=154,gp=Math.min(.05,.6/n),pt=(r,a)=>`${(C+r*Math.cos(a)).toFixed(2)} ${(C+r*Math.sin(a)).toFixed(2)}`,emo=WHEEL==='emote';
   const seg=i=>{const a0=-Math.PI/2+(i-.5)*2*Math.PI/n+gp,a1=a0+2*Math.PI/n-2*gp,lg=a1-a0>Math.PI?1:0;return`M${pt(R1,a0)}L${pt(R2,a0)}A${R2} ${R2} 0 ${lg} 1 ${pt(R2,a1)}L${pt(R1,a1)}A${R1} ${R1} 0 ${lg} 0 ${pt(R1,a0)}Z`;};
-  const head=emo?'<b>EMOTE</b><small>踊りを選ぶ</small>':'<b>ACTION</b><small>選んでタップ</small>';
-  box.innerHTML=`<div class="rw${emo?' emo':''}"><svg viewBox="0 0 320 320"><circle class="rw-ring" cx="${C}" cy="${C}" r="${R2+6}"/>${S.map((it,i)=>it?`<path class="rw-seg${it.ok?'':' off'}${it.emote||it.back?' nav':''}" data-i="${i}" d="${seg(i)}"/>`:`<path class="rw-seg empty" d="${seg(i)}"/>`).join('')}</svg>`+
-    S.map((it,i)=>{if(!it)return'';const a=-Math.PI/2+i*2*Math.PI/n,r=(R1+R2)/2;return`<div class="rw-lab${it.ok?'':' off'}" style="left:${(C+r*Math.cos(a))/3.2}%;top:${(C+r*Math.sin(a))/3.2}%">${ICONS[it.icon]||''}<b>${wLabel(it)}</b>${i<9?`<kbd>${i+1}</kbd>`:''}</div>`;}).join('')+
+  const arm=WHEEL==='arms',head=arm?'<b>ARMS</b><small>装備を選ぶ</small>':emo?'<b>EMOTE</b><small>踊りを選ぶ</small>':'<b>ACTION</b><small>選んでタップ</small>';
+  box.innerHTML=`<div class="rw${emo?' emo':''}${arm?' arm':''}"><svg viewBox="0 0 320 320"><circle class="rw-ring" cx="${C}" cy="${C}" r="${R2+6}"/>${S.map((it,i)=>it&&!it.blank?`<path class="rw-seg${it.ok?'':' off'}${it.emote||it.back||it.arms?' nav':''}${it.eq&&it.arm?' eq':''}" data-i="${i}" d="${seg(i)}"/>`:`<path class="rw-seg empty" d="${seg(i)}"/>`).join('')}</svg>`+
+    S.map((it,i)=>{if(!it||it.blank)return'';const a=-Math.PI/2+i*2*Math.PI/n,r=(R1+R2)/2;return`<div class="rw-lab${it.ok?'':' off'}" style="left:${(C+r*Math.cos(a))/3.2}%;top:${(C+r*Math.sin(a))/3.2}%">${ICONS[it.icon]||''}<b>${wLabel(it)}</b>${it.eq&&it.arm?'<em>装備中</em>':i<9?`<kbd>${i+1}</kbd>`:''}</div>`;}).join('')+
     `<div class="rw-c">${head}</div></div>`;
   const cen=box.querySelector('.rw-c'),hi=i=>{box.querySelectorAll('.rw-seg').forEach(p=>p.classList.toggle('on',+p.dataset.i===i));const it=S[i];
     if(it){cen.classList.add('pick');cen.innerHTML=`<b>${it.t}</b><small>${it.s}</small>`;}else{cen.classList.remove('pick');cen.innerHTML=head;}};
   box.querySelectorAll('.rw-seg[data-i]').forEach(p=>{p.addEventListener('pointerenter',()=>hi(+p.dataset.i));p.addEventListener('pointerleave',()=>hi(-1));});}
-function wheelPick(i){const it=wheelSlots()[i];if(!it)return;if(it.emote){WHEEL='emote';renderMenu();sfx.clink&&sfx.clink(1.5);return;}if(it.back){WHEEL='main';renderMenu();return;}
+function wheelPick(i){const it=wheelSlots()[i];if(!it||it.blank)return;if(it.arms){WHEEL='arms';renderMenu();sfx.clink&&sfx.clink(1.5);return;}
+  if(it.arm){input.acQ=it.code;tone(it.eq?600:1100,.05,'square',.02);setTimeout(()=>{if(menuOpen&&WHEEL==='arms')renderMenu();},250);return;}if(it.emote){WHEEL='emote';renderMenu();sfx.clink&&sfx.clink(1.5);return;}if(it.back){WHEEL='main';renderMenu();return;}
   if(it.code>=70&&it.code<75){WHEEL='main';openMenu(false);input.acQ=it.code;return;}pickAction(it.code);}
 function openMenu(on){menuOpen=on;const box=$('#actMenu');if(on){WHEEL='main';renderMenu();box.hidden=false;if(document.exitPointerLock&&document.pointerLockElement)document.exitPointerLock();requestAnimationFrame(()=>box.classList.add('show'));}else{box.classList.remove('show');box.hidden=true;}}
 function pickAction(code){const it=actionItems().find(x=>x.code===code);openMenu(false);if(!it)return;if(!it.ok){toast(it.s);return;}input.acQ=code;}
-$('#actMenu').addEventListener('click',e=>{const b=e.target.closest('.rw-seg[data-i]');if(b)wheelPick(+b.dataset.i);else if(e.target.closest('.rw-c')){if(WHEEL==='emote'){WHEEL='main';renderMenu();}else openMenu(false);}});
+$('#actMenu').addEventListener('click',e=>{const b=e.target.closest('.rw-seg[data-i]');if(b)wheelPick(+b.dataset.i);else if(e.target.closest('.rw-c')){if(WHEEL!=='main'){WHEEL='main';renderMenu();}else openMenu(false);}});
 $('#actionBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!W.running)return;initAudio();openMenu(!menuOpen);});
 $('#actionBtn').addEventListener('contextmenu',e=>e.preventDefault());
 {const b=$('#punch');let t0=0,kicked=false,tm=null;
@@ -3775,7 +3785,7 @@ $('#actionBtn').addEventListener('contextmenu',e=>e.preventDefault());
 addEventListener('keydown',e=>{if(!W.running||e.repeat)return;const k=e.key.toLowerCase();
   if(k==='q'||k==='tab'){e.preventDefault();openMenu(!menuOpen);return;}
   if(menuOpen&&/^[1-9]$/.test(k)){wheelPick(+k-1);return;}
-  if(menuOpen&&k==='escape'){if(WHEEL==='emote'){WHEEL='main';renderMenu();}else openMenu(false);}});
+  if(menuOpen&&k==='escape'){if(WHEEL!=='main'){WHEEL='main';renderMenu();}else openMenu(false);}});
 
 /* ---- bank account: lives on this device (each player has their own in 2P) ---- */
 const BANK=(()=>{let d={bal:3000,hist:[{d:'前月からの繰越',amt:3000,when:'—'}]};try{const v=JSON.parse(localStorage.getItem('onope_bank_v1')||'null');if(v&&typeof v.bal==='number')d=v;}catch(_){}
@@ -7424,9 +7434,8 @@ function drawVivant(S,dt){S.t=(S.t||0)+dt;const lz=player.z;
   if(S.flare){S.flare.rotation.z+=dt*.4;S.flare.material.opacity=.6+.25*Math.sin(S.t*3.1);}
   if(cur===me){const z=lz<-50?'ai':lz<-21?'cave':'';if(z!==S.zone){if(z==='ai')vCaption('AI ハヤトの部屋','AI HAYATO’S COMMAND CENTER');S.zone=z;}}}
 /* ================= 別班の装備 (VIVANT parody): pick them up in the prep room, hold them, use them. Effects only — no damage, no police (yet). ================= */
-const WEAPONS={c4:{n:'C4爆薬',s:'置いて、起爆スイッチで爆破'},det:{n:'起爆スイッチ',s:'設置したC4を爆破する',hide:1},pistol:{n:'拳銃',s:'撃つ(弾は無限)'},rifle:{n:'狙撃銃',s:'撃つ(重い一発)'},
-  knife:{n:'コンバットナイフ',s:'振る'},smoke:{n:'発煙弾',s:'投げると煙幕(使い切り)'},flash:{n:'閃光弾',s:'投げると閃光と爆音(使い切り)'}};
-const WKEYS=Object.keys(WEAPONS).filter(k=>!WEAPONS[k].hide);
+const WEAPONS={c4:{n:'C4爆薬',s:'タップ:狙った所に設置(最大5個) / 長押し:一斉爆破'},pistol:{n:'拳銃',s:'タップ:撃つ(弾は無限)'},rifle:{n:'狙撃銃',s:'タップ:スコープ / スコープ中に長押し:狙撃'},knife:{n:'コンバットナイフ',s:'タップ:振る / 長押し:投げる'}};
+const WKEYS=['c4','pistol','rifle','knife'];
 function weaponMesh(w){const g=new THREE.Group(),m=c=>new THREE.MeshLambertMaterial({color:c}),bx=(a,b,c,col,x=0,y=0,z=0)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(a,b,c),m(col));o.position.set(x,y,z);g.add(o);return o;};
   if(w==='c4'){bx(.13,.05,.08,0xd8c8a0);bx(.135,.012,.085,0x2a2a2a,0,.0,0);const t=bx(.04,.02,.03,0x1a1a1a,.03,.035,0);const l=new THREE.Mesh(new THREE.SphereGeometry(.006,6,4),new THREE.MeshBasicMaterial({color:0xff2020}));l.position.set(.045,.05,0);g.add(l);[-1,1].forEach(s=>bx(.002,.002,.09,s>0?0xd82020:0x2050d8,.01*s,.03,.02));}
   else if(w==='det'){bx(.05,.09,.025,0x2a2a2e);const b=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.01,10),new THREE.MeshBasicMaterial({color:0xe82020}));b.rotation.x=Math.PI/2;b.position.set(0,.015,.015);g.add(b);bx(.004,.08,.004,0x1a1a1a,.018,.08,0);}
@@ -7448,27 +7457,43 @@ const FXF={v:0,k:1};function screenFlash(v,k){FXF.v=Math.max(FXF.v,v);FXF.k=k;}
 function boomSound(v,big){if(v<=0)return;burst(big?1.6:.5,big?180:600,.5*v,'lowpass',0,big?40:200);tone(big?48:90,big?1.0:.3,'sine',.35*v,big?28:60);burst(.12,3000,.25*v,'bandpass');}
 // the actions (run in the shared simulation: positions come from the acting player)
 const C4S=[];
-function useWeapon(){const h=hand;if(!h||h.type!=='weapon')return;const fx=-Math.sin(yaw),fz=-Math.cos(yaw),x=player.x,z=player.z,i=cur,sc=fxScene(i),v=fxNear(i,x,z),gy=locOf(i)==='out'?groundY(x,z):0;
-  if(h.w==='c4'){const m=vis(()=>weaponMesh('c4'));m.position.set(x+fx*.7,gy+.03,z+fz*.7);m.rotation.y=yaw;m.scale.setScalar(1.6);sc.add(m);C4S.push({m,sc,owner:i,x:x+fx*.7,z:z+fz*.7,y:gy});setHand({type:'weapon',w:'det'});burst(.08,1200,.08*v+.01,'bandpass');if(cur===me)toast('C4を設置した。起爆スイッチで爆破できる');return;}
-  if(h.w==='det'){const mine=C4S.filter(c=>c.owner===i);tone(1600,.06,'square',.04);if(!mine.length){if(cur===me)toast('設置したC4がない');return;}
-    mine.forEach((c,k)=>{c.sc.remove(c.m);C4S.splice(C4S.indexOf(c),1);const vv=fxNear(i,c.x,c.z);vis(()=>{const d=k*.15;setTimeout(()=>{for(let n=0;n<10;n++)fxSprite(c.sc,c.x+(Math.random()-.5)*1.2,c.y+.4+Math.random()*1.2,c.z+(Math.random()-.5)*1.2,[0xffd060,0xff8a20,0xff4a10][n%3],.5,3.2+Math.random()*1.5,.6+Math.random()*.4,1,true);
-      for(let n=0;n<14;n++)fxSprite(c.sc,c.x+(Math.random()-.5)*1.5,c.y+.6+Math.random(),c.z+(Math.random()-.5)*1.5,0x2a2826,1,4+Math.random()*3,3+Math.random()*2,.8,false,.6+Math.random()*.6);
-      boomSound(vv,true);if(vv>0){shake=Math.max(shake,.6*vv);screenFlash(.55*vv,2.2);}},d*1000);});});
-    setHand(null);return;}
-  if(h.w==='pistol'||h.w==='rifle'){const big=h.w==='rifle',mx=x+fx*(big?1.1:.6),mz=z+fz*(big?1.1:.6),my=gy+1.35;
-    vis(()=>{fxSprite(sc,mx,my,mz,0xffd890,.15,big?.7:.45,.08,1,true);fxSprite(sc,mx,my,mz,0x9a9a96,.1,.6,.6,.35,false,.3);
-      const tr=new THREE.Mesh(new THREE.CylinderGeometry(.006,.006,14,4),new THREE.MeshBasicMaterial({color:0xfff2b0,transparent:true,opacity:.7}));tr.position.set(mx+fx*7,my,mz+fz*7);tr.rotation.set(Math.PI/2,0,0);tr.rotation.y=0;tr.lookAt(mx+fx*14,my,mz+fz*14);tr.rotateX(Math.PI/2);sc.add(tr);
-      FXL.push({o:tr,sc,t:0,life:.06,upd(){}});});
-    if(v>0){burst(big?.35:.18,big?900:1800,(big?.6:.45)*v,'lowpass');tone(big?70:120,big?.25:.12,'sine',.3*v,40);if(cur===me)shake=Math.max(shake,big?.3:.12);}return;}
-  if(h.w==='knife'){if(v>0)burst(.12,4200,.12*v,'highpass',0,1800);if(cur===me)SELF.kickT=0;P.atkFx=.25;return;}
-  if(h.w==='smoke'||h.w==='flash'){const tx=x+fx*5,tz=z+fz*5,ty=locOf(i)==='out'?groundY(tx,tz):0,fl=h.w==='flash';setHand(null);
-    vis(()=>{const g=weaponMesh(h.w);g.position.set(x+fx*.5,gy+1.4,z+fz*.5);sc.add(g);FXL.push({o:g,sc,t:0,life:.8,upd(f){g.position.set(x+fx*(.5+4.5*f),gy+1.4+Math.sin(f*Math.PI)*1.2-(1.4-.05)*f,z+fz*(.5+4.5*f));g.rotation.x+=.3;}});
-      setTimeout(()=>{if(fl){fxSprite(sc,tx,ty+.4,tz,0xffffff,.3,6,.35,1,true);const vv=fxNear(i,tx,tz);if(vv>0){burst(.6,2600,.6*vv,'bandpass');tone(3800,1.4,'sine',.05*vv);screenFlash(Math.min(1,vv*1.6),.45);shake=Math.max(shake,.3*vv);}}
-        else{let n=0;const puff=()=>{for(let k=0;k<4;k++)fxSprite(sc,tx+(Math.random()-.5)*2,ty+.3+Math.random()*.6,tz+(Math.random()-.5)*2,0xb8b8b2,.8,4.5+Math.random()*2.5,6+Math.random()*3,.75,false,.25);if(++n<12)setTimeout(puff,250);};puff();burst(1.2,1200,.15*fxNear(i,tx,tz),'bandpass');}},800);});
-    return;}}
-function openArmUI(){const el=$('#armUI');el.innerHTML='<div class="lk-win"><div class="lk-bar"><b>装備を調達する</b><button data-x="close">×</button></div><div class="lk-body"><div class="lk-row">'+
-    WKEYS.map((k,i)=>`<button class="lk-b" data-i="${i}">${WEAPONS[k].n}<br><small style="opacity:.7">${WEAPONS[k].s}</small></button>`).join('')+'</div></div><div class="lk-foot"><span>選ぶと手に持つ(持っている物とは入れ替え)</span></div></div>';
-  el.onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.x){el.hidden=true;return;}el.hidden=true;input.acQ=90+(+b.dataset.i);};el.hidden=false;if(document.exitPointerLock&&locked())document.exitPointerLock();}
+// ---- using the equipped weapon (the 使う button becomes the attack button). Runs in the shared sim for the acting player; effects are visual only.
+const C4_MAX=5,_ar=new THREE.Raycaster(),_av=new THREE.Vector3(),_ad=new THREE.Vector3();
+function aimRay(){const lo=locOf(cur),gy=lo==='out'?groundY(player.x,player.z):lo==='shop'?floorAt(player.x,player.z):0,cp=Math.cos(pitch);
+  return{o:new THREE.Vector3(player.x,gy+1.6,player.z),d:new THREE.Vector3(-Math.sin(yaw)*cp,Math.sin(pitch),-Math.cos(yaw)*cp).normalize()};}
+function aimHit(maxD){const sc=fxScene(cur),r=aimRay();_ar.set(r.o,r.d);_ar.far=maxD;_ar.camera=camera;/* sprites need a camera to be ray-tested */const skip=new Set();if(SELF.m)skip.add(SELF.m.g);players.forEach(q=>{if(q.av)skip.add(q.av.g);});
+  const ok=o=>{if(!o.isMesh||!o.visible)return false;const m=Array.isArray(o.material)?o.material[0]:o.material;if(!m||m.colorWrite===false||m.visible===false||(m.transparent&&m.opacity<.3))return false;
+    for(let p=o;p;p=p.parent){if(skip.has(p)||!p.visible)return false;}return true;};
+  const h=_ar.intersectObjects(sc.children,true).find(x=>ok(x.object)&&x.distance>.25);if(!h)return{p:r.o.clone().addScaledVector(r.d,maxD),n:null,r};
+  const n=h.face?h.face.normal.clone().transformDirection(h.object.matrixWorld):new THREE.Vector3(0,1,0);if(n.dot(r.d)>0)n.negate();return{p:h.point.clone(),n,r};}
+function impact(sc,p,n,v){vis(()=>{fxSprite(sc,p.x,p.y,p.z,0xffe0a0,.05,.35,.12,1,true);fxSprite(sc,p.x,p.y,p.z,0x8a8a86,.05,.5,.9,.45,false,.15);
+  const d=new THREE.Mesh(new THREE.CircleGeometry(.03,8),new THREE.MeshBasicMaterial({color:0x111111,transparent:true,opacity:.8,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4}));d.position.copy(p).addScaledVector(n||_ad.set(0,1,0),.005);
+  if(n)d.lookAt(d.position.clone().add(n));sc.add(d);FXL.push({o:d,sc,t:0,life:20,upd(f){d.material.opacity=.8*(1-f*f);}});});if(v>0)burst(.04,3200,.08*v,'bandpass');}
+function weaponTap(){const h=hand;if(!h||h.type!=='weapon')return;const i=cur,sc=fxScene(i),v=fxNear(i,player.x,player.z);
+  if(h.w==='c4'){const mine=C4S.filter(c=>c.owner===i);if(mine.length>=C4_MAX){if(cur===me)toast(`C4は最大${C4_MAX}個まで(長押しで一斉爆破)`);return;}
+    const a=aimHit(4.5);if(!a.n){if(cur===me)toast('もっと近くを狙って設置');return;}
+    const m=vis(()=>weaponMesh('c4'));m.scale.setScalar(1.6);m.position.copy(a.p).addScaledVector(a.n,.04);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),a.n);sc.add(m);
+    C4S.push({m,sc,owner:i,x:m.position.x,y:m.position.y,z:m.position.z});burst(.08,1200,.08*v+.01,'bandpass');tone(2200,.05,'square',.02*v+.005,null,.05);
+    if(cur===me)toast(`C4を設置 (${mine.length+1}/${C4_MAX}) 長押しで一斉爆破`);return;}
+  if(h.w==='pistol'){fireGun(false);return;}
+  if(h.w==='rifle'){if(cur===me){P.scope=!P.scope;tone(P.scope?900:600,.04,'square',.02);}else P.scope=!P.scope;return;}
+  if(h.w==='knife'){if(v>0)burst(.12,4200,.12*v,'highpass',0,1800);P.atkFx=.25;const a=aimHit(1.4);if(a.n)impact(sc,a.p,a.n,v);return;}}
+function weaponHold(){const h=hand;if(!h||h.type!=='weapon')return;const i=cur,v=fxNear(i,player.x,player.z);
+  if(h.w==='c4'){const mine=C4S.filter(c=>c.owner===i);tone(1600,.06,'square',.04*v+.005);if(!mine.length){if(cur===me)toast('設置したC4がない');return;}
+    mine.forEach((c,k)=>{c.sc.remove(c.m);C4S.splice(C4S.indexOf(c),1);const vv=fxNear(i,c.x,c.z);vis(()=>{setTimeout(()=>{for(let n=0;n<10;n++)fxSprite(c.sc,c.x+(Math.random()-.5)*1.2,c.y+.3+Math.random()*1.2,c.z+(Math.random()-.5)*1.2,[0xffd060,0xff8a20,0xff4a10][n%3],.5,3.2+Math.random()*1.5,.6+Math.random()*.4,1,true);
+      for(let n=0;n<14;n++)fxSprite(c.sc,c.x+(Math.random()-.5)*1.5,c.y+.5+Math.random(),c.z+(Math.random()-.5)*1.5,0x2a2826,1,4+Math.random()*3,3+Math.random()*2,.8,false,.6+Math.random()*.6);
+      boomSound(vv,true);if(vv>0){shake=Math.max(shake,.6*vv);screenFlash(.55*vv,2.2);}},k*150);});});return;}
+  if(h.w==='rifle'){if(!P.scope){if(cur===me)toast('タップでスコープを覗いてから長押しで狙撃');return;}fireGun(true);return;}
+  if(h.w==='knife'){const sc=fxScene(i),a=aimHit(25),r=a.r,dist=r.o.distanceTo(a.p);if(v>0)burst(.2,2600,.1*v,'bandpass',0,900);
+    vis(()=>{const k=weaponMesh('knife');k.scale.setScalar(1.6);k.position.copy(r.o);sc.add(k);const look=a.p.clone(),T=Math.max(.15,dist/22);
+      FXL.push({o:k,sc,t:0,life:T,upd(f){k.position.copy(r.o).lerp(look,f);k.lookAt(look);k.rotateX(f*Math.PI*6);}});
+      setTimeout(()=>{const s=weaponMesh('knife');s.scale.setScalar(1.6);s.position.copy(look).addScaledVector(r.d,-.08);s.lookAt(look.clone().addScaledVector(r.d,1));sc.add(s);FXL.push({o:s,sc,t:0,life:20,upd(){}});if(a.n){burst(.05,2000,.1*fxNear(i,look.x,look.z),'bandpass');}},T*1000);});return;}}
+function fireGun(big){const i=cur,sc=fxScene(i),v=fxNear(i,player.x,player.z),a=aimHit(big?120:60),r=a.r,mz=r.o.clone().addScaledVector(r.d,big?1.0:.6);mz.y-=.12;
+  vis(()=>{fxSprite(sc,mz.x,mz.y,mz.z,0xffd890,.15,big?.7:.45,.08,1,true);fxSprite(sc,mz.x,mz.y,mz.z,0x9a9a96,.1,.6,.6,.35,false,.3);
+    const len=mz.distanceTo(a.p),tr=new THREE.Mesh(new THREE.CylinderGeometry(.006,.006,1,4),new THREE.MeshBasicMaterial({color:0xfff2b0,transparent:true,opacity:.7}));tr.scale.y=len;tr.position.copy(mz).lerp(a.p,.5);tr.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),a.p.clone().sub(mz).normalize());sc.add(tr);
+    FXL.push({o:tr,sc,t:0,life:.06,upd(){}});});
+  if(a.n)impact(sc,a.p,a.n,fxNear(i,a.p.x,a.p.z));
+  if(v>0){burst(big?.35:.18,big?900:1800,(big?.6:.45)*v,'lowpass');tone(big?70:120,big?.25:.12,'sine',.3*v,40);if(cur===me)shake=Math.max(shake,big?.3:.12);}}
 /* ================= 別班準備室 (VIVANT parody): a back-alley steel door with a keypad → a cluttered store room → palm scan on the wall → the prep room ================= */
 const BP_CODE='1011';
 function bpWalk(lx,z){if(lx>-2.3&&lx<2.0&&z>.45&&z<5.6)return true;if(W.bpOpen&&lx>.75&&lx<1.85&&z>-.45&&z<=.45)return true;
@@ -7535,12 +7560,12 @@ function buildBpan(S,G,B,C,PL,hit){const rr=seedRand(1011),Bt=newBatch(),bb=(w,h
       return g;};
     shelfWall(0,-11.75,0,8.6);shelfWall(4.75,-6.5,-Math.PI/2,8.6);
     {const l=new THREE.PointLight(0xf0f0e8,.5,8,1.5);l.position.set(0,2.2,-10.5);G.add(l);const l2=new THREE.PointLight(0xf0f0e8,.4,7,1.5);l2.position.set(3.5,2.2,-6.5);G.add(l2);}
-    [[8.6,1.8,.6,0,1.75,-11.5],[.6,1.8,8.6,4.5,1.75,-6.5]].forEach(a=>hit(...a,{prompt(){return'棚から<b>装備を調達する</b>(C4・拳銃・閃光弾…)';},press(){if(cur===me)openArmUI();}},{optional:true}));
+    [[8.6,1.8,.6,0,1.75,-11.5],[.6,1.8,8.6,4.5,1.75,-6.5]].forEach(a=>hit(...a,{prompt(){return OWN.arms&&cur===me?'装備は調達済み(アクションの<b>武器</b>から装備)':'棚から<b>装備を調達する</b>(C4・拳銃・狙撃銃・ナイフ)';},press(){if(cur!==me)return;if(!OWN.arms){OWN.arms=1;saveOwn();burst(.2,900,.06,'bandpass');}toast('装備を調達した。アクションの「武器」から装備できる');}},{optional:true}));
     // centre: the angular desk, monitor, keyboard, mic
     bb(3.1,.07,2.0,0x1c1c1c,0,.8,-6);bb(1.6,.76,.9,0x141414,0,.38,-6.1);bb(3.1,.02,2.0,0x2a2a2a,0,.84,-6);
-    bb(.9,.55,.05,0x0e0e0e,0,1.18,-6.6);bb(.06,.22,.06,0x1a1a1a,0,.93,-6.6);{const sc=ctex(256,160,(g,w,h)=>{g.fillStyle='#0a1420';g.fillRect(0,0,w,h);g.fillStyle='#3a8aff';g.font='700 14px monospace';['BEPPAN TERMINAL','> 指令受信: 1','> 対象: 呑兵衛 3番席','> 状況: 監視中…'].forEach((t,i)=>g.fillText(t,10,24+i*22));});
-      const m=new THREE.Mesh(new THREE.PlaneGeometry(.84,.5),new THREE.MeshBasicMaterial({map:sc}));m.position.set(0,1.18,-6.57);G.add(m);}
-    bb(.6,.025,.2,0x2a2a2a,0,.86,-6.05);bb(.08,.02,.12,0x2a2a2a,.45,.86,-6.05);bc(.012,.3,0x1a1a1a,-.7,1.0,-6.2,6);bc(.03,.05,0x1a1a1a,-.7,1.17,-6.2,8);
+    bb(.9,.55,.05,0x0e0e0e,0,1.18,-5.4);bb(.06,.22,.06,0x1a1a1a,0,.93,-5.4);{const sc=ctex(256,160,(g,w,h)=>{g.fillStyle='#0a1420';g.fillRect(0,0,w,h);g.fillStyle='#3a8aff';g.font='700 14px monospace';['BEPPAN TERMINAL','> 指令受信: 1','> 対象: 呑兵衛 3番席','> 状況: 監視中…'].forEach((t,i)=>g.fillText(t,10,24+i*22));});
+      const m=new THREE.Mesh(new THREE.PlaneGeometry(.84,.5),new THREE.MeshBasicMaterial({map:sc}));m.position.set(0,1.18,-5.43);m.rotation.y=Math.PI;G.add(m);}
+    bb(.6,.025,.2,0x2a2a2a,0,.86,-5.95);bb(.08,.02,.12,0x2a2a2a,-.45,.86,-5.95);bc(.012,.3,0x1a1a1a,.7,1.0,-5.8,6);bc(.03,.05,0x1a1a1a,.7,1.17,-5.8,8);
     const MISSIONS=['【指令】本日の呑兵衛、3番カウンターの客に注意せよ','【指令】ハイボールは濃いめで提供せよ。合言葉だ','【指令】豚吉の太客パーカーを着た男を見かけたら報告せよ','【報告】AIハヤト：君の働きぶりは悪くない'];
     hit(1.2,.8,.8,0,1.1,-6.3,{prompt(){return'パソコンで<b>指令を確認する</b>';},press(){const k=(W.bpPC=(W.bpPC||0)+1)%MISSIONS.length;if(cur===me)sub('別班端末',MISSIONS[k],'');tone(1400,.05,'sine',.03);tone(1800,.05,'sine',.03,null,.07);}});
     // entrance wall: two TVs set into the wall + a vertical light bar
@@ -7625,6 +7650,7 @@ function applyInput(q,inp,dt){
   else if(W.outside&&!inCarNow)footOutStep();
   const hb=inp.aid?(W.store?STORES[W.store].hits:W.home?HOME.hits:W.outside?OUT.hits:hits).find(m=>m.userData.hid===inp.aid):null,st=hb&&!W.transit&&!P.phone&&!(hb.userData.veh!=null&&hb.userData.veh!==q.i)&&!(riding&&hb.userData.passOf==null)?hb.userData.st:null;
   if(gymPlaying()&&!st&&!q.pid){if(inp.a){if(!q.act){q.act=1;q.actT=0;q.pid=0;q.gym=1;gymPress(q);}else q.actT+=dt;}else{if(q.act&&q.gym)gymRelease(q,q.actT);q.act=0;q.pid=0;q.gym=0;}}
+  else if(hand&&hand.type==='weapon'&&!CARRY.c&&!(W.outside&&(CAR.inCar||BIKE.riding))){if(inp.a){if(!q.act){q.act=1;q.actT=0;q.wl=0;q.pid=0;}else{q.actT+=dt;if(!q.wl&&q.actT>=.45){q.wl=1;weaponHold();}}}else{if(q.act&&!q.wl)weaponTap();q.act=0;q.wl=0;q.pid=0;}}
   else if(bm&&!CARRY.c){if(inp.a){if(!q.act){q.act=1;q.actT=0;q.pid=0;q.shoot=1;}else q.actT+=dt;}else{if(q.act&&q.shoot)kickBall(q,'shoot',Math.min(1,q.actT/.7),inp.pitch);q.act=0;q.pid=0;q.shoot=0;}} // use = shoot (hold to power up)
   else{q.shoot=0;
   if(inp.a&&!q.act){q.act=1;q.actT=0;q.pid=inp.aid;if(W.outside&&BIKE.riding)dismountBike();else if(CARRY.c)carryUse(st);else if(st)st.press();}
@@ -7731,7 +7757,7 @@ function viewUpdate(dt){
 function render(dt){
   shake=Math.max(0,shake-dt*1.2);const Rn=Math.random,cp=camPose(),bq=players[me]?(players[me].P.bac||0):0,dk=Math.max(0,Math.min(.55,(bq-3)/45)),tt=performance.now()/1000,inC=W.outside&&(CAR.inCar||W.ride!=null);
   camera.position.set(cp[0]+(Rn()-.5)*shake*.12+Math.sin(tt*.9)*dk*.07,cp[1]+(inC?0:Math.sin(bob)*.02)+(Rn()-.5)*shake*.12,cp[2]+Math.cos(tt*.7)*dk*.05);
-  if(inC){const bf=BASEF+Math.min(16,Math.abs(CAR.v)*.42);if(Math.abs(camera.fov-bf)>.05){camera.fov=bf;camera.updateProjectionMatrix();}}else if(camera.fov!==BASEF){camera.fov=BASEF;camera.updateProjectionMatrix();}
+  if(inC){const bf=BASEF+Math.min(16,Math.abs(CAR.v)*.42);if(Math.abs(camera.fov-bf)>.05){camera.fov=bf;camera.updateProjectionMatrix();}}else{const mh=myHand(),sp=players[me]&&players[me].P.scope&&mh&&mh.type==='weapon'&&mh.w==='rifle',tf=sp?14:BASEF;if(camera.fov!==tf){camera.fov=tf;camera.updateProjectionMatrix();}const so=$('#scopeUI');if(so&&so.hidden===sp)so.hidden=!sp;if(heldMesh)heldMesh.visible=!sp;}
   if(inC&&Math.abs(CAR.v)>14)shake=Math.max(shake,(Math.abs(CAR.v)-14)*.004);
   camera.rotation.set((cp[4]!=null?cp[4]:view.pitch)+Math.sin(tt*.8)*dk*.05,cp[3]+Math.sin(tt*.6)*dk*.06,(Rn()-.5)*shake*.05+Math.sin(tt*.75)*dk*.13);
   oilTex.offset.x+=dt*.012;oilTex.offset.y+=dt*.007;
@@ -7744,7 +7770,7 @@ function render(dt){
   drawScene(sc,dt);fpsWatch(dt);
 }
 if(window.__TEST__)window.__G={stTrain,trainSeg,nextDeps,gmNow,rushNow,arrest,R_,rTurn,rBuy,rGacha,noOpenShame,GLINE,RAMEN,health,TOPS_W,GYM,gymStart,gymStop,gymRelease,gymPress,gymMember,STORES,enterStore,applyLook,lookOf,lookCode,openLookUI,wearItem,outfitKey,OWN,forceSleep,dayWrap,get gOrd(){return W.gOrd;},leaveHome,enterCar,get trays(){return trays;},CARRYDAY,openGuestShop,enterAsGuest,guestSit,guestOrder,guestKeys,startPassout,sleepNow,exitHome,enterHome,crewReact,PARTIES,SLOTS,spawnParty,trySpawnParty,staffN,tgtKeys,partyServeDrink,partyServeFood,groupCards,PASS,putPass,sgServeBeer,sgServeFood,setJob,SEKKYO,GLINE,meddle,fryers,get rack(){return rack;},lineThreads,LW,JOB_NAME,setSky,NIGHT,buildOut,CREW_NOW,crewToday,MAKA,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
-if(window.__TEST__)Object.assign(window.__G,{renderer,OUT,HOME,mainScene:scene,frozenCheck,FROZEN,LamOrig,PhoOrig,OOBST,MAPB,VEH,goalEvent,CPRED,rookieMP,get BANK(){return BANK},bpWalk,get hand(){return hand},C4S,FXL,outfitType,buildModel,applyLook,setExpr,undressGuest,get CARRY(){return CARRY},NORMAL_TYPES,HX,emoteArms,emoteBody,rigUpdate,get input(){return input},sweatSurface,vbWalk,get AC(){return AC},FOOT,initAudio,vCaption,get BIKE(){return BIKE},get CAR(){return CAR}});
+if(window.__TEST__)Object.assign(window.__G,{renderer,OUT,HOME,mainScene:scene,frozenCheck,FROZEN,LamOrig,PhoOrig,OOBST,MAPB,VEH,goalEvent,CPRED,rookieMP,get BANK(){return BANK},OWN,get handG(){return hand},doAction,bpWalk,get hand(){return hand},C4S,FXL,outfitType,buildModel,applyLook,setExpr,undressGuest,get CARRY(){return CARRY},NORMAL_TYPES,HX,emoteArms,emoteBody,rigUpdate,get input(){return input},sweatSurface,vbWalk,get AC(){return AC},FOOT,initAudio,vCaption,get BIKE(){return BIKE},get CAR(){return CAR}});
 camera.position.set(0,1.62,.2);
 {const _bm=buildModel;buildModel=function(t,s){const m=_bm(t,s);if(SHADOWS)m.g.traverse(o=>{if(o.isMesh)o.castShadow=true;});m.blob=blob(m.g,0,.02,.6,.48,.012);return m;};}
 setShadows(scene);if(HQ)loadPP();
