@@ -5878,7 +5878,7 @@ const sweatMat=new THREE.MeshPhongMaterial({color:0xcfe8f4,transparent:true,opac
 function addSweat(x,z,room){if(!HOME.built)return;HOME.sweat=HOME.sweat||[];if(HOME.sweat.length>=8)return;const m=new THREE.Group();m.position.set(x,.006,z);HOME.scene.add(m);
   const b=new THREE.Mesh(new THREE.CircleGeometry(.2,18),sweatMat);b.rotation.x=-Math.PI/2;b.scale.set(1,.7+R()*.35,1);m.add(b);
   for(let i=0;i<7;i++){const d=new THREE.Mesh(new THREE.CircleGeometry(.025+R()*.025,10),sweatMat);d.rotation.x=-Math.PI/2;d.position.set((R()-.5)*.6,.001,(R()-.5)*.6);m.add(d);}
-  const S={m,x,z,room,amt:1};S.hb=hHit(.5,.12,.5,x,.06,z,{prompt(){return S.room!==roomOf(cur)?'':hand?'(手がふさがってる)床の汗':'床の汗を<b>長押しで拭く</b>';},press(){if(!hand)this.hold(.12);},
+  const S={m,x,z,room,amt:1};S.hb=hHit(.5,.12,.5,x,.06,z,{prompt(){return S.room!==roomOf(cur)?'':hand?'(手がふさがってる)床の汗':'床を<b>タオルで拭く</b>(長押し)';},press(){if(!hand)this.hold(.12);},
     hold(dt){if(hand||S.room!==roomOf(cur))return;S.amt-=dt*.45;m.scale.setScalar(Math.max(.04,S.amt));if(R()<dt*7)sfx.wipe();if(S.amt<=0)removeSweat(S);}});S.hb.userData.optional=true;HOME.sweat.push(S);}
 function removeSweat(S){HOME.scene.remove(S.m);HOME.scene.remove(S.hb);const i=HOME.hits.indexOf(S.hb);if(i>=0)HOME.hits.splice(i,1);const j=HOME.sweat.indexOf(S);if(j>=0)HOME.sweat.splice(j,1);}
 function clearSweat(){(HOME.sweat||[]).slice().forEach(removeSweat);}
