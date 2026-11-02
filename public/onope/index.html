@@ -1456,7 +1456,7 @@ function buildModel(type,skin){
     mesh(ballGeo(.06),legM,knee);
     mesh(limbGeo(.42,T.sweat?.078:.058,T.sweat?.07:.044),legM,knee);if(T.sweat)mesh(limbGeo(.05,.05,.046),pants,knee,0,-.38,0);
     const ankle=new THREE.Group();ankle.position.y=-.43;knee.add(ankle);
-    if(T.boxer)mesh(cgeo('foot',()=>{const b=new THREE.BoxGeometry(.078,.045,.22);b.translate(0,-.04,.055);return b;}),shoe,ankle); // bare foot
+    if(T.boxer)mesh(cgeo('foot2',()=>{const b=new THREE.BoxGeometry(.078,.045,.22);b.translate(0,.023,.055);return b;}),shoe,ankle); // bare foot: the sole sits on the floor (the ankle joint is ~1 cm up)
     else mesh(cgeo('shoe'+(T.fem?'f':'m'),()=>{const b=new THREE.BoxGeometry(T.fem?.08:.098,.07,T.fem?.22:.26);b.translate(0,-.03,.05);return b;}),shoe,ankle);
     return{hip,tw,knee,ankle,s};
   });
@@ -3572,7 +3572,7 @@ function updateAvatars(dt){
     const brid=lo==='out'&&q.L&&q.L.bride!=null&&players[q.L.bride];if(brid){if(av.g.parent!==OUT.scene)OUT.scene.add(av.g);const ip=ipos(players[q.L.bride]),b=players[q.L.bride].bike||BIKE,h=q.L.bride===cur?BIKE.h:b.h;av.g.position.set(ip.x+Math.sin(h)*.6,.42,ip.z+Math.cos(h)*.6);av.g.rotation.y=h+Math.PI;av.forceLP='chair';vis(()=>rigUpdate(av,dt));return;}else if(av.forceLP==='chair'&&!q.P.sit)av.forceLP=null;
     if(rid){if(av.g.parent!==OUT.scene)OUT.scene.add(av.g);const K=carPose(q.L.ride),st2=seatOf(K);av.g.position.set(st2.x,-.42,st2.z);av.g.rotation.y=K.h+Math.PI;av.head.rotation.set(-q.pitch*.5,0,0,'YXZ');vis(()=>rigUpdate(av,dt));return;}
     {const sc=lo==='out'?OUT.scene:lo==='home'?HOME.scene:lo.startsWith('store:')?STORES[lo.slice(6)].scene:scene;if(sc&&av.g.parent!==sc)sc.add(av.g);}
-    {const ip=ipos(q);av.g.position.set(ip.x,lo==='out'&&q.bike&&q.bike.riding?.3:lo==='shop'?floorAt(ip.x,ip.z):0,ip.z);}av.g.rotation.y=q.yaw+Math.PI;if(q.moved)legsWalk(av,dt,true);if(q.P.sit){av.g.position.y=-.36;av.forceLP='chair';}else if(av.forceLP==='chair')av.forceLP=null;
+    {const ip=ipos(q);av.g.position.set(ip.x,lo==='out'&&q.bike&&q.bike.riding?.3:lo==='out'?groundY(ip.x,ip.z):lo==='shop'?floorAt(ip.x,ip.z):0,ip.z);}av.g.rotation.y=q.yaw+Math.PI;if(q.moved)legsWalk(av,dt,true);if(q.P.sit){av.g.position.y=-.36;av.forceLP='chair';}else if(av.forceLP==='chair')av.forceLP=null;
     av.head.rotation.set(-q.pitch*.7,0,0,'YXZ');
     if(q.P.atk==='punch')armTo(av,1,'punch',dt,20);else if(q.hand)armTo(av,1,'tray',dt,8);else armTo(av,1,'hang',dt,6);
     if(q.hand&&q.hand.type==='bag')armTo(av,0,'hang',dt,6);else armTo(av,0,q.hand?'tray':'hang',dt,6);
@@ -4641,7 +4641,7 @@ function updateSelf(dt,cp){const sb=selfBody(),sc=camera.parent;if(!sc)return;if
   sb.kickE=SELF.kickT>0?Math.sin(Math.min(1,1-SELF.kickT/.35)*Math.PI):null;SELF.kickT=Math.max(0,SELF.kickT-dt);sb.kickLeg=0;
   if(SELF.dt>0){const D=.62,u=1-SELF.dt/D;sb.kickLeg=u<.5?0:1;sb.kickE=Math.sin((u<.5?u*2:(u-.5)*2)*Math.PI)*.55;SELF.dt=Math.max(0,SELF.dt-dt);}
   const em=P.emote;{const hv=!!em;if(sb.rig.headJ.visible!==hv){sb.rig.headJ.visible=hv;sb.rig.neck.children.forEach(o=>{if(o!==sb.rig.headJ)o.visible=hv;});}}
-  if(em){if(!sb.ctx)sb.ctx=sb.fc.getContext('2d');if(sb.expr!=='happy')vis(()=>setExpr(sb,'happy'));const q2=players[me],pp=q2.pos;sb.g.position.set(pp.x,0,pp.z);sb.g.rotation.set(0,view.yaw+Math.PI,0);sb.walkFlag=false;sb.kickE=null;emoteArms(sb,em);vis(()=>rigUpdate(sb,dt));emoteBody(sb,em);sb.emo=1;return;}
+  if(em){if(!sb.ctx)sb.ctx=sb.fc.getContext('2d');if(sb.expr!=='happy')vis(()=>setExpr(sb,'happy'));const q2=players[me],pp=q2.pos;sb.g.position.set(pp.x,W.outside?groundY(pp.x,pp.z):0,pp.z);sb.g.rotation.set(0,view.yaw+Math.PI,0);sb.walkFlag=false;sb.kickE=null;emoteArms(sb,em);vis(()=>rigUpdate(sb,dt));emoteBody(sb,em);sb.emo=1;return;}
   if(sb.emo){sb.emo=0;emoteClear(sb);}
   vis(()=>rigUpdate(sb,dt));}
 /* ================= days: next day / quit after sleeping, days off, the shift PC, the crew ================= */
@@ -7347,10 +7347,10 @@ function simWorldIn(dt){
   if(W.t>=W.dur*2)players.forEach((q,i)=>{const L=LW(i);if(L.clockedIn&&!L.clockedOut)withPlayer(i,()=>{W.clockedOut=true;W.wage=Math.max(0,wageFor(W.clockInT||0,W.t)-(W.payCut||0));if(cur===me){$('#tasks').hidden=true;if(W.wage)BANK.add(W.wage,'給料振込 イザカヤノンベエ');toast(`24時… 店長から「もう上がっていいよ」と電話。給料 ${yen(W.wage)}`);}
     if(!DAY.notes)DAY.notes=[];DAY.notes.push(['権田(店長)',`${newbie(i)}、昨日24時まで残ってたでしょ… 無理しないでね`]);});});
 }
-function camPose(){{const q=players[me];if(q&&q.P.emote){const p=q.pos,y=view.yaw,d=2.1;return[p.x-Math.sin(y)*d,1.45+(W.outside||W.home||W.store?0:camFloor),p.z-Math.cos(y)*d,y+Math.PI,-.1];}}
+function camPose(){{const q=players[me];if(q&&q.P.emote){const p=q.pos,y=view.yaw,d=2.1;return[p.x-Math.sin(y)*d,1.45+(W.outside||W.home||W.store?0:camFloor)+(W.outside?groundY(p.x,p.z):0),p.z-Math.cos(y)*d,y+Math.PI,-.1];}}
   if(W.outside&&W.ride!=null&&players[W.ride]){const K=carPose(W.ride),e=seatOf(K,-.38,-.02);return[e.x,1.14,e.z,K.h+view.yaw];}
   if(W.outside&&W.bride!=null&&players[W.bride]&&players[W.bride].bike){const b=players[W.bride].bike,ip=ipos(players[W.bride]);return[ip.x+Math.sin(b.h)*.62,1.72,ip.z+Math.cos(b.h)*.62,b.h+view.yaw];}
-  if(W.outside&&CAR.inCar){const K=carPose(me)||CAR,c=Math.cos(K.h),s=Math.sin(K.h);if(CAR.cam){const yw=K.h+view.yaw,d=5.8;return[K.x+Math.sin(yw)*d,1.9,K.z+Math.cos(yw)*d,yw,-.17];}const lx=.38,lz=-.02;return[K.x+c*lx+s*lz,1.14,K.z-s*lx+c*lz,K.h+view.yaw];}const p=players[me]?(MP.on&&PRED.ok?PRED:ipos(players[me])):player;return[p.x,(W.outside&&BIKE.riding?1.78:players[me]&&players[me].P.sit?1.16:1.62)+(W.outside||W.home||W.store?0:camFloor),p.z,view.yaw];}
+  if(W.outside&&CAR.inCar){const K=carPose(me)||CAR,c=Math.cos(K.h),s=Math.sin(K.h);if(CAR.cam){const yw=K.h+view.yaw,d=5.8;return[K.x+Math.sin(yw)*d,1.9,K.z+Math.cos(yw)*d,yw,-.17];}const lx=.38,lz=-.02;return[K.x+c*lx+s*lz,1.14,K.z-s*lx+c*lz,K.h+view.yaw];}const p=players[me]?(MP.on&&PRED.ok?PRED:ipos(players[me])):player;return[p.x,(W.outside&&BIKE.riding?1.78:players[me]&&players[me].P.sit?1.16:1.62)+(W.outside||W.home||W.store?0:camFloor)+(W.outside&&!BIKE.riding?groundY(p.x,p.z):0),p.z,view.yaw];}
 let camFloor=0,onTatami=false;
 const MATE_VEH={prompt(){return'相方の乗り物';},press(){}};
 function viewUpdate(dt){
