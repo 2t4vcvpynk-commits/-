@@ -1374,6 +1374,8 @@ function drawFaceGlam(c){const g=c.ctx,e=c.expr,F=FACE,U=faceUV,fl=clamp(((c.bac
   if(e==='confused'||e==='scared'){const [sx,sy]=U(.06,.05);g.fillStyle='rgba(140,200,235,.85)';g.beginPath();g.moveTo(sx,sy);g.quadraticCurveTo(sx+7,sy+16,sx,sy+20);g.quadraticCurveTo(sx-7,sy+16,sx,sy);g.fill();}
   c.tex.needsUpdate=true;}
 
+// a woven tie: the base colour with thin diagonal stripes
+function tieTex(c){return fxT('tie'+c,()=>{const t=ctex(32,64,(g,w,h)=>{const col=new THREE.Color(c);g.fillStyle='#'+col.getHexString();g.fillRect(0,0,w,h);g.strokeStyle='#'+col.clone().lerp(new THREE.Color(0xffffff),.35).getHexString();g.lineWidth=2;for(let i=-h;i<h*2;i+=9){g.beginPath();g.moveTo(0,i);g.lineTo(w,i+w*.8);g.stroke();}});return t;});}
 function buildModel(type,skin){
   const T=type,[bw,bb,bc]=T.build||[1,1,1];
   const sk=skinMat(skin),top=T.bare?sk:clothMat(T.top,T.tee?20:8),pants=clothMat(T.pants,T.sweat?1:8),legM=T.boxer?sk:pants,shoe=T.boxer?sk:clothMat(T.shoe||0x15100c,60);
@@ -1390,14 +1392,24 @@ function buildModel(type,skin){
   const chest=new THREE.Group();chest.position.y=.22;spine.add(chest);
   const chestM=mesh(latheGeo(`chs${bw}${bc}`,[[.15*bw,0],[.168*bc,.08],[.178*bc,.17],[.165*bc,.235],[.1,.275],[.055,.285]]),torsoMat,chest);chestM.scale.z=.64;
   const fz=.115*bc; // chest front surface
-  if(T.robe){const bt=mesh(cgeo('belt'+bw+bb,()=>new THREE.CylinderGeometry(.162*bw*bb,.158*bw*bb,.13,24,1,true)),clothMat(T.belt||0x1c1c1e,20),spine,0,.07,0);bt.scale.z=.72*Math.max(1,bb*.95);
-    const cl=clothMat(0xd8d2c4,10);[-1,1].forEach(s=>{const c=mesh(cgeo('robeC',()=>new THREE.BoxGeometry(.022,.27,.008)),cl,chest,s*.03,.13,fz+.004);c.rotation.z=s*.42;});}
+  if(T.robe){const bz=.72*Math.max(1,bb*.95),bm=clothMat(T.belt||0x1c1c1e,25);const bt=mesh(cgeo('belt2'+bw+bb,()=>new THREE.CylinderGeometry(.166*bw*bb,.16*bw*bb,.17,28,1,true)),bm,spine,0,.075,0);bt.scale.z=bz;
+    [.02,.13].forEach(y=>{const st=mesh(cgeo('beltS'+bw+bb,()=>new THREE.CylinderGeometry(.168*bw*bb,.168*bw*bb,.006,28,1,true)),clothMat(0x3a3a3c,10),spine,0,y,0);st.scale.z=bz;}); // stitching lines on the sash
+    // the wrap collar: a thick band down each side, left over right, meeting at the sash
+    const cl=clothMat(0xe6e0d2,6),edge=clothMat(0xc8c0b0,6);[[-1,.012],[1,.006]].forEach(([s,dz])=>{const c=mesh(cgeo('robeC2',()=>{const b=new THREE.BoxGeometry(.045,.3,.012);b.translate(0,-.15,0);return b;}),cl,chest,s*.058,.275,fz+dz);c.rotation.z=-s*.22;
+      const e=mesh(cgeo('robeE',()=>{const b=new THREE.BoxGeometry(.006,.3,.014);b.translate(0,-.15,0);return b;}),edge,c,s*.022,0,0);});
+    mesh(cgeo('robeU',()=>new THREE.BoxGeometry(.06,.05,.01)),clothMat(0xf6f4ee,6),chest,0,.215,fz-.002);}
   if(T.bare){const nm=clothMat(0xa86a54,10);[-1,1].forEach(s=>{const n=mesh(cgeo('nip',()=>new THREE.CircleGeometry(.011,10)),nm,chest,s*.062,.15,fz+.012);n.rotation.x=-.15;});const nv=mesh(cgeo('navel',()=>new THREE.CircleGeometry(.007,8)),nm,spine,0,.07,.106*bw);}
   if(T.curvy)[-1,1].forEach(s=>{const b=mesh(ballGeo(.062,14,10),torsoMat,chest,s*.056,.155,fz-.028);b.scale.set(1,.9,.78);});
   if(T.suit){mesh(cgeo('shirtV',()=>new THREE.BoxGeometry(.075,.17,.004)),clothMat(T.shirt||0xf2f2f0),chest,0,.19,fz);
     [-1,1].forEach(s=>{const l=mesh(cgeo('lapel',()=>new THREE.BoxGeometry(.045,.17,.006)),clothMat(new THREE.Color(T.top).multiplyScalar(.75)),chest,s*.045,.17,fz+.004);l.rotation.z=s*.38;});
-    for(let i=0;i<2;i++)mesh(ballGeo(.008,6,4),clothMat(0x111111),chest,0,.04+i*.05,fz+.002);}
-  if(T.tie)mesh(cgeo('tie',()=>{const b=new THREE.BoxGeometry(.036,.2,.006);b.translate(0,-.1,0);return b;}),clothMat(T.tie,30),chest,0,.27,fz+.008).rotation.x=-.08;
+    for(let i=0;i<2;i++)mesh(ballGeo(.008,6,4),clothMat(0x111111),chest,0,.04+i*.05,fz+.002);
+    const dk=clothMat(new THREE.Color(T.top).multiplyScalar(.68));[-1,1].forEach(s=>{const n=mesh(cgeo('notch',()=>new THREE.BoxGeometry(.03,.035,.007)),dk,chest,s*.068,.245,fz+.002);n.rotation.z=-s*.5;}); // collar above the notch
+    mesh(cgeo('bpock',()=>new THREE.BoxGeometry(.05,.006,.006)),dk,chest,.085,.15,fz-.004); // breast pocket welt (left chest)
+    const az=.106*bw*Math.max(1,bb*.95);[-1,1].forEach(s=>mesh(cgeo('flap',()=>new THREE.BoxGeometry(.075,.022,.008)),dk,spine,s*.085,.035,az));
+    {const hem=mesh(cgeo('hem'+bw+bb,()=>new THREE.CylinderGeometry(.158*bw*bb,.168*bw*bb,.12,24,1,true,Math.PI*.08,Math.PI*1.84)),clothMat(T.top,8),spine,0,-.05,0);hem.scale.z=.72*Math.max(1,bb*.95);}
+    if(T.pin){const pn=mesh(cgeo('pin',()=>new THREE.CylinderGeometry(.008,.008,.004,10)),phong(0xd8b040,90,0xffffff),chest,.062,.17,fz+.012);pn.rotation.x=Math.PI/2;mesh(cgeo('pinR',()=>new THREE.CylinderGeometry(.004,.004,.005,8)),clothMat(0xb01818,20),pn,0,.002,0);}}
+  if(T.tie){const tm=T.suit?new THREE.MeshPhongMaterial({map:tieTex(T.tie),shininess:30}):clothMat(T.tie,30);mesh(cgeo('tie',()=>{const b=new THREE.BoxGeometry(.036,.2,.006);b.translate(0,-.1,0);return b;}),tm,chest,0,.27,fz+.008).rotation.x=-.08;
+    if(T.suit)mesh(cgeo('knot',()=>new THREE.BoxGeometry(.028,.026,.014)),tm,chest,0,.262,fz+.012);}
   if(T.tie||T.work||T.suit||T.cop)[-1,1].forEach(s=>{const c=mesh(cgeo('collar',()=>new THREE.BoxGeometry(.05,.035,.01)),clothMat(T.suit||T.cop?(T.shirt||0xf2f2f0):T.top),chest,s*.035,.272,.07);c.rotation.set(-.6,0,-s*.5);});
   if(T.work)[-1,1].forEach(s=>mesh(cgeo('pocket',()=>new THREE.BoxGeometry(.06,.06,.006)),clothMat(new THREE.Color(T.top).multiplyScalar(.8)),chest,s*.075,.15,fz+.003));
   if(T.zip){const blk=clothMat(0x141414),knit=clothMat(T.top,4);mesh(cgeo('zipIn',()=>new THREE.TorusGeometry(.05,.008,6,16,Math.PI)),blk,chest,0,.262,.068).rotation.set(1.25,0,Math.PI);
@@ -1445,12 +1457,14 @@ function buildModel(type,skin){
     const shoulder=new THREE.Group();shoulder.position.set(s*.185*bc,.225,0);chest.add(shoulder);
     mesh(ballGeo(.056*bc),sleeve,shoulder);
     if(T.tee){mesh(limbGeo(.13,.055*bc,.05),sleeve,shoulder);mesh(limbGeo(.17,.046,.042),sk,shoulder,0,-.12,0);}
+    else if(T.robe)mesh(limbGeo(.29,.062*bc,.054),sleeve,shoulder);
     else mesh(limbGeo(.29,.052*bc,.043),sleeve,shoulder);
     if(T.stripes)mesh(cgeo('astripe',()=>{const b=new THREE.BoxGeometry(.01,.55,.01);b.translate(0,-.27,0);return b;}),clothMat(T.stripes),shoulder,s*.05,0,0);
     const elbow=new THREE.Group();elbow.position.y=-.29;shoulder.add(elbow);
     mesh(ballGeo(.044),T.tee?sk:sleeve,elbow);
-    mesh(limbGeo(.25,.042,.034),T.tee?sk:sleeve,elbow);
-    if(!T.tee)mesh(limbGeo(.03,.035,.036),T.suit?clothMat(T.shirt||0xf2f2f0):sleeve,elbow,0,-.22,0);
+    mesh(limbGeo(.25,.042,.034),T.tee||T.robe?sk:sleeve,elbow);
+    if(T.robe){mesh(limbGeo(.08,.056,.05),sleeve,elbow);const r=mesh(cgeo('roll',()=>new THREE.TorusGeometry(.05,.012,6,14)),sleeve,elbow,0,-.08,0);r.rotation.x=Math.PI/2;}
+    if(!T.tee&&!T.robe)mesh(limbGeo(.03,.035,.036),T.suit?clothMat(T.shirt||0xf2f2f0):sleeve,elbow,0,-.22,0);
     const hand=new THREE.Group();hand.position.y=-.255;elbow.add(hand);
     mesh(cgeo('palm',()=>{const b=new THREE.BoxGeometry(.072,.08,.03);b.translate(0,-.04,0);return b;}),sk,hand);
     const fingers=new THREE.Group();fingers.position.set(0,-.078,.004);hand.add(fingers);
@@ -4615,7 +4629,7 @@ const SELF={m:null,k:-1,kickT:0};
 // clothes: the uniform once I've changed at the locker, otherwise my own hoodie and jeans (2P: a grey hoodie)
 const lookNow=i=>(i===me&&PREVIEW)||lookOf(i);
 function outfitType(i){const base=STAFF_TYPES[i]||STAFF_TYPE,L=lookNow(i),hair={hs:HAIRS[L.h][0],hair:HCOLS[L.c][0]};if(LW(i).dressed)return{...base,...hair};
-  const t={...base,...hair,hood:0,zip:0,stripes:0,cardigan:0,suit:0,tie:0,shirt:0,print:0,...TOPS_W[L.t].t,pants:BOTS_W[L.b].c,boxer:BOTS_W[L.b].boxer?1:0,shoe:BOTS_W[L.b].boxer?0xe2b08a:(TOPS_W[L.t].t.shoe||0xeeeeee)};/* in boxers: barefoot too */delete t.workcap;return t;}
+  const t={...base,...hair,hood:0,zip:0,stripes:0,cardigan:0,suit:0,tie:0,shirt:0,print:0,...TOPS_W[L.t].t,pants:BOTS_W[L.b].c,boxer:BOTS_W[L.b].boxer?1:0,sweat:BOTS_W[L.b].wide?1:0,shoe:BOTS_W[L.b].boxer?0xe2b08a:(TOPS_W[L.t].t.shoe||0xeeeeee)};/* in boxers: barefoot too */delete t.workcap;return t;}
 const outfitKey=i=>{const L=lookNow(i);return(LW(i).dressed?'u':'c')+i+'-'+L.h+'.'+L.c+'.'+L.t+'.'+L.b;};
 function selfBody(){const ok=outfitKey(me);if(SELF.m&&SELF.k===ok)return SELF.m;if(SELF.m&&SELF.m.g.parent)SELF.m.g.parent.remove(SELF.m.g);
   const ty=outfitType(me),m=vis(()=>buildModel(ty,'#e2b08a'));m.rig.headJ.visible=false;m.rig.neck.children.forEach(o=>{if(o!==m.rig.headJ)o.visible=false;});
@@ -5977,8 +5991,8 @@ const TOPS_W=[{n:'黒パーカー',p:0,t:{top:0x17171b,hood:1}},{n:'グレーパ
   {n:'デニムジャケット',p:7980,t:{top:0x4a6a9a,zip:1}},{n:'レザージャケット',p:12800,t:{top:0x1a1614,zip:1}},{n:'赤スウェット',p:3980,t:{top:0xb03030}},{n:'ベージュカーディガン',p:5980,t:{top:0xf2ece0,cardigan:0xb8a07a}},
   {n:'ネイビーシャツ',p:4980,t:{top:0x2a3450}},{n:'セットアップ(ジャケット)',p:15800,t:{top:0x26324c,suit:1,tie:0xa8282a,shirt:0xf2f2f0}},
   {n:'ラーメンは命T',p:0,gift:1,t:{top:0xf4f4f0,print:['ラーメンは命','#b01818']}},{n:'豚吉の太客パーカー',p:0,gift:1,t:{top:0xf2c21b,hood:1,print:['豚吉の太客','#a01010']}},{n:'脱ぐ(上半身はだか)',p:0,none:1,t:{top:0xe2b08a,bare:1}},
-  {n:'白い道着(テント風)',p:0,def:1,t:{top:0xf0ece0,robe:1,belt:0x1c1c1e,shoe:0x2a2622}},{n:'グレースーツ',p:0,def:1,t:{top:0x6e7278,suit:1,tie:0x1c2a5c,shirt:0xf2f2f0,shoe:0x15100c}}];
-const BOTS_W=[{n:'ブルーデニム',p:0,c:0x3d5f8f},{n:'ブラックデニム',p:5980,c:0x1a1a1e},{n:'チノパン',p:3980,c:0xb8a07a},{n:'グレースラックス',p:4980,c:0x5a5a60},{n:'オリーブカーゴ',p:4980,c:0x5a6a3a},{n:'白パンツ',p:3980,c:0xe8e4dc},{n:'セットアップ(パンツ)',p:9800,c:0x26324c},{n:'脱ぐ(パンイチ)',p:0,none:1,c:0xf4f4f0,boxer:1},{n:'白い道着(パンツ)',p:0,def:1,c:0xf0ece0},{n:'グレースーツ(パンツ)',p:0,def:1,c:0x6e7278}];
+  {n:'白い道着(テント風)',p:0,def:1,t:{top:0xf0ece0,robe:1,belt:0x1c1c1e,shoe:0x2a2622}},{n:'グレースーツ',p:0,def:1,t:{top:0x6e7278,suit:1,tie:0x1c2a5c,shirt:0xf2f2f0,shoe:0x15100c,pin:1}}];
+const BOTS_W=[{n:'ブルーデニム',p:0,c:0x3d5f8f},{n:'ブラックデニム',p:5980,c:0x1a1a1e},{n:'チノパン',p:3980,c:0xb8a07a},{n:'グレースラックス',p:4980,c:0x5a5a60},{n:'オリーブカーゴ',p:4980,c:0x5a6a3a},{n:'白パンツ',p:3980,c:0xe8e4dc},{n:'セットアップ(パンツ)',p:9800,c:0x26324c},{n:'脱ぐ(パンイチ)',p:0,none:1,c:0xf4f4f0,boxer:1},{n:'白い道着(パンツ)',p:0,def:1,c:0xf0ece0,wide:1},{n:'グレースーツ(パンツ)',p:0,def:1,c:0x6e7278}];
 const CUT_P=3500,COLOR_P=5500;
 const defLook=i=>({h:i?2:0,c:i?1:0,t:i?1:0,b:0});
 const lookOf=i=>(players[i]&&players[i].look)||defLook(i);
