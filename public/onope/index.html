@@ -7289,7 +7289,7 @@ function footsteps(){if(!AC||!W.running)return;const mp=players[me]&&players[me]
   players.forEach((q,i)=>{if(i!==me&&locOf(i)!==locOf(me))return;const p=i===me?(MP.on&&PRED.ok?PRED:q.pos):ipos(q);let F=FOOT[i];if(!F){FOOT[i]={x:p.x,z:p.z,acc:0};return;}
     const d=Math.hypot(p.x-F.x,p.z-F.z);F.x=p.x;F.z=p.z;if(d>1.2||!footOK(i)){F.acc=0;return;}F.acc+=d;if(F.acc<.72)return;F.acc-=.72;
     let v=1;if(i!==me){const dd=Math.hypot(p.x-mp.x,p.z-mp.z);if(dd>14)return;v=(1-dd/14)*.8;}
-    let bare=false;try{bare=!LW(i).dressed&&!!outfitType(i).boxer;}catch(_){}stepSound(footSurface(i,p.x,p.z),v,bare);});}
+    stepSound('',v,true);});} // one soft step sound everywhere (the per-floor sounds were too loud)
 function vCaption(a,b){sfx.vring&&sfx.vring();const e=$('#vcap');e.innerHTML=`<b>${a}</b><i>${b}</i>`;e.classList.remove('on');void e.offsetWidth;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),4800);}
 function vScanUI(){const e=$('#scanUI');e.className='';e.hidden=false;e.querySelector('b').textContent='瞳孔認証中…';e.querySelector('small').textContent='PUPIL SCAN';
   setTimeout(()=>{e.className='ok';e.querySelector('b').textContent='認証完了';e.querySelector('small').textContent='ACCESS GRANTED';},1700);setTimeout(()=>{e.hidden=true;},2700);}
