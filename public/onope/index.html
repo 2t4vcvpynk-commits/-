@@ -202,7 +202,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#121110;color:var(--pa
 .av.g{background:#1d9bf0;width:32px;height:32px;font-size:13px;flex:none}
 .mt{display:grid;justify-items:end;gap:3px}.mt time{font-size:10px;color:#999}.mt i,.ph-tabs i{font-style:normal;background:#06c755;color:#fff;font-size:10px;font-weight:800;border-radius:9px;padding:0 6px}
 .ph-chat{background:#8cabd8;padding:10px;display:flex;flex-direction:column;gap:8px}
-.bub{display:flex;align-items:flex-end;gap:5px}.bub span{background:#fff;border-radius:14px;padding:7px 10px;font-size:12px;line-height:1.45;max-width:78%}.bub time{font-size:9px;color:#234}
+.bub{display:flex;align-items:flex-end;gap:5px}.bub.me{flex-direction:row-reverse}.bub.me span{background:#8de055}.ph-aff{margin-left:auto;color:#e8507a;font-weight:800;font-size:11px}.ph-gfb{display:flex;gap:6px;padding:6px 8px;background:#f2f2f4;border-top:1px solid #dde}.ph-gfb button{flex:1;border:0;border-radius:14px;padding:7px 4px;background:#06c755;color:#fff;font:800 11px var(--f-body)}.bub span{background:#fff;border-radius:14px;padding:7px 10px;font-size:12px;line-height:1.45;max-width:78%}.bub time{font-size:9px;color:#234}
 .ph-read{font-size:10px;color:#234;text-align:center;opacity:.7}
 .post{display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid #eee;font-size:12px}.post small{color:#888}.post p{margin:3px 0 0;line-height:1.45}
 .ph-screen>*{min-height:0}.ph-screen>.ph-status,.ph-screen>.ph-nav{flex-shrink:0}.ph-screen>.ph-home{overflow:hidden}.ph-status svg{width:15px;height:11px;vertical-align:-1px;margin-right:3px}.ph-nav{display:flex;align-items:center;justify-content:space-between;padding:6px 24px 14px;background:#fff;border-top:1px solid #e1e3e6}
@@ -615,7 +615,7 @@ function leafyTree(S2,x,z,s,cyl){const tk=lam(0x4a3828),rr=Math.random,GR=[0x2f5
   add(0,3.55*s,0,1.2*s);for(let i=0;i<5;i++){const a=i*1.26+rr()*.5,d=(.75+rr()*.35)*s;add(Math.cos(a)*d,(2.85+rr()*.6)*s,Math.sin(a)*d,(.72+rr()*.3)*s);}add(0,4.25*s,0,.75*s);}
 // people walking the pavements (looks only: built from Math.random, moved in the render loop, never part of the shared state)
 const WALK_PATHS=[[[-18.4,-55],[-18.4,92]],[[-8.6,-50],[-8.6,92]],[[-30,84.8],[70,84.8]],[[-30,94.6],[70,94.6]],[[62.4,-22],[62.4,56]],[[65.7,-22],[65.7,56]],[[55,-29.5],[73,-29.5],[73,-44.5],[55,-44.5],[55,-29.5]]];
-function buildWalkers(S2){OUT.walkers=[];const pool=NORMAL_TYPES.filter(t=>!t.glam);for(let i=0;i<24;i++){const tp=pool[(i*5+2)%pool.length],sk=tp.skin||SKINS[i%SKINS.length],m=buildModel(tp,sk);S2.add(m.g);
+function buildWalkers(S2){OUT.walkers=[];const pool=NORMAL_TYPES.filter(t=>!t.glam);for(let i=0;i<24;i++){const tp=i%3===1?WOMEN_TYPES[(i/3|0)%WOMEN_TYPES.length]:pool[(i*5+2)%pool.length],sk=tp.skin||SKINS[i%SKINS.length],m=buildModel(tp,sk);S2.add(m.g);
     const P=WALK_PATHS[i%WALK_PATHS.length],L=[0];for(let k=1;k<P.length;k++)L.push(L[k-1]+Math.hypot(P[k][0]-P[k-1][0],P[k][1]-P[k-1][1]));
     const w={...m,type:tp,name:tp.name,skin:sk,ctx:m.fc.getContext('2d'),expr:'',hy:0,hp:0,hr:0,walkT:0,P,L,loop:P[0][0]===P[P.length-1][0]&&P[0][1]===P[P.length-1][1],s:Math.random()*L[L.length-1],dir:Math.random()<.5?1:-1,sp:1.05+Math.random()*.4,off:(Math.random()-.5)*.9};
     setExpr(w,'normal');m.g.visible=false;OUT.walkers.push(w);}}
@@ -3388,7 +3388,7 @@ function reset(){
     q.bike=Object.assign({x:ap.bike[0],z:ap.bike[1],h:0,v:0,riding:false,arrived:false,warned:false},v?v.bikeM:{g:null,front:null,crank:null,rw:null,fw:null,lampM:null});
     q.hm={mode:'start',nap:0,endHow:null,tvOn:false,lightOn:true,fridgeOpen:false,bathOpen:false};q.carM=v?Object.assign({},v.carM):{};});
   if(OUT.built)showVehicles();}
-  players.forEach((q,i)=>{q.P.bac=0;q.P.phone=false;q.pos.x=i?-.55:0;q.pos.z=i?.55:.2;Object.assign(q.P,{emote:null,scope:false,hp:100,atk:null,atkT:0,cd:0,lastHurt:-99,hitDone:false});q.hand=null;q.handV=(q.handV||0)+1;q.yaw=0;q.pitch=-.08;q.shoutCD=0;q.act=0;q.actT=0;q.pid=0;q.moved=false;});
+  players.forEach((q,i)=>{q.P.bac=0;q.P.phone=false;q.pos.x=i?-.55:0;q.pos.z=i?.55:.2;Object.assign(q.P,{emote:null,scope:false,date:null,hp:100,atk:null,atkT:0,cd:0,lastHurt:-99,hitDone:false});q.hand=null;q.handV=(q.handV||0)+1;q.yaw=0;q.pitch=-.08;q.shoutCD=0;q.act=0;q.actT=0;q.pid=0;q.moved=false;});
   loadPl(cur);view.yaw=0;view.pitch=-.08;input.tap=false;input.atkQ=0;input.shQ=0;
   W.offDay=false;W.commute=startMode==='commute';W.open=!W.commute;W.openAt=W.commute?null:0;W.clockedIn=!W.commute;W.dressed=!W.commute;W.toldDoor=false;W.noOpenEnd=false;
   if(W.commute){W.t=-200;regulars.forEach(r=>scene.remove(r.g));regulars.length=0;W.gasOff=true;gasLamp.material.color.set(0x222222);norenMesh.visible=false;setShopLights(false,true);$('#tickets').hidden=true;}
@@ -3397,7 +3397,7 @@ function startGame(){
   // every run starts on day 1, so the account and belongings (ball, clothes, hair) start over too
   if(!window.__KEEPSAVE){BANK.reset();for(const k in OWN)delete OWN[k];OWN.ball=false;OWN.clothes={t:[0],b:[0]};saveOwn();PREVIEW=null;}
   initAudio();if(AC&&AC.state==='suspended')AC.resume();
-  Object.assign(DAY,{n:1,choosing:false,pending:null,shift:players.map(()=>null),base:3,notes:[],wreck:[0,0]});SOCCER.n=SOCCER.s=0;$('#dayEnd').hidden=true;$('#shiftUI').hidden=true;
+  Object.assign(DAY,{n:1,choosing:false,pending:null,shift:players.map(()=>null),base:3,notes:[],wreck:[0,0],gf:[[],[]]});SOCCER.n=SOCCER.s=0;$('#dayEnd').hidden=true;$('#shiftUI').hidden=true;
   reset();W.running=true;if(W.commute){W.t=-230;players.forEach((q,i)=>withPlayer(i,startAtHome));}
   players.forEach(q=>{delete q.look;});setTimeout(()=>{if(W.running)input.acQ=lookCode(OWN.look||defLook(me));},400);
   $('#start').hidden=true;$('#result').hidden=true;$('#hud').hidden=false;$('#cross').hidden=false;$('#hand').hidden=false;actBtn.hidden=!isTouch;$('#punch').hidden=!isTouch;$('#actionBtn').hidden=!isTouch;$('#voice').hidden=!isTouch;
@@ -3660,10 +3660,13 @@ if(code>=70&&code<75){if(!P.sit&&!(W.outside&&(CAR.inCar||BIKE.riding||W.ride!=n
     else{const before=P.bac||0;P.bac=Math.max(0,before-take*(1+wr*3));toast(before>=3?`${lb}を飲んだ。少し楽になった`:`${lb}を飲んだ`);}
     if(abv>0&&wasDrunk){const pi=cur;sub(cur===me?'あなた':'相方','…うっ…','quiet');later(()=>withPlayer(pi,playerVomit),900);return;}
     if(abv>0)staffSeen('drink');return;}
+  if(code>=2000&&code<2500){gfAct(Math.floor((code-2000)/10),code%10);return;}if(code===2800){gfTalk();return;}
+  if(code>=2500&&code<2700&&W.outside&&OUT.walkers){const w=code<2600?OUT.walkers[code-2500]:(OUT.peds||[])[code-2600];if(w)askWoman(w,'street');return;}
+  if(code>=2700&&code<2800&&W.store){const S=STORES[W.store],w=(S.shoppers||[]).concat(S.clerks||[])[code-2700];if(w)askWoman(w,'store');return;}
   if(code===4){
     if(W.outside||W.home||W.store)return toast('近くに誰もいない');
     const cand=persons().filter(p=>!p.cs&&!p.cop&&p.g.position.y>-.5&&Math.hypot(p.g.position.x-player.x,p.g.position.z-player.z)<3).sort((a,b)=>Math.hypot(a.g.position.x-player.x,a.g.position.z-player.z)-Math.hypot(b.g.position.x-player.x,b.g.position.z-player.z))[0];
-    if(!cand)return toast('近くにお客がいない');askContact(cand);return;}
+    if(!cand)return toast('近くにお客がいない');if(cand.type&&cand.type.fem){askWoman(cand,'shop');return;}askContact(cand);return;}
   if(code>=100&&hand&&hand.type==='shopbag'){const k=GKEYS[code-100],i=hand.items.indexOf(k);if(i<0)return;const it=GOODS[k],dr=isDrinkGood(k);hand.items.splice(i,1);handV++;if(!hand.items.length)setHand(null);sfx.pour(dr?'soda':'beer');
     if(it.bac)P.bac=Math.max(0,(P.bac||0)+it.bac);if(it.hp)P.hp=Math.min(100,P.hp+it.hp);goodsBody(it,dr);toast(`${it.n}を${dr?'飲んだ':'食べた'}`);if(locOf(cur)==='shop')staffSeen(it.bac>0?'drink':'nibble');return;}
   if(code===6){if(W.ball)return; // only sent by a player who owns a ball (checked on their device)
@@ -3731,10 +3734,16 @@ const ICONS={
   gun_knife:'<svg viewBox="0 0 24 24"><path d="M4 20l5-5M9 15l11-11c0 4-3 9-8 11z"/><path d="M7 13l4 4"/></svg>',
   back:'<svg viewBox="0 0 24 24"><path d="M10 6l-6 6 6 6M4 12h11a5 5 0 0 1 0 10h-2"/></svg>'};
 let menuOpen=false;
+// the nearest woman within reach of me (picked on my screen; the answer is decided in the shared sim)
+function nearWoman(){const q=players[me].pos,lo=locOf(me),best=(arr,base)=>{let b=null,bd=2.6;arr.forEach((p,i)=>{if(!p||!p.type||!p.type.fem||(p.g&&!p.g.visible)||p.dead||p.inj||p.removed)return;const d=Math.hypot(p.g.position.x-q.x,p.g.position.z-q.z);if(d<bd){bd=d;b={code:base+i,n:p.type.name};}});return b;};
+  if(lo==='out')return best(OUT.walkers||[],2500)||best(OUT.peds||[],2600);if(lo.startsWith('store:')){const S=STORES[lo.slice(6)];return best((S.shoppers||[]).concat(S.clerks||[]),2700);}
+  if(lo==='shop'){const c=persons().filter(p=>!p.cs&&!p.cop&&p.type&&p.type.fem&&p.g.position.y>-.5&&Math.hypot(p.g.position.x-q.x,p.g.position.z-q.z)<3)[0];return c?{code:4,n:cName(c)}:null;}return null;}
 const myHand=()=>me===cur?hand:players[me]&&players[me].hand;
 function actionItems(){const q=players[me],h=me===cur?hand:q.hand,ph=q.P.phone,inShop=locOf(me)==='shop';
   const it=[{code:1,icon:'phone',w:ph?'しまう':lastUnread?`スマホ(${lastUnread})`:'スマホ',t:ph?'スマホをしまう':`スマホを見る${lastUnread?`(LINE ${lastUnread}件)`:''}`,s:ph?'仕事に戻る':'LINE・SNSをチェック(見られると印象が悪い)',ok:true}];
   it.push(eatItem(q,h,inShop));
+  {const d=q.P.date,c=d&&gfList(me)[d.ci];if(c){const nm=c.n.split(' ')[1];it.push({code:2800,icon:'phone',w:`${nm}と話す`,t:`${nm}と話す`,s:`好感度 ${Math.round(c.aff)}`,ok:true});it.push({code:2000+d.ci*10+3,icon:'back',w:'解散する',t:`${nm}と解散する`,s:'今日はここまで',ok:true});}
+    else{const w=nearWoman();if(w)it.push({code:w.code,icon:'phone',w:'連絡先を聞く',t:`${w.n}に連絡先を聞く`,s:'LINEを交換する(断られることも)',ok:true});}}
   {const L=me===cur?W:q.L;if(L.outside&&OWN.ball){const pp=players[me].pos,inP=inPark(pp.x,pp.z),foot=me===cur?onFootOut():true;
     if(L.ball)it.push({code:7,icon:'ball',t:'ボールをしまう',s:'カバンにしまう',ok:true});
     else it.push({code:6,icon:'ball',t:'サッカーボールを出す',s:inP?'足で触れてドリブル・使うでシュート':'公園(サッカーコート)でしか出せない',ok:inP&&foot});}}
@@ -3801,7 +3810,7 @@ const yen=n=>'¥'+Math.round(n).toLocaleString();
 // hourly ¥1,100, ×1.25 after 22:00 (late-night premium); game minutes are counted from 18:00
 function wageFor(tIn,tOut){const m0=Math.max(tIn,-200)/W.dur*180,m1=tOut/W.dur*180;let y=0;for(let m=Math.floor(m0);m<m1;m++)y+=(m>=240?1375:1100)/60;return Math.round(y/10)*10;}
 /* ---- the phone (local UI) ---- */
-let phoneShown=false,phoneTab='home',phoneChat=null,phoneSeen={};
+let phoneShown=false,phoneTab='home',phoneChat=null,phoneSeen={},GFSEEN={};
 function gameClock(){const mins=Math.floor(W.t/W.dur*180);return{h:18+Math.floor(mins/60),m:((mins%60)+60)%60,mins,txt:clockFmt(W.t)};}
 function lineThreads(){const m=gameClock().mins,me0=players[me].P,th=[];
   const at=mm=>`${18+Math.floor(mm/60)}:${String(((mm%60)+60)%60).padStart(2,'0')}`;
@@ -3827,7 +3836,8 @@ function lineThreads(){const m=gameClock().mins,me0=players[me].P,th=[];
   if(fr.length)th.push({id:'fr',name:'ケンタ(ゼミ)',msgs:fr.map(([t,x])=>({t:at(t),x}))});
   (W.contacts||[]).forEach((c,i)=>{const ms=[[c.t,'よろしくぅ〜🍺🍺'],[c.t+1,'(スタンプを送信しました)']];if(m>=c.t+40)ms.push([c.t+40,'…ごめんなさい、酔っててあんまり覚えてなくて💦 間違えて追加しちゃったかもです🙏']);if(m>=c.t+55)ms.push([c.t+55,`${c.name}さんがトークから退出しました。`]);
     th.push({id:'c'+i,name:c.name,msgs:ms.filter(x=>x[0]<=m).map(([t,x])=>({t:at(t),x}))});});
-  th.forEach(t=>{t.last=t.msgs[t.msgs.length-1];t.unread=Math.max(0,t.msgs.length-(phoneSeen[t.id]||0));});
+  gfList(me).forEach((c,ci)=>{if(!c.msgs.length)return;th.push({id:'g'+ci,gf:ci,name:c.n,msgs:c.msgs.map(x=>({t:(x.d!==DAY.n?`${x.d}日目 `:'')+at(x.m),x:x.x,me:x.me}))});});
+  th.forEach(t=>{t.last=t.msgs[t.msgs.length-1];t.unread=t.gf!=null?Math.max(0,t.msgs.filter(x=>!x.me).length-(GFSEEN[t.name]||0)):Math.max(0,t.msgs.length-(phoneSeen[t.id]||0));});
   return th.sort((a,b)=>b.last.t.localeCompare(a.last.t,undefined,{numeric:true}));}
 function snsPosts(){const P0=[];const add=(n,h,x,ago)=>P0.push({n,h,x,ago});
   if(W.vomit)add('ねむねむ','@nemu_2nd','隣の席の人ゲロ吐いてて地獄なんだが','3分');
@@ -3877,7 +3887,9 @@ const PH_APPS=[
   {id:'qr',name:'友だち追加',bg:'#2e2e33',svg:'<svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2v2h-2zM18 14h2v2h-2z" fill="#fff"/></svg>'}];
 function renderPhone(){const el=$('#phone');if(!phoneShown)return;const ck=gameClock(),th=lineThreads();let body='';
   if(phoneTab==='line'&&phoneChat){const t=th.find(x=>x.id===phoneChat);if(t){phoneSeen[t.id]=t.msgs.length;
-      body=`<div class="ph-top"><button class="ph-back" data-act="back">‹</button><b>${t.name}</b></div><div class="ph-chat">${t.msgs.map(m=>`<div class="bub"><span>${m.x}</span><time>${m.t}</time></div>`).join('')}<div class="ph-read">既読をつけた</div></div>`;}}
+      if(t.gf!=null)GFSEEN[t.name]=t.msgs.filter(x=>!x.me).length;const gc=t.gf!=null&&gfList(me)[t.gf],dt2=players[me].P.date;
+      body=`<div class="ph-top"><button class="ph-back" data-act="back">‹</button><b>${t.name}</b>${gc?`<small class="ph-aff">♡ ${Math.round(gc.aff)}</small>`:''}</div><div class="ph-chat">${t.msgs.map(m=>`<div class="bub${m.me?' me':''}"><span>${m.x}</span><time>${m.t}</time></div>`).join('')}${gc?'':'<div class="ph-read">既読をつけた</div>'}</div>`+
+        (gc?`<div class="ph-gfb"><button data-gf="${t.gf*10}">メッセージ</button>${dt2&&dt2.ci===t.gf?`<button data-gf="${t.gf*10+3}">解散する</button>`:`<button data-gf="${t.gf*10+1}">遊びに誘う</button><button data-gf="${t.gf*10+2}">ドライブに誘う</button>`}</div>`:'');}}
   else if(phoneTab==='line'){body=`<div class="ph-top"><b>トーク</b></div><div class="ph-list">${th.map(t=>`<button class="ph-row" data-chat="${t.id}"><span class="av">${t.name[0]}</span><span class="tx"><b>${t.name}</b><small>${t.last.x}</small></span><span class="mt"><time>${t.last.t}</time>${t.unread>0?`<i>${t.unread}</i>`:''}</span></button>`).join('')}</div>`;}
   else if(phoneTab==='map'){body=`<div class="ph-top"><b>マップ</b><button class="ph-zoom" data-act="zoom">${mapZoom?'全体を見る':'現在地へ'}</button></div><div class="ph-map"><canvas id="phMap" width="440" height="640"></canvas></div>`;}
   else if(phoneTab==='qr'){const n=W.outside?null:nearCust();body=`<div class="ph-top"><b>友だち追加</b></div><div class="ph-list ph-qr"><div class="qrbox"></div><p>近くの人</p>${n?`<b class="qn">${cName(n)}</b><button class="qbtn" data-act="ask">LINEを聞く</button>`:'<p class="qn0">近くにお客がいない</p>'}<small>※仕事中です</small></div>`;}
@@ -3890,7 +3902,7 @@ function renderPhone(){const el=$('#phone');if(!phoneShown)return;const ck=gameC
   else{body=`<div class="ph-top"><b>つぶやき</b></div><div class="ph-list">${snsPosts().map(p=>`<div class="post"><span class="av g">${p.n[0]}</span><div><b>${p.n}</b> <small>${p.h}・${p.ago}</small><p>${p.x}</p></div></div>`).join('')}</div>`;}
   const html=`<div class="ph-screen${phoneTab==='home'?' home':''}"><div class="ph-status"><span>${ck.txt}</span><span class="isl"></span><span>${W.home?'<svg viewBox="0 0 16 12"><path d="M8 11.5l2.2-2.6a3.2 3.2 0 0 0-4.4 0zM3.4 6.4l1.5 1.7a4.6 4.6 0 0 1 6.2 0l1.5-1.7a6.9 6.9 0 0 0-9.2 0zM.6 3.6l1.5 1.7a8.6 8.6 0 0 1 11.8 0l1.5-1.7a10.9 10.9 0 0 0-14.8 0z" fill="currentColor"/></svg>':'5G '}${Math.max(5,Math.round(96-(ck.mins+500)/14))}%</span></div>${body}<div class="ph-nav"><button data-tab="home" aria-label="ホーム"><span></span></button><button data-act="close">しまう</button></div></div>`;phoneApply(el,html);}
 $('#phone').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
-  if(b.dataset.tab){phoneTab=b.dataset.tab;phoneChat=null;}else if(b.dataset.chat)phoneChat=b.dataset.chat;else if(b.dataset.act==='back')phoneChat=null;else if(b.dataset.act==='close'){input.acQ=1;return;}else if(b.dataset.act==='ask'){input.acQ=4;return;}else if(b.dataset.act==='zoom'){mapZoom=!mapZoom;}
+  if(b.dataset.tab){phoneTab=b.dataset.tab;phoneChat=null;}else if(b.dataset.chat)phoneChat=b.dataset.chat;else if(b.dataset.act==='back')phoneChat=null;else if(b.dataset.act==='close'){input.acQ=1;return;}else if(b.dataset.act==='ask'){input.acQ=4;return;}else if(b.dataset.gf!=null){input.acQ=2000+(+b.dataset.gf);sfx.clink&&sfx.clink(1.8);setTimeout(renderPhone,200);return;}else if(b.dataset.act==='zoom'){mapZoom=!mapZoom;}
   renderPhone();});
 let phoneRT=0,lastUnread=0,phoneLastHTML='',phoneLastView='';
 function phoneApply(el,html){if(html===phoneLastHTML&&el.firstChild)return;const view0=phoneTab+(phoneChat||''),sc=el.querySelector('.ph-list,.ph-chat'),top=sc?sc.scrollTop:0,same=view0===phoneLastView;phoneLastHTML=html;phoneLastView=view0;el.innerHTML=html;const sc2=el.querySelector('.ph-list,.ph-chat');if(sc2)sc2.scrollTop=same?top:(phoneChat?sc2.scrollHeight:0);}
@@ -4733,7 +4745,7 @@ function isWorkDay(n){if(n<=1)return true;if(needShiftDay(n))return false;const 
 function allSleptCheck(){if(players.every((q,i)=>(i===cur?W:q.L).slept)&&!DAY.choosing){DAY.choosing=true;players.forEach((q,i)=>{(i===cur?W:q.L).dayChoice=null;});}}
 function dayChoice(c){if(!DAY.choosing||W.dayChoice)return;W.dayChoice=c;const cs=players.map((q,i)=>(i===cur?W:q.L).dayChoice);
   if(cs.includes('quit')){DAY.choosing=false;DAY.pending='quit';}else if(cs.every(x=>x==='next')){DAY.choosing=false;DAY.pending='next';}}
-function nextDay(){noteLeftovers();DAY.n++;const work=isWorkDay(DAY.n);startMode='commute';reset();W.running=true;GLINE.length=0;phoneSeen={};
+function nextDay(){noteLeftovers();DAY.n++;players.forEach((q,i)=>gfDaily(i));const work=isWorkDay(DAY.n);startMode='commute';reset();W.running=true;GLINE.length=0;phoneSeen={};
   if(work){W.t=-230;spawnCrew();crewMorning();players.forEach((q,i)=>withPlayer(i,()=>{startAtHome();if(MP.on&&DAY.n>2&&!(DAY.shift[i]!=null&&((DAY.shift[i]>>(DAY.n-DAY.base))&1)))laterP(()=>toast('人手が足りなくて呼び出された…今日も出勤'),1600);}));}
   else{W.offDay=true;W.commute=false;W.open=false;W.t=-480/180*W.dur; // 10:00
     if(needShiftDay(DAY.n)){DAY.shift=players.map(()=>null);DAY.base=DAY.n+1;}
@@ -7631,6 +7643,72 @@ function blastCars(sc,pts){const hitSet=new Set();
       const c=i===cur?CAR:players[i].car;if(c){c.engine=false;c.v=0;}if(i===cur&&CAR.inCar&&DAY.wreck[i]>=1){}}
     else{const e=WRECKABLE[h],st=Math.min(2,(e.g.userData.wreck||0)+1);if(st>=2&&(e.g.userData.wreck||0)<2){const wp=e.g.getWorldPosition(new THREE.Vector3());big.push([wp.x,wp.z]);}vis(()=>wreckCar(e.g,st));}});
   return big;}
+/* ================= contacts with women: ask anywhere (street, shops, the izakaya), named LINE friends, dates, drives, walking together ================= */
+// extra everyday women for the street (kept out of NORMAL_TYPES so the shop's customer mix and its random draws stay as they were)
+const WOMEN_TYPES=[
+  {name:'カフェ帰りの女性',top:0xd8c8b0,pants:0x3a4a6a,hair:0x3a2416,hs:'long',fem:1,young:1,blush:1,lip:'#c84a50',cardigan:0xb89a78,build:[.86,.9,.92],shoe:0xe8e4dc},
+  {name:'買い物中の女性',top:0x2a3a5a,pants:0xe8e4dc,hair:0x1a1410,hs:'bun',fem:1,blush:1,lip:'#b8323a',build:[.88,.92,.92],shoe:0x8a5a3a},
+  {name:'ランニング中の女性',top:0xe85a7a,pants:0x1a1a1e,hair:0x2a1c14,hs:'bangs',fem:1,young:1,sweat:1,blush:1,build:[.86,.9,.9],shoe:0xf4f4f4},
+  {name:'仕事帰りの女性',top:0x1e1e22,pants:0x1e1e22,hair:0x4a2c1a,hs:'long',fem:1,lip:'#a8283a',blush:1,shirt:0xf2f2f0,suit:1,build:[.88,.92,.92],shoe:0x111111},
+  {name:'学生の女の子',top:0xf2ece0,pants:0x6a7a5a,hair:0x2a1810,hs:'side',fem:1,young:1,hood:1,blush:1,lip:'#d0505a',build:[.85,.88,.9],shoe:0xe8e8e8}];
+const GF_SUR=['佐藤','鈴木','高橋','田中','伊藤','渡辺','山本','中村','小林','加藤','吉田','山田','佐々木','松本','井上','木村','清水','林','森','池田'];
+const GF_GIV=['美咲','結衣','葵','陽菜','さくら','莉子','七海','彩花','美優','真由','萌','楓','千尋','杏奈','遥','明日香','優花','玲奈','菜々子','沙耶'];
+const gfList=i=>{DAY.gf=DAY.gf||[[],[]];return DAY.gf[i]||(DAY.gf[i]=[]);};
+const gfAt=()=>({d:DAY.n,m:gameClock().mins});
+function gfSay(c,x,me2){c.msgs.push({...gfAt(),x,me:me2?1:0});if(!me2)c.unread=(c.unread||0)+1;}
+// ask: p is a person (model with .type); where = 'street' | 'shop' | 'store'. Runs in the shared sim (R() decides).
+function askWoman(p,where){if(!p||!p.type)return;const who=cur===me?'あなた':'相方';sub(who,pick(['あの、すみません…よかったら連絡先交換しませんか?','急にすみません、もしよかったらLINE交換とか…','あの…すごく素敵だなと思って。連絡先、聞いてもいいですか?']),'quiet');
+  const lst=gfList(cur),T=p.type,id=(T.name||'')+':'+Math.round((p.g?p.g.position.x:0)*10)+':'+Math.round((p.g?p.g.position.z:0)*10);
+  later(()=>{if(!W.running)return;const nm=T.name||'女性';
+    if(!T.fem){sub(nm,pick(['…え、俺? いや、遠慮しとくわ','…いやいや、男同士はないって']),'quiet');return;}
+    if(p.gfAsked){sub(nm,'…さっきも聞かれましたけど…','quiet');return;}p.gfAsked=1;
+    if(lst.some(c=>c.src===id)){sub(nm,'え、もう交換してますよね…?','quiet');return;}
+    // odds: sober strangers are wary; time of day, how you look and how drunk you are all matter
+    const h=gameClock().h%24,L=lookOf(cur),top=TOPS_W[L.t]||{},bot=BOTS_W[L.b]||{},bac=P.bac||0,lv=p.lv!=null?p.lv:0;
+    let ch=where==='shop'?.18:.26;if(lv>=3)ch+=.55;else if(lv===2)ch+=.25;if(h>=19||h<2)ch+=.08;if(top.t&&top.t.suit)ch+=.12;if(top.none||bot.none)ch=0;if(bac>=35)ch-=.2;else if(bac>=15)ch-=.08;
+    if(where==='shop'&&!W.guest&&W.clockedIn&&!W.clockedOut)ch-=.08;ch=clamp(ch,0,.92);
+    if(top.none||bot.none){sub(nm,pick(['…きゃっ!? な、なんで服着てないんですか!?','…こ、来ないでください!!']),'loud');return;}
+    if(R()<ch){const n=GF_SUR[Math.floor(R()*GF_SUR.length)]+' '+GF_GIV[Math.floor(R()*GF_GIV.length)],ty={...T,name:n.split(' ')[1]};
+      sub(n.split(' ')[1],pick(['…いいですよ。はい、QRどうぞ','えー、ナンパですか? …まぁ、いいですけど','あはは、いいよ〜。ふるふるする?','…じゃあ、ちょっとだけなら']),'');
+      const c={n,ty,skin:p.skin||'#f0d0b8',src:id,aff:where==='shop'?18:12,met:where==='shop'?'呑兵衛で':'街で',msgs:[],unread:0,last:-99,talkT:-99};lst.push(c);
+      later(()=>{gfSay(c,pick(['さっきはどうも〜!','よろしくです☺️','追加しました!','ほんとに連絡来るか思ってた笑']));gfSay(c,'(スタンプを送信しました)');},4000);
+      if(cur===me){toast(`${n}と連絡先を交換した! (トークに追加)`);sfx.clink&&sfx.clink(1.6);}}
+    else sub(nm,pick(['…ごめんなさい、そういうのはちょっと…','…彼氏いるんで','え、こわ…すみません','…急いでるので']),'quiet');},1100);}
+// LINE actions from the chat (sent as one action code so both players agree): 0 message, 1 hang out, 2 drive, 3 part
+function gfAct(ci,k){const lst=gfList(cur),c=lst[ci];if(!c)return;const h=gameClock().h%24,late=h>=3&&h<10,work=!W.offDay&&W.clockedIn&&!W.clockedOut;
+  if(k===0){gfSay(c,pick(['今なにしてる?','この前ありがとう!楽しかった','おつかれさま〜','今度ごはん行こうよ','最近どう?']),1);
+    later(()=>{c.aff=Math.min(100,c.aff+2);gfSay(c,c.aff>60?pick(['今ちょうど連絡しようと思ってた!','会いたいな〜笑','おつかれ〜!今日はなにしてた?']):c.aff>30?pick(['おつかれさまです!','ぼちぼちかな〜','いいね、また行こ!']):pick(['あ、はい笑','おつかれさまです','(既読)']));},6000+R()*6000);return;}
+  if(k===3){if(P.date&&P.date.ci===ci){P.date=null;gfSay(c,pick(['今日はありがと!楽しかった☺️','また誘ってね〜','気をつけて帰ってね!']));c.aff=Math.min(100,c.aff+4);if(cur===me)toast(`${c.n.split(' ')[1]}と解散した`);}return;}
+  if(P.date){if(cur===me)toast('もう誰かと一緒にいる');return;}
+  gfSay(c,k===2?'今からドライブ行かない?':'今から遊ばない?',1);
+  later(()=>{const ok=!late&&(c.aff>=25||R()<.45+c.aff/120);
+    if(late){gfSay(c,'ごめん、もう寝てた…😪 また今度ね');return;}
+    if(!ok){gfSay(c,pick(['ごめん、今日はちょっと予定あって🙏','また今度誘って〜','今日はやめとく!']));return;}
+    gfSay(c,k===2?pick(['いいね!ドライブ行きたい🚗','どこ連れてってくれるの?笑']):pick(['いいよー!どこにいる?','行く行く!今から向かうね']));
+    later(()=>{if(!W.running||P.date)return;P.date={ci,t:0,drive:k===2};if(cur===me)toast(`${c.n.split(' ')[1]}が来た${k===2?'(車に乗るとドライブ)':''}`);if(work&&cur===me)sub(c.n.split(' ')[1],'…バイト中だよね? 店の前で待ってるね','quiet');},5000);},5000+R()*5000);}
+function gfTalk(){const d=P.date;if(!d)return;const c=gfList(cur)[d.ci];if(!c)return;const nm=c.n.split(' ')[1],car=W.outside&&CAR.inCar;
+  const L=car?['この曲好き!','運転うまいね〜','窓あけていい?','次どこ行く?']:W.home?['へぇ〜、ここに住んでるんだ','意外と片付いてるね笑','テレビつけていい?']:W.store?['これかわいくない?','なに買うの?','あ、これ気になってたやつ!']:['この辺よく来るの?','お腹すいてきたかも','あはは、なにそれ笑','今日来てよかった〜'];
+  sub(nm,pick(L),'');if(W.t-(c.talkT||-99)>8){c.aff=Math.min(100,c.aff+3);c.talkT=W.t;}}
+// sim tick: affection grows while together (more in the car on a drive); she goes home at 2:00 or if you sleep
+function gfStep(dt){const d=P.date;if(!d)return;const c=gfList(cur)[d.ci];if(!c){P.date=null;return;}d.t+=dt;const car=W.outside&&CAR.inCar&&Math.abs(CAR.v)>2;c.aff=Math.min(100,c.aff+dt*(car&&d.drive?.12:.05));
+  const h=gameClock().h%24;if((h>=2&&h<10)||W.slept){P.date=null;gfSay(c,'今日はありがと!遅いから帰るね〜おやすみ🌙');}}
+// daily: she sometimes writes first, more often the more she likes you
+function gfDaily(i){gfList(i).forEach(c=>{if(R()<c.aff/140)gfSay(c,pick(['おはよ〜☀️','昨日はありがと!','今日バイト?がんばってね!','暇だったら連絡して〜','この前の店また行きたいな']));});}
+// her model follows her player (visual only, built per client)
+const GFM=new Map();
+function gfModelFor(i){const q=players[i];const d=q&&q.P.date;let e=GFM.get(i);const c=d&&gfList(i)[d.ci];
+  if(!c){if(e){if(e.m.g.parent)e.m.g.parent.remove(e.m.g);GFM.delete(i);}return null;}
+  if(!e||e.key!==c.n){if(e&&e.m.g.parent)e.m.g.parent.remove(e.m.g);const m=vis(()=>buildModel(c.ty,c.skin));Object.assign(m,{type:c.ty,skin:c.skin,ctx:m.fc.getContext('2d'),expr:'',hy:0,hp:0,hr:0,walkT:0,lv:0});vis(()=>setExpr(m,'happy'));e={m,key:c.n,lo:''};GFM.set(i,e);}
+  return e;}
+function gfFollow(dt){players.forEach((q,i)=>{const e=gfModelFor(i);if(!e)return;const m=e.m,lo=locOf(i),sc=lo==='out'?OUT.scene:lo==='home'?HOME.scene:lo.startsWith('store:')?STORES[lo.slice(6)].scene:scene;
+    const show=lo===locOf(me)&&(lo!=='home'||roomOf(i)===roomOf(me))&&sc;m.g.visible=!!show;if(!show)return;if(m.g.parent!==sc){sc.add(m.g);e.lo='';}
+    const L=i===cur?W:q.L,car=lo==='out'&&(i===cur?CAR:q.car),bike=lo==='out'&&(i===cur?BIKE:q.bike);
+    if(car&&car.inCar){const K=carPose(i)||car,st=seatOf(K,-.38,.05);m.g.position.set(st.x,-.42,st.z);m.g.rotation.y=K.h+Math.PI;m.forceLP='chair';armTo(m,0,'counter',dt,4);armTo(m,1,'counter',dt,4);vis(()=>rigUpdate(m,dt));e.lo='car';return;}
+    if(bike&&bike.riding){const ip=ipos(q),h=bike.h;m.g.position.set(ip.x+Math.sin(h)*.6,.42,ip.z+Math.cos(h)*.6);m.g.rotation.y=h+Math.PI;m.forceLP='chair';vis(()=>rigUpdate(m,dt));e.lo='bike';return;}
+    m.forceLP=null;const ip=i===me&&MP.on&&PRED.ok?PRED:ipos(q),yw=i===me?view.yaw:q.yaw,tx=ip.x+Math.sin(yw)*1.1+Math.cos(yw)*.7,tz=ip.z+Math.cos(yw)*1.1-Math.sin(yw)*.7;
+    const gy=lo==='out'?groundY(tx,tz):lo==='shop'?floorAt(tx,tz):0,p=m.g.position;if(e.lo!==lo||Math.hypot(p.x-tx,p.z-tz)>6){p.set(tx,gy,tz);e.lo=lo;}
+    const dx=tx-p.x,dz=tz-p.z,dd=Math.hypot(dx,dz);if(dd>.15){const s=Math.min(dd,Math.max(1.4,dd*2.2)*dt);p.x+=dx/dd*s;p.z+=dz/dd*s;m.g.rotation.y=Math.atan2(dx,dz);legsWalk(m,dt,true);}else{const fx=ip.x-p.x,fz=ip.z-p.z;m.g.rotation.y+=((Math.atan2(fx,fz)-m.g.rotation.y+Math.PI*3)%(Math.PI*2)-Math.PI)*Math.min(1,dt*3);}
+    p.y=gy;armTo(m,0,'hang',dt,5);armTo(m,1,'hang',dt,5);vis(()=>rigUpdate(m,dt));});}
 /* ================= 別班準備室 (VIVANT parody): a back-alley steel door with a keypad → a cluttered store room → palm scan on the wall → the prep room ================= */
 const BP_CODE='1011';
 function bpWalk(lx,z){if(lx>-2.3&&lx<2.0&&z>.45&&z<5.6)return true;if(W.bpOpen&&lx>.75&&lx<1.85&&z>-.45&&z<=.45)return true;
@@ -7756,6 +7834,7 @@ function applyInput(q,inp,dt){
   yaw=inp.yaw;pitch=inp.pitch;if(W.napUntil!=null&&W.t>=W.napUntil){W.napUntil=null;toast(`${HOME.mode==='start'?'二度寝':'昼寝'}した… ${clockFmt(W.t)}`);if(HOME.nap>=3)sub('あなた','やばい、さすがに起きないと…','quiet');}
   if(inp.ac===20||inp.ac===21)dayChoice(inp.ac===20?'next':'quit');
   if(inp.ac===22)sleepNow();
+  gfStep(dt);
   if(inp.ac===64)copChoice('settle');if(inp.ac===65)copChoice('run');if(inp.ac===66)copChoice('give');
   if(W.guest&&!hand&&W.gWait&&W.gWait.length)setHand(W.gWait.shift()); // what arrived while my hands were full
   if(W.slept||W.napUntil!=null){q.moved=false;return;}
@@ -7904,11 +7983,11 @@ function render(dt){
     p.m.position.y+=p.vy*dt;
     if(p.kind==='s'){const k=1-p.life/p.max;p.m.scale.setScalar(.2+k*p.grow);p.m.material.opacity=p.op*(1-k);}
     if(p.life<=0){scene.remove(p.m);if(p.m.material!==bubMat)p.m.material.dispose();parts.splice(i,1);}}
-  const sc=W.store&&STORES[W.store].scene?STORES[W.store].scene:W.home&&HOME.scene?HOME.scene:(W.outside&&OUT.scene?OUT.scene:scene);if(HOME.sweat&&sc===HOME.scene){const r=roomOf(me);HOME.sweat.forEach(S=>{S.m.visible=S.room===r;});}footsteps();fxStep(dt);wreckSmoke(dt);detailCull(sc,camera);if(sc===OUT.scene){lightCap(sc,camera);walkersOut(dt);}else if(W.store==='vbase'||W.store==='bpan')lightCap(sc,camera,3);if(camera.parent!==sc){sc.add(camera);camera.far=sc===scene?40:sc===OUT.scene?170:30;camera.updateProjectionMatrix();}
+  const sc=W.store&&STORES[W.store].scene?STORES[W.store].scene:W.home&&HOME.scene?HOME.scene:(W.outside&&OUT.scene?OUT.scene:scene);if(HOME.sweat&&sc===HOME.scene){const r=roomOf(me);HOME.sweat.forEach(S=>{S.m.visible=S.room===r;});}footsteps();fxStep(dt);wreckSmoke(dt);gfFollow(dt);detailCull(sc,camera);if(sc===OUT.scene){lightCap(sc,camera);walkersOut(dt);}else if(W.store==='vbase'||W.store==='bpan')lightCap(sc,camera,3);if(camera.parent!==sc){sc.add(camera);camera.far=sc===scene?40:sc===OUT.scene?170:30;camera.updateProjectionMatrix();}
   drawScene(sc,dt);fpsWatch(dt);
 }
 if(window.__TEST__)window.__G={stTrain,trainSeg,nextDeps,gmNow,rushNow,arrest,R_,rTurn,rBuy,rGacha,noOpenShame,GLINE,RAMEN,health,TOPS_W,GYM,gymStart,gymStop,gymRelease,gymPress,gymMember,STORES,enterStore,applyLook,lookOf,lookCode,openLookUI,wearItem,outfitKey,OWN,forceSleep,dayWrap,get gOrd(){return W.gOrd;},leaveHome,enterCar,get trays(){return trays;},CARRYDAY,openGuestShop,enterAsGuest,guestSit,guestOrder,guestKeys,startPassout,sleepNow,exitHome,enterHome,crewReact,PARTIES,SLOTS,spawnParty,trySpawnParty,staffN,tgtKeys,partyServeDrink,partyServeFood,groupCards,PASS,putPass,sgServeBeer,sgServeFood,setJob,SEKKYO,GLINE,meddle,fryers,get rack(){return rack;},lineThreads,LW,JOB_NAME,setSky,NIGHT,buildOut,CREW_NOW,crewToday,MAKA,DAY,CREW,isWorkDay,OWN,SOCCER,get player(){return player;},faceUpdate,buildModel,NORMAL_TYPES,setExpr,renderer,THREE,occluders,walkHome,storeWalk,buildStore,W,P,get customers(){return customers;},regulars,cops,seats,player,messes,S,doors,setHand,getHand:()=>hand,newGlass,serveDrink,drinkLabel,spawn,hitPerson,playerAttack,findPath,persons,setYaw:v=>{yaw=v;view.yaw=v;},BIKE,render,canvas,camera,CARRY,pickUp,carryUse,startPassout,goOutsideFront,drawTownMap,HOME,DRV,goHome,leaveHome,openingTasks,RETA,get startMode(){return startMode;},CAR,OUT,goOutside,doAction,get view(){return view;},openMenu,setPitch:v=>{pitch=v;view.pitch=v;},MP,get players(){return players;},get me(){return me;},walkOut,otherCars,OOBST,walkable,floorAt,BANK,STORES,GOODS,storeOpen,gameClock,actionItems,locOf,VEH,aptOf,seedR,simStep,sampleInput,input,hashState,quantize,startMulti,hits,get later(){return LATER;},withPlayer,toSolo,update,startGame,get toiletUser(){return toiletUser;},trays,shout:playerShout,regQueue,SG,SGT,startStudents,returners,lostItems,dropLost,startClosing,closingTasks,get returns(){return returns;},setShopLights,endGame};
-if(window.__TEST__)Object.assign(window.__G,{renderer,OUT,HOME,mainScene:scene,frozenCheck,FROZEN,LamOrig,PhoOrig,OOBST,MAPB,VEH,goalEvent,CPRED,rookieMP,get BANK(){return BANK},AMBS,ambulanceFor,DAY,WRECKABLE,OWN,get handG(){return hand},doAction,get heldMesh(){return heldMesh},bpWalk,get hand(){return hand},C4S,FXL,outfitType,buildModel,applyLook,setExpr,undressGuest,get CARRY(){return CARRY},NORMAL_TYPES,HX,emoteArms,emoteBody,rigUpdate,get input(){return input},sweatSurface,vbWalk,get AC(){return AC},FOOT,initAudio,vCaption,get BIKE(){return BIKE},get CAR(){return CAR}});
+if(window.__TEST__)Object.assign(window.__G,{renderer,OUT,HOME,mainScene:scene,frozenCheck,FROZEN,LamOrig,PhoOrig,OOBST,MAPB,VEH,goalEvent,CPRED,rookieMP,get BANK(){return BANK},AMBS,ambulanceFor,nearWoman,gfList,GFM,DAY,WRECKABLE,OWN,get handG(){return hand},doAction,get heldMesh(){return heldMesh},bpWalk,get hand(){return hand},C4S,FXL,outfitType,buildModel,applyLook,setExpr,undressGuest,get CARRY(){return CARRY},NORMAL_TYPES,HX,emoteArms,emoteBody,rigUpdate,get input(){return input},sweatSurface,vbWalk,get AC(){return AC},FOOT,initAudio,vCaption,get BIKE(){return BIKE},get CAR(){return CAR}});
 camera.position.set(0,1.62,.2);
 {const _bm=buildModel;buildModel=function(t,s){const m=_bm(t,s);if(SHADOWS)m.g.traverse(o=>{if(o.isMesh)o.castShadow=true;});m.blob=blob(m.g,0,.02,.6,.48,.012);return m;};}
 setShadows(scene);if(HQ)loadPP();
